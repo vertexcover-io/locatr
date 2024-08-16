@@ -10,7 +10,7 @@ import (
 )
 
 type playwrightPlugin struct {
-	locatr.PluginInteface
+	locatr.PluginInterface
 	page playwright.Page
 }
 

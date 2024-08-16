@@ -35,6 +35,3 @@ node_modules/
 
 # Environment files (optional, if used)
 .env
-
-# Test script
-main.go

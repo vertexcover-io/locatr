@@ -33,11 +33,11 @@ type LlmClient interface {
 }
 
 type BaseLocatr struct {
-	plugin    PluginInteface
+	plugin    PluginInterface
 	llmClient LlmClient
 }
 
-func NewBaseLocatr(plugin PluginInteface, llmClient LlmClient) *BaseLocatr {
+func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient) *BaseLocatr {
 	return &BaseLocatr{
 		plugin:    plugin,
 		llmClient: llmClient,
@@ -106,4 +106,3 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	}
 	return "", ErrInvalidElementIdGenerated
 }
-
