@@ -1,8 +1,9 @@
-package main
+package plugins
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"unsafe"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/vertexcover-io/locatr/locatr"
 )
 
-type wasmPlugin struct{}
+type wasmPlugin struct {
+	evaluateFunc func(string) string
+}
 
 type wasmLocatrApp struct {
 	baseLocatr *locatr.BaseLocatr
@@ -18,34 +21,17 @@ type wasmLocatrApp struct {
 
 var app *wasmLocatrApp
 
-//export wasiEvaluateJs
-func wasiEvaluateJs(ptr, length int32) (int32, int32)
-
-//export wasiGetMemory
-func wasiGetMemory() int32
-
-func evaluateFunc(jsStr string) string {
-	inputPtr := unsafe.Pointer(&[]byte(jsStr)[0])
-	inputLen := int32(len(jsStr))
-
-	resultPtr, resultLen := wasiEvaluateJs(int32(uintptr(inputPtr)), inputLen)
-	memoryPtr := wasiGetMemory()
-
-	resultSlice := (*[1 << 30]byte)(unsafe.Pointer(uintptr(memoryPtr)))[resultPtr : resultPtr+resultLen]
-	return string(resultSlice)
-}
-
 func (p *wasmPlugin) LoadJsScript(scriptPath string) error {
 	scriptStr, err := locatr.ReadStaticFile(scriptPath)
 	if err != nil {
 		return err
 	}
-	evaluateFunc(string(scriptStr))
+	p.evaluateFunc(string(scriptStr))
 	return nil
 }
 
 func (p *wasmPlugin) GetMinifiedDom() (*locatr.ElementSpec, error) {
-	result := evaluateFunc("minifyHTML()")
+	result := p.evaluateFunc("minifyHTML()")
 	if result == "" {
 		return nil, locatr.ErrUnableToMinifyHtmlDom
 	}
@@ -59,7 +45,7 @@ func (p *wasmPlugin) GetMinifiedDom() (*locatr.ElementSpec, error) {
 }
 
 func (p *wasmPlugin) ExtractIdLocatorMap() (locatr.IdToLocatorMap, error) {
-	result := evaluateFunc("getElementIdLocatorMap()")
+	result := p.evaluateFunc("getElementIdLocatorMap()")
 	if result == "" {
 		return nil, locatr.ErrUnableToExtractIdLocatorMap
 	}
@@ -88,21 +74,20 @@ func (p *wasmPlugin) GetValidLocator(locators []string) (string, error) {
         return null;
     }
     `
-	result := evaluateFunc(jsFunction)
+	result := p.evaluateFunc(jsFunction)
 	if result == "" {
 		return "", errors.New("no valid locator found")
 	}
 	return result, nil
 }
 
-//export InitLocatr
-func InitLocatr(provider, model, apiKey string) string {
+func InitLocatr(provider, model, apiKey string, evaluateFunc func(string) string) string {
 	llmClient, err := llm.NewLlmClient(provider, model, apiKey)
 	if err != nil {
 		return err.Error()
 	}
 
-	plugin := &wasmPlugin{}
+	plugin := &wasmPlugin{evaluateFunc: evaluateFunc}
 	app = &wasmLocatrApp{
 		baseLocatr: locatr.NewBaseLocatr(plugin, llmClient),
 	}
@@ -110,7 +95,6 @@ func InitLocatr(provider, model, apiKey string) string {
 	return ""
 }
 
-//export GetLocatorStr
 func GetLocatorStr(userReq string) any {
 	if app == nil {
 		return []interface{}{nil, errors.New("Locator app not initialized")}
@@ -124,8 +108,11 @@ func GetLocatorStr(userReq string) any {
 	return []interface{}{locator, nil}
 }
 
+func allocate(size int) uintptr {
+	buf := make([]byte, size)
+	return uintptr(unsafe.Pointer(&buf[0]))
+}
+
 func main() {
-	// SO that compiler won't optimize out the functions
-	wasiEvaluateJs(0, 0)
-	wasiGetMemory()
+	fmt.Println("Wasm module loaded")
 }
