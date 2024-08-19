@@ -136,7 +136,11 @@ func (p *wasmPlugin) GetValidLocator(locators []string) (string, error) {
 }
 
 //export InitLocatr
-func InitLocatr(provider, model, apiKey string) {
+func InitLocatr(providerPtr, modelPtr, apiKeyPtr uint64) {
+	provider := string(readBufferFromMemory(providerPtr))
+	model := string(readBufferFromMemory(modelPtr))
+	apiKey := string(readBufferFromMemory(apiKeyPtr))
+
 	llmClient, _ := llm.NewLlmClient(provider, model, apiKey, httpPost)
 
 	plugin := &wasmPlugin{}
@@ -146,7 +150,9 @@ func InitLocatr(provider, model, apiKey string) {
 }
 
 //export GetLocatorStr
-func GetLocatorStr(userReq string) uint64 {
+func GetLocatorStr(userReqPtr uint64) uint64 {
+	userReq := string(readBufferFromMemory(userReqPtr))
+
 	result := getLocatorStrResult{}
 
 	if app == nil {
