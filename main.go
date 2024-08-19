@@ -30,8 +30,6 @@ type llmClient struct {
 
 const MASK uint64 = (1 << 32) - 1
 
-var app *wasmLocatrApp
-
 //go:wasmimport env wasiEvaluateJs
 func wasiEvaluateJs(jsStrPtr uint64) uint64
 
@@ -136,7 +134,7 @@ func (p *wasmPlugin) GetValidLocator(locators []string) (string, error) {
 }
 
 //export InitLocatr
-func InitLocatr(providerPtr, modelPtr, apiKeyPtr uint64) {
+func InitLocatr(providerPtr, modelPtr, apiKeyPtr uint64) uint64 {
 	provider := string(readBufferFromMemory(providerPtr))
 	model := string(readBufferFromMemory(modelPtr))
 	apiKey := string(readBufferFromMemory(apiKeyPtr))
@@ -144,13 +142,15 @@ func InitLocatr(providerPtr, modelPtr, apiKeyPtr uint64) {
 	llmClient, _ := llm.NewLlmClient(provider, model, apiKey, httpPost)
 
 	plugin := &wasmPlugin{}
-	app = &wasmLocatrApp{
+	app := &wasmLocatrApp{
 		baseLocatr: locatr.NewBaseLocatr(plugin, llmClient),
 	}
+
+	return uint64(uintptr(unsafe.Pointer(app)))
 }
 
 //export GetLocatorStr
-func GetLocatorStr(userReqPtr uint64) uint64 {
+func (app *wasmLocatrApp) GetLocatorStr(userReqPtr uint64) uint64 {
 	userReq := string(readBufferFromMemory(userReqPtr))
 
 	result := getLocatorStrResult{}
