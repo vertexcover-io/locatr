@@ -1,17 +1,21 @@
 package llm
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/validator.v2"
 )
 
-var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
+var (
+	ErrInvalidProviderForLlm = errors.New("invalid provider for LLM")
+	MaxTokens                = 256
+)
 
-const MaxTokens int = 256
+type HttpPostFunc = func(url string, headers map[string]string, body []byte) ([]byte, error)
 
 type llmClient struct {
 	apiKey   string `validate:"regexp=sk-*"`
@@ -20,28 +24,32 @@ type llmClient struct {
 
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
+
+	httpPost HttpPostFunc
 }
 
-func NewLlmClient(provider string, model string, apiKey string) (*llmClient, error) {
+func NewLlmClient(provider, model, apiKey string, postFunc HttpPostFunc) (*llmClient, error) {
 	client := &llmClient{
 		apiKey:   apiKey,
 		provider: provider,
 		model:    model,
+		httpPost: postFunc,
 	}
-	validate := validator.NewValidator()
-	if err := validate.Validate(client); err != nil {
+
+	if err := validator.Validate(client); err != nil {
 		return nil, err
 	}
 
-	switch client.provider {
+	switch provider {
 	case "openai":
-		client.openaiClient = openai.NewClient(client.apiKey)
+		client.openaiClient = openai.NewClient(apiKey)
 	case "anthropic":
-		client.anthropicClient = anthropic.NewClient(client.apiKey)
+		client.anthropicClient = anthropic.NewClient(apiKey)
 	default:
 		return nil, ErrInvalidProviderForLlm
 	}
 
+	fmt.Println("LLM Client created with provider:", provider)
 	return client, nil
 }
 
@@ -57,38 +65,74 @@ func (c *llmClient) ChatCompletion(prompt string) (string, error) {
 }
 
 func (c *llmClient) anthropicRequest(prompt string) (string, error) {
-	resp, err := c.anthropicClient.CreateMessages(
-		context.Background(),
-		anthropic.MessagesRequest{
-			Model: c.model,
-			Messages: []anthropic.Message{
-				anthropic.NewUserTextMessage(prompt),
-			},
-			MaxTokens: MaxTokens,
-		})
+	request := anthropic.MessagesRequest{
+		Model: c.model,
+		Messages: []anthropic.Message{
+			anthropic.NewUserTextMessage(prompt),
+		},
+		MaxTokens: MaxTokens,
+	}
+
+	payload, err := json.Marshal(request)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal Anthropic request: %w", err)
+	}
+
+	url := "https://api.anthropic.com/v1/complete"
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", c.apiKey),
+	}
+
+	response, err := c.httpPost(url, headers, payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to send Anthropic request: %w", err)
+	}
+
+	var resp anthropic.MessagesResponse
+	if err := json.Unmarshal(response, &resp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal Anthropic response: %w", err)
 	}
 
 	return resp.Content[0].GetText(), nil
 }
 
 func (c *llmClient) openaiRequest(prompt string) (string, error) {
-	resp, err := c.openaiClient.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: c.model,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
-				},
+	request := openai.ChatCompletionRequest{
+		Model: c.model,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: "You are a helpful assistant.",
+			},
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: prompt,
 			},
 		},
-	)
+	}
+
+	payload, err := json.Marshal(request)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal OpenAI request: %w", err)
+	}
+
+	url := "https://api.openai.com/v1/chat/completions"
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", c.apiKey),
+	}
+
+	response, err := c.httpPost(url, headers, payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to send OpenAI request: %w", err)
+	}
+
+	var resp openai.ChatCompletionResponse
+	if err := json.Unmarshal(response, &resp); err != nil {
+		return "", fmt.Errorf("failed to unmarshal OpenAI response: %w", err)
 	}
 
 	return resp.Choices[0].Message.Content, nil
 }
+

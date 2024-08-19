@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 	"unsafe"
 
 	"github.com/vertexcover-io/locatr/llm"
@@ -16,26 +16,55 @@ type wasmLocatrApp struct {
 	baseLocatr *locatr.BaseLocatr
 }
 
+type getLocatorStrResult struct {
+	Locator string `json:"locator,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
+type llmClient struct {
+	locatr.LlmClient
+	provider string
+	model    string
+	apiKey   string
+}
+
+const MASK uint64 = (1 << 32) - 1
+
 var app *wasmLocatrApp
 
-//export wasiEvaluateJs
-func wasiEvaluateJs(ptr, length int32) (int32, int32)
+//go:wasmimport env wasiEvaluateJs
+func wasiEvaluateJs(jsStrPtr uint64) uint64
 
-//export wasiGetMemory
-func wasiGetMemory() int32
+//go:wasmimport env wasiHttpPost
+func wasiHttpPost(urlPtr uint64, headersPtr uint64, bodyPtr uint64) uint64
+
+func httpPost(url string, headers map[string]string, body []byte) ([]byte, error) {
+	urlPtr := copyBufferToMemory([]byte(url))
+
+	headersBytes, err := json.Marshal(headers)
+	if err != nil {
+		return nil, err
+	}
+	headersPtr := copyBufferToMemory(headersBytes)
+
+	bodyPtr := copyBufferToMemory(body)
+
+	resultPtr := wasiHttpPost(urlPtr, headersPtr, bodyPtr)
+	resultBytes := readBufferFromMemory(resultPtr)
+	return resultBytes, nil
+}
 
 func evaluateFunc(jsStr string) string {
-	inputPtr := unsafe.Pointer(&[]byte(jsStr)[0])
-	inputLen := int32(len(jsStr))
+	inputPtr := copyBufferToMemory([]byte(jsStr))
+	resultPtr := wasiEvaluateJs(inputPtr)
 
-	resultPtr, resultLen := wasiEvaluateJs(int32(uintptr(inputPtr)), inputLen)
-	memoryPtr := wasiGetMemory()
-
-	resultSlice := (*[1 << 30]byte)(unsafe.Pointer(uintptr(memoryPtr)))[resultPtr : resultPtr+resultLen]
-	return string(resultSlice)
+	resultBytes := readBufferFromMemory(resultPtr)
+	return string(resultBytes)
 }
 
 func (p *wasmPlugin) LoadJsScript(scriptPath string) error {
+	fmt.Println("Loading script: ", scriptPath)
+
 	scriptStr, err := locatr.ReadStaticFile(scriptPath)
 	if err != nil {
 		return err
@@ -45,21 +74,25 @@ func (p *wasmPlugin) LoadJsScript(scriptPath string) error {
 }
 
 func (p *wasmPlugin) GetMinifiedDom() (*locatr.ElementSpec, error) {
+	fmt.Println("Getting minified dom")
+
 	result := evaluateFunc("minifyHTML()")
 	if result == "" {
-		return nil, locatr.ErrUnableToMinifyHtmlDom
+		return nil, errors.New("empty minified dom")
 	}
 
 	elementSpec := &locatr.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
-		return nil, locatr.ErrUnableToMinifyHtmlDom
+		return nil, err
 	}
 
 	return elementSpec, nil
 }
 
 func (p *wasmPlugin) ExtractIdLocatorMap() (locatr.IdToLocatorMap, error) {
-	result := evaluateFunc("getElementIdLocatorMap()")
+	fmt.Println("Extracting id locator map")
+
+	result := evaluateFunc("mapElementsToJson()")
 	if result == "" {
 		return nil, locatr.ErrUnableToExtractIdLocatorMap
 	}
@@ -68,64 +101,98 @@ func (p *wasmPlugin) ExtractIdLocatorMap() (locatr.IdToLocatorMap, error) {
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, err
 	}
+
 	return *idLocatorMap, nil
 }
 
 func (p *wasmPlugin) GetValidLocator(locators []string) (string, error) {
-	jsFunction := `
-    (locators) => {
-        for (const locator of locators) {
-            try {
-                const elements = document.querySelectorAll(locator);
-                if (elements.length === 1) {
-                    return locator;
-                }
-            } catch (error) {
-                // If there's an error with this locator, continue to the next one
-                continue;
-            }
-        }
-        return null;
-    }
-    `
-	result := evaluateFunc(jsFunction)
-	if result == "" {
-		return "", errors.New("no valid locator found")
-	}
-	return result, nil
+	fmt.Println("Getting valid locator")
+	// jsFunction := `
+	//    (locators) => {
+	//        for (const locator of locators) {
+	//            try {
+	//                const elements = document.querySelectorAll(locator);
+	//                if (elements.length === 1) {
+	//                    return locator;
+	//                }
+	//            } catch (error) {
+	//                // If there's an error with this locator, continue to the next one
+	//                continue;
+	//            }
+	//        }
+	//        return null;
+	//    }
+	//  `
+	// locatorsStr := fmt.Sprintf("%#v", locators)
+	// jsFuncStr := fmt.Sprintf("const locators = %s; %s", locatorsStr, jsFunction)
+	// result := evaluateFunc(jsFunction + '(' + locatorsStr + ')')
+	// if result == "" {
+	// 	return "", errors.New("no valid locator found")
+	// }
+	// return result, nil
+
+	resultLocator := locators[0]
+	return resultLocator, nil
 }
 
 //export InitLocatr
-func InitLocatr(provider, model, apiKey string) string {
-	llmClient, err := llm.NewLlmClient(provider, model, apiKey)
-	if err != nil {
-		return err.Error()
-	}
+func InitLocatr(provider, model, apiKey string) {
+	llmClient, _ := llm.NewLlmClient(provider, model, apiKey, httpPost)
 
 	plugin := &wasmPlugin{}
 	app = &wasmLocatrApp{
 		baseLocatr: locatr.NewBaseLocatr(plugin, llmClient),
 	}
-
-	return ""
 }
 
 //export GetLocatorStr
-func GetLocatorStr(userReq string) any {
+func GetLocatorStr(userReq string) uint64 {
+	result := getLocatorStrResult{}
+
 	if app == nil {
-		return []interface{}{nil, errors.New("Locator app not initialized")}
+		result.Error = "Locator app not initialized"
+	} else {
+		locator, err := app.baseLocatr.GetLocatorStr(userReq)
+		if err != nil {
+			result.Error = err.Error()
+		} else {
+			result.Locator = locator
+		}
 	}
 
-	locator, err := app.baseLocatr.GetLocatorStr(userReq)
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		log.Println("Error getting locator string:", err)
-		return []interface{}{nil, err.Error()}
+		result.Error = err.Error()
 	}
-	return []interface{}{locator, nil}
+
+	return copyBufferToMemory(jsonBytes)
+}
+
+func readBufferFromMemory(bufferPosition uint64) []byte {
+	ptr := bufferPosition >> 32
+	length := bufferPosition & MASK
+	pointer := uintptr(ptr)
+
+	buffer := make([]byte, length)
+
+	for i := 0; i < int(length); i++ {
+		s := *(*byte)(unsafe.Pointer(pointer + uintptr(i)))
+		buffer[i] = s
+	}
+
+	return buffer
+}
+
+func copyBufferToMemory(buffer []byte) uint64 {
+	bufferPtr := &buffer[0]
+	unsafePtr := uintptr(unsafe.Pointer(bufferPtr))
+
+	ptr := uint32(unsafePtr)
+	size := uint32(len(buffer))
+
+	return (uint64(ptr) << uint64(32)) | uint64(size)
 }
 
 func main() {
-	// SO that compiler won't optimize out the functions
-	wasiEvaluateJs(0, 0)
-	wasiGetMemory()
+	wasiEvaluateJs(0)
 }

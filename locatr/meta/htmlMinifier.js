@@ -372,7 +372,7 @@ function minifyHTML() {
  * Maps each element in the document to its CSS locator and unique ID.
  * @returns {string} JSON map of CSS locators to unique IDs.
  */
-function getElementIdLocatorMap() {
+function mapElementsToJson() {
   const elements = document.querySelectorAll("*");
   const map = {};
 

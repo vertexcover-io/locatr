@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"os"
 )
 
 var (
@@ -45,7 +43,7 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient) *BaseLocatr {
 }
 
 func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
-	systemPrompt, err := os.ReadFile("meta/locate_element.prompt")
+	systemPrompt, err := ReadStaticFile("meta/locate_element.prompt")
 	if err != nil {
 		return "", err
 	}
@@ -75,32 +73,28 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.LoadJsScript("meta/htmlMinifier.js"); err != nil {
-		return "", ErrUnableToLoadJsScripts
+		return "", err
 	}
 
 	minifiedDOM, err := l.plugin.GetMinifiedDom()
 	if err != nil {
-		log.Println(err)
-		return "", ErrUnableToMinifyHtmlDom
+		return "", err
 	}
 
 	locatorsMap, err := l.plugin.ExtractIdLocatorMap()
 	if err != nil {
-		log.Println(err)
-		return "", ErrUnableToExtractIdLocatorMap
+		return "", err
 	}
 
 	elementID, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
-		log.Println(err)
-		return "", ErrUnableToLocateElementId
+		return "", err
 	}
 
 	if locators, ok := locatorsMap[elementID]; ok {
 		validLocator, err := l.plugin.GetValidLocator(locators)
 		if err != nil {
-			log.Println(err)
-			return "", ErrUnableToFindValidLocator
+			return "", err
 		}
 		return validLocator, nil
 	}
