@@ -35,3 +35,7 @@ node_modules/
 
 # Environment files (optional, if used)
 .env
+
+# Generated protobuf files
+*.pb.go
+*.cache

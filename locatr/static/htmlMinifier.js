@@ -372,7 +372,7 @@ function minifyHTML() {
  * Maps each element in the document to its CSS locator and unique ID.
  * @returns {string} JSON map of CSS locators to unique IDs.
  */
-function getElementIdLocatorMap() {
+function mapElementsToJson() {
   const elements = document.querySelectorAll("*");
   const map = {};
 
@@ -385,5 +385,19 @@ function getElementIdLocatorMap() {
   return JSON.stringify(map, null, 2);
 }
 
+/**
+ * Check if a provided locator is a valid locator in the dom.
+ * @param {string} locator - The locator to check.
+ * @resturns {boolean} true if the locator is valid, false otherwise.
+ */
+function isValidLocator(locator) {
+  try {
+    return document.querySelector(locator) !== null;
+  } catch (error) {
+    return false;
+  }
+}
+
 window.minifyHTML = minifyHTML;
 window.mapElementsToJson = mapElementsToJson;
+window.isValidLocator = isValidLocator;

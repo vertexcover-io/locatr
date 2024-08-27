@@ -1,9 +1,7 @@
 package plugins
 
 import (
-	"encoding/json"
-	"errors"
-	"os"
+	"fmt"
 
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/locatr"
@@ -19,13 +17,39 @@ type playwrightLocator struct {
 	locatr *locatr.BaseLocatr
 }
 
-func NewPlaywrightLocatr(page playwright.Page, llmClient locatr.LlmClient) *playwrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, conf *locatr.LocatrConfig) (*playwrightLocator, error) {
 	pwPlugin := &playwrightPlugin{page: page}
+	baseLocatr, err := locatr.NewBaseLocatr(pwPlugin, conf)
+	if err != nil {
+		return nil, err
+	}
 
 	return &playwrightLocator{
 		page:   page,
-		locatr: locatr.NewBaseLocatr(pwPlugin, llmClient),
+		locatr: baseLocatr,
+	}, nil
+}
+
+func (pl *playwrightPlugin) EvaluateJs(jsStr string) string {
+	result, err := pl.page.Evaluate(jsStr)
+	if err != nil {
+		return ""
 	}
+	if result == nil {
+		return ""
+	}
+
+	if str, ok := result.(string); ok {
+		return str
+	}
+	if num, ok := result.(float64); ok {
+		return fmt.Sprint(num)
+	}
+	if boolval, ok := result.(bool); ok {
+		return fmt.Sprint(boolval)
+	}
+
+	return ""
 }
 
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
@@ -38,56 +62,4 @@ func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 		return nil, err
 	}
 	return pl.page.Locator(locatorStr), nil
-}
-
-func (pl *playwrightPlugin) LoadJsScript(scriptPath string) error {
-	scriptContent, err := os.ReadFile(scriptPath)
-	if err != nil {
-		return err
-	}
-	pl.page.Evaluate(string(scriptContent))
-	return nil
-}
-
-func (pl *playwrightPlugin) GetMinifiedDom() (*locatr.ElementSpec, error) {
-	evaluationResult, err := pl.page.Evaluate("minifyHTML()")
-	if err != nil {
-		return nil, err
-	}
-
-	minifiedDomStr := evaluationResult.(string)
-	minifiedDom := &locatr.ElementSpec{}
-	if err = json.Unmarshal([]byte(minifiedDomStr), minifiedDom); err != nil {
-		return nil, err
-	}
-
-	return minifiedDom, nil
-}
-
-func (pl *playwrightPlugin) ExtractIdLocatorMap() (locatr.IdToLocatorMap, error) {
-	evaluationResult, err := pl.page.Evaluate("getElementIdLocatorMap()")
-	if err != nil {
-		return nil, err
-	}
-
-	idLocatorMapStr := evaluationResult.(string)
-	idLocatorMap := &locatr.IdToLocatorMap{}
-	if err = json.Unmarshal([]byte(idLocatorMapStr), idLocatorMap); err != nil {
-		return nil, err
-	}
-
-	return *idLocatorMap, nil
-}
-
-func (pl *playwrightPlugin) GetValidLocator(locators []string) (string, error) {
-	for _, locator := range locators {
-		count, err := pl.page.Locator(locator).Count()
-		if err != nil {
-			continue
-		}
-		if count == 1 {
-			return locator, nil
-		}
-	}
-	return "", errors.New("no valid locator found")
 }
