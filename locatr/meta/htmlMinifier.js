@@ -3,31 +3,31 @@
  * @type {string[]}
  */
 const RESERVED_ATTRIBUTES = [
-  "accept",
-  "alt",
-  "aria-checked",
-  "aria-current",
-  "aria-label",
-  "aria-required",
-  "aria-role",
-  "aria-selected",
-  "checked",
-  "for",
-  "href",
-  "maxlength",
-  "name",
-  "pattern",
-  "placeholder",
-  "readonly",
-  "required",
-  "selected",
-  "src",
-  "text-value",
-  "title",
-  "type",
-  "role",
-  "value",
-  "facet-refined", // Custom attribute for marking input-checkboxes of car-listing sites.
+	"accept",
+	"alt",
+	"aria-checked",
+	"aria-current",
+	"aria-label",
+	"aria-required",
+	"aria-role",
+	"aria-selected",
+	"checked",
+	"for",
+	"href",
+	"maxlength",
+	"name",
+	"pattern",
+	"placeholder",
+	"readonly",
+	"required",
+	"selected",
+	"src",
+	"text-value",
+	"title",
+	"type",
+	"role",
+	"value",
+	"facet-refined", // Custom attribute for marking input-checkboxes of car-listing sites.
 ];
 
 /**
@@ -36,13 +36,13 @@ const RESERVED_ATTRIBUTES = [
  * @returns {string} Hash code.
  */
 function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash.toString(36);
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash |= 0; // Convert to 32bit integer
+	}
+	return hash.toString(36);
 }
 
 /**
@@ -51,7 +51,7 @@ function hashCode(str) {
  * @returns {string} Unique ID.
  */
 function generateUniqueId(locator) {
-  return hashCode(locator);
+	return hashCode(locator);
 }
 
 /**
@@ -60,17 +60,17 @@ function generateUniqueId(locator) {
  * @returns {boolean} True if the element is visible, false otherwise.
  */
 function isElementVisible(element) {
-  const style = window.getComputedStyle(element);
-  const rect = element.getBoundingClientRect();
-  const isVisible = !(
-    element.getAttribute("aria-hidden") === "true" ||
-    style.display === "none" ||
-    style.visibility === "hidden" ||
-    style.opacity === "0" ||
-    rect.width === 0 ||
-    rect.height === 0
-  );
-  return isVisible || Array.from(element.children).some(isElementVisible);
+	const style = window.getComputedStyle(element);
+	const rect = element.getBoundingClientRect();
+	const isVisible = !(
+		element.getAttribute("aria-hidden") === "true" ||
+		style.display === "none" ||
+		style.visibility === "hidden" ||
+		style.opacity === "0" ||
+		rect.width === 0 ||
+		rect.height === 0
+	);
+	return isVisible || Array.from(element.children).some(isElementVisible);
 }
 
 /**
@@ -79,36 +79,36 @@ function isElementVisible(element) {
  * @returns {boolean} True if the element is interactable, false otherwise.
  */
 function isInputInteractable(element) {
-  const elemTagName = element.tagName.toLowerCase();
-  if (elemTagName !== "input") return false;
+	const elemTagName = element.tagName.toLowerCase();
+	if (elemTagName !== "input") return false;
 
-  const elemType = (element.getAttribute("type") ?? "text")
-    .toLowerCase()
-    .trim();
+	const elemType = (element.getAttribute("type") ?? "text")
+		.toLowerCase()
+		.trim();
 
-  const clickableElemTypes = [
-    "button",
-    "checkbox",
-    "date",
-    "datetime-local",
-    "email",
-    "file",
-    "image",
-    "month",
-    "number",
-    "password",
-    "radio",
-    "range",
-    "reset",
-    "search",
-    "submit",
-    "tel",
-    "text",
-    "time",
-    "url",
-    "week",
-  ];
-  return clickableElemTypes.includes(elemType);
+	const clickableElemTypes = [
+		"button",
+		"checkbox",
+		"date",
+		"datetime-local",
+		"email",
+		"file",
+		"image",
+		"month",
+		"number",
+		"password",
+		"radio",
+		"range",
+		"reset",
+		"search",
+		"submit",
+		"tel",
+		"text",
+		"time",
+		"url",
+		"week",
+	];
+	return clickableElemTypes.includes(elemType);
 }
 
 /**
@@ -117,24 +117,24 @@ function isInputInteractable(element) {
  * @returns {boolean} True if the element is valid, false otherwise.
  */
 function isValidElement(element) {
-  const elemTagName = element.tagName.toLowerCase();
-  if (elemTagName === "input") return isInputInteractable(element);
+	const elemTagName = element.tagName.toLowerCase();
+	if (elemTagName === "input") return isInputInteractable(element);
 
-  const invalidTags = [
-    "script",
-    "style",
-    "link",
-    "iframe",
-    "meta",
-    "noscript",
-    "path",
-  ];
-  return (
-    !invalidTags.includes(elemTagName) &&
-    element.getAttribute("aria-disabled") !== "true" &&
-    !element.disabled &&
-    isElementVisible(element)
-  );
+	const invalidTags = [
+		"script",
+		"style",
+		"link",
+		"iframe",
+		"meta",
+		"noscript",
+		"path",
+	];
+	return (
+		!invalidTags.includes(elemTagName) &&
+		element.getAttribute("aria-disabled") !== "true" &&
+		!element.disabled &&
+		isElementVisible(element)
+	);
 }
 
 /**
@@ -143,19 +143,19 @@ function isValidElement(element) {
  * @returns {string} Visible text within the current parent element.
  */
 function getVisibleText(node) {
-  if (node.nodeType === Node.ELEMENT_NODE && isElementVisible(node)) {
-    let visibleText = "";
-    for (const child of node.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        const trimmedText = child.data.trim();
-        if (trimmedText) {
-          visibleText += trimmedText + " ";
-        }
-      }
-    }
-    return visibleText.trim();
-  }
-  return "";
+	if (node.nodeType === Node.ELEMENT_NODE && isElementVisible(node)) {
+		let visibleText = "";
+		for (const child of node.childNodes) {
+			if (child.nodeType === Node.TEXT_NODE) {
+				const trimmedText = child.data.trim();
+				if (trimmedText) {
+					visibleText += trimmedText + " ";
+				}
+			}
+		}
+		return visibleText.trim();
+	}
+	return "";
 }
 
 /**
@@ -194,20 +194,20 @@ function getVisibleText(node) {
  * @returns {Attributes} Trimmed attributes.
  */
 function getTrimmedAttributes(element) {
-  /** @type {Attributes} */
-  const trimmedAttributes = {};
-  Array.from(element.attributes).forEach((attr) => {
-    if (
-      (RESERVED_ATTRIBUTES.includes(attr.name) ||
-        attr.name.startsWith("data-")) &&
-      attr.value !== ""
-    ) {
-      trimmedAttributes[attr.name] = attr.value;
-    } else if (attr.name == "id" && attr.value != "") {
-      trimmedAttributes["data-id"] = attr.value;
-    }
-  });
-  return trimmedAttributes;
+	/** @type {Attributes} */
+	const trimmedAttributes = {};
+	Array.from(element.attributes).forEach((attr) => {
+		if (
+			(RESERVED_ATTRIBUTES.includes(attr.name) ||
+				attr.name.startsWith("data-")) &&
+			attr.value !== ""
+		) {
+			trimmedAttributes[attr.name] = attr.value;
+		} else if (attr.name == "id" && attr.value != "") {
+			trimmedAttributes["data-id"] = attr.value;
+		}
+	});
+	return trimmedAttributes;
 }
 
 /**
@@ -216,99 +216,115 @@ function getTrimmedAttributes(element) {
  * @returns {string[]} Array of CSS selectors.
  */
 function generateCssSelectors(element) {
-  /**
-   * Escapes and joins class names.
-   * @param {Element} el - The element whose class names to escape and join.
-   * @returns {string} The escaped and joined class names.
-   */
-  function getClassNames(el) {
-    if (typeof el.className === "string") {
-      return el.className
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((cls) => `.${CSS.escape(cls)}`)
-        .join("");
-    }
-    return "";
-  }
+	/**
+	 * Escapes and joins class names.
+	 * @param {Element} el - The element whose class names to escape and join.
+	 * @returns {string} The escaped and joined class names.
+	 */
+	function getClassNames(el) {
+		if (typeof el.className === "string") {
+			return el.className
+				.split(/\s+/)
+				.filter(Boolean)
+				.map((cls) => `.${CSS.escape(cls)}`)
+				.join("");
+		}
+		return "";
+	}
 
-  /**
-   * Generates a CSS selector for an element using its ID.
-   * @param {Element} el - The element to generate a CSS selector for.
-   * @returns {string} The generated CSS selector.
-   */
-  function getIdSelector(el) {
-    const path = [];
-    while (el && el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      if (el.id) {
-        selector += `#${CSS.escape(String(el.id))}`;
-        path.unshift(selector);
-        break;
-      }
-      path.unshift(selector);
-      el = el.parentNode;
-    }
-    return path.join(" > ");
-  }
+	/**
+	 * Generates a CSS selector for an element using its ID.
+	 * @param {Element} el - The element to generate a CSS selector for.
+	 * @returns {string} The generated CSS selector.
+	 */
+	function getIdSelector(el) {
+		const path = [];
+		while (el && el.nodeType === Node.ELEMENT_NODE) {
+			let selector = el.nodeName.toLowerCase();
+			if (el.id) {
+				selector += `#${CSS.escape(String(el.id))}`;
+				path.unshift(selector);
+				break;
+			}
+			path.unshift(selector);
+			el = el.parentNode;
+		}
+		return path.join(" > ");
+	}
 
-  /**
-   * Generates a CSS selector for an element using its classes.
-   * @param {Element} el - The element to generate a CSS selector for.
-   * @returns {string} The generated CSS selector.
-   */
-  function getClassSelector(el) {
-    const path = [];
-    while (el && el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      selector += getClassNames(el);
-      path.unshift(selector);
-      el = el.parentNode;
-    }
-    return path.join(" > ");
-  }
+	/**
+	 * Generates a CSS selector for an element using its classes.
+	 * @param {Element} el - The element to generate a CSS selector for.
+	 * @returns {string} The generated CSS selector.
+	 */
+	function getClassSelector(el) {
+		const path = [];
+		while (el && el.nodeType === Node.ELEMENT_NODE) {
+			let selector = el.nodeName.toLowerCase();
+			selector += getClassNames(el);
+			path.unshift(selector);
+			el = el.parentNode;
+		}
+		return path.join(" > ");
+	}
 
-  /**
-   * Generates a CSS selector for an element using its type and :nth-of-type.
-   * @param {Element} el - The element to generate a CSS selector for.
-   * @returns {string} The generated CSS selector.
-   */
-  function getNthOfTypeSelector(el) {
-    const path = [];
-    while (el && el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      const nth = getNthOfType(el);
-      if (nth !== 1) {
-        selector += `:nth-of-type(${nth})`;
-      }
-      path.unshift(selector);
-      el = el.parentNode;
-    }
-    return path.join(" > ");
-  }
+	/**
+	 * Generates a CSS selector for an element using its type and :nth-of-type.
+	 * @param {Element} el - The element to generate a CSS selector for.
+	 * @returns {string} The generated CSS selector.
+	 */
+	function getNthOfTypeSelector(el) {
+		const path = [];
+		while (el && el.nodeType === Node.ELEMENT_NODE) {
+			let selector = el.nodeName.toLowerCase();
+			const nth = getNthOfType(el);
+			if (nth !== 1) {
+				selector += `:nth-of-type(${nth})`;
+			}
+			path.unshift(selector);
+			el = el.parentNode;
+		}
+		return path.join(" > ");
+	}
 
-  /**
-   * Calculates the :nth-of-type index for an element.
-   * @param {Element} el - The element to calculate the index for.
-   * @returns {number} The :nth-of-type index.
-   */
-  function getNthOfType(el) {
-    let nth = 1;
-    let sibling = el;
-    while (sibling.previousElementSibling) {
-      sibling = sibling.previousElementSibling;
-      if (sibling.nodeName.toLowerCase() === el.nodeName.toLowerCase()) {
-        nth++;
-      }
-    }
-    return nth;
-  }
+	/**
+	 * Calculates the :nth-of-type index for an element.
+	 * @param {Element} el - The element to calculate the index for.
+	 * @returns {number} The :nth-of-type index.
+	 */
+	function getNthOfType(el) {
+		let nth = 1;
+		let sibling = el;
+		while (sibling.previousElementSibling) {
+			sibling = sibling.previousElementSibling;
+			if (sibling.nodeName.toLowerCase() === el.nodeName.toLowerCase()) {
+				nth++;
+			}
+		}
+		return nth;
+	}
 
-  return [
-    getIdSelector(element),
-    getNthOfTypeSelector(element),
-    getClassSelector(element),
-  ];
+	return [
+		getIdSelector(element),
+		getNthOfTypeSelector(element),
+		getClassSelector(element),
+	];
+}
+/**
+ * Maps each element in the document to its CSS locator and unique ID.
+ * @returns {string} JSON map of CSS locators to unique IDs.
+ */
+function mapElementsToJson() {
+  const elements = document.querySelectorAll("*");
+  const map = {};
+
+  elements.forEach((element) => {
+    const cssSelectors = generateCssSelectors(element);
+    const uniqueId = generateUniqueId(cssSelectors[0]);
+    map[uniqueId] = cssSelectors;
+  });
+
+  return JSON.stringify(map, null, 2);
 }
 
 /**
@@ -326,25 +342,25 @@ function generateCssSelectors(element) {
  * @returns {ElementSpec|null} The element specification or null if invalid.
  */
 function createElementSpec(element) {
-  if (!isValidElement(element)) return null;
+	if (!isValidElement(element)) return null;
 
-  const attrs = getTrimmedAttributes(element);
-  const text = getVisibleText(element);
+	const attrs = getTrimmedAttributes(element);
+	const text = getVisibleText(element);
 
-  const cssSelectors = generateCssSelectors(element);
-  const uniqueId = generateUniqueId(cssSelectors[0]);
+	const cssSelectors = generateCssSelectors(element);
+	const uniqueId = generateUniqueId(cssSelectors[0]);
 
-  const children = Array.from(element.children || [])
-    .map(createElementSpec)
-    .filter((el) => el !== null);
+	const children = Array.from(element.children || [])
+		.map(createElementSpec)
+		.filter((el) => el !== null);
 
-  return {
-    tag_name: element.tagName,
-    id: uniqueId,
-    attributes: attrs,
-    text,
-    children,
-  };
+	return {
+		tag_name: element.tagName,
+		id: uniqueId,
+		attributes: attrs,
+		text,
+		children,
+	};
 }
 
 /**
@@ -353,10 +369,10 @@ function createElementSpec(element) {
  * @returns {ElementSpec|null} The element specification tree or null if invalid.
  */
 function buildElementTree(element) {
-  let elementSpec = createElementSpec(element);
-  if (!elementSpec) return null;
+	let elementSpec = createElementSpec(element);
+	if (!elementSpec) return null;
 
-  return elementSpec;
+	return elementSpec;
 }
 
 /**
@@ -364,26 +380,23 @@ function buildElementTree(element) {
  * @returns {string} JSON string representation of the minified HTML.
  */
 function minifyHTML() {
-  const root = document.documentElement || document.body;
-  return JSON.stringify(buildElementTree(root));
+	const root = document.documentElement || document.body;
+	return JSON.stringify(buildElementTree(root));
 }
 
 /**
- * Maps each element in the document to its CSS locator and unique ID.
- * @returns {string} JSON map of CSS locators to unique IDs.
+ * Check if a provided locator is a valid locator in the dom.
+ * @param {string} locator - The locator to check.
+ * @resturns {boolean} true if the locator is valid, false otherwise.
  */
-function getElementIdLocatorMap() {
-  const elements = document.querySelectorAll("*");
-  const map = {};
-
-  elements.forEach((element) => {
-    const cssSelectors = generateCssSelectors(element);
-    const uniqueId = generateUniqueId(cssSelectors[0]);
-    map[uniqueId] = cssSelectors;
-  });
-
-  return JSON.stringify(map, null, 2);
+function isValidLocator(locator) {
+	try {
+		return document.querySelector(locator) !== null;
+	} catch (error) {
+		return false;
+	}
 }
+
 
 window.minifyHTML = minifyHTML;
 window.mapElementsToJson = mapElementsToJson;
