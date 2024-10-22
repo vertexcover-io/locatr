@@ -1,0 +1,32 @@
+[project]
+name = "locatr"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "CaffeineDuck", email = "hello@samrid.me" }
+]
+dependencies = [
+    "grpcio>=1.66.0",
+    "playwright>=1.46.0",
+]
+readme = "README.md"
+requires-python = ">= 3.9"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "grpcio-tools>=1.66.0",
+]
+
+[tool.rye.scripts]
+generate-proto = "python -m grpc_tools.protoc --python_out=ipc_grpc/ --grpc_python_out=ipc_grpc/ -I=../../protos/ ipc.proto"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/locatr"]

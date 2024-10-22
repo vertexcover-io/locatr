@@ -14,9 +14,9 @@ var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
 const MaxTokens int = 256
 
 type llmClient struct {
-	apiKey   string `validate:"regexp=sk-*"`
-	provider string `validate:"regexp=(openai|anthropic)"`
-	model    string `validate:"min=2,max=50"`
+	apiKey   string `validate:"required,regexp=sk-*"`
+	provider string `validate:"required,regexp=(openai|anthropic)"`
+	model    string `validate:"required,min=2,max=50"`
 
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
@@ -28,6 +28,7 @@ func NewLlmClient(provider string, model string, apiKey string) (*llmClient, err
 		provider: provider,
 		model:    model,
 	}
+
 	validate := validator.NewValidator()
 	if err := validate.Validate(client); err != nil {
 		return nil, err

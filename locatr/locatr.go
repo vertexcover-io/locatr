@@ -153,7 +153,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	log.Println("Cache miss; going forward with dom minification")
 	minifiedDOM, locatorsMap, err := l.getMinifiedDomAndLocatorMap()
 	if err != nil {
-		return "", ErrUnableToMinifyHtmlDom
+		return "", err
 	}
 
 	log.Println("Extracting element ID using LLM")
