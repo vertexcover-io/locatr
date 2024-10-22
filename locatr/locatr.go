@@ -1,6 +1,7 @@
 package locatr
 
 import (
+	_ "embed"
 	"crypto/sha256"
 	"encoding/csv"
 	"encoding/hex"
