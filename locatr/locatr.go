@@ -1,12 +1,18 @@
 package locatr
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"os"
 )
+
+//go:embed meta/htmlMinifier.js
+var HTMLMinifierJsContent string
+
+//go:embed meta/locate_element.prompt
+var LocateElementPrompt string
 
 var (
 	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
@@ -45,11 +51,7 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient) *BaseLocatr {
 }
 
 func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
-	systemPrompt, err := os.ReadFile("meta/locate_element.prompt")
-	if err != nil {
-		return "", err
-	}
-
+	systemPrompt := LocateElementPrompt
 	jsonData, err := json.Marshal(&llmWebInputDto{
 		HtmlDom: htmlDOM,
 		UserReq: userReq,
@@ -74,7 +76,7 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 }
 
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
-	if err := l.plugin.LoadJsScript("meta/htmlMinifier.js"); err != nil {
+	if err := l.plugin.EvaluateJsScript(HTMLMinifierJsContent); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
 

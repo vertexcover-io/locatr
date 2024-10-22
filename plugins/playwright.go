@@ -3,8 +3,6 @@ package plugins
 import (
 	"encoding/json"
 	"errors"
-	"os"
-
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/locatr"
 )
@@ -40,11 +38,7 @@ func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 	return pl.page.Locator(locatorStr), nil
 }
 
-func (pl *playwrightPlugin) LoadJsScript(scriptPath string) error {
-	scriptContent, err := os.ReadFile(scriptPath)
-	if err != nil {
-		return err
-	}
+func (pl *playwrightPlugin) EvaluateJsScript(scriptContent string) error {
 	pl.page.Evaluate(string(scriptContent))
 	return nil
 }
