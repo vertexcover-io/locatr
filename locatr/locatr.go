@@ -43,17 +43,17 @@ type LlmClient interface {
 	ChatCompletion(prompt string) (string, error)
 }
 
-type currentStateDto struct {
+type cachedLocatrsDto struct {
 	LocatrName string   `json:"locatr_name"`
 	Locatrs    []string `json:"locatrs"`
 }
 
 type BaseLocatr struct {
-	plugin       PluginInterface
-	llmClient    LlmClient
-	options      BaseLocatrOptions
-	currentState map[string][]currentStateDto
-	initilized   bool
+	plugin        PluginInterface
+	llmClient     LlmClient
+	options       BaseLocatrOptions
+	cachedLocatrs map[string][]cachedLocatrsDto
+	initilized    bool
 }
 
 type BaseLocatrOptions struct {
@@ -65,11 +65,11 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		options.CachePath = DEFAULT_CACHE_PATH
 	}
 	return &BaseLocatr{
-		plugin:       plugin,
-		llmClient:    llmClient,
-		options:      options,
-		currentState: make(map[string][]currentStateDto),
-		initilized:   false,
+		plugin:        plugin,
+		llmClient:     llmClient,
+		options:       options,
+		cachedLocatrs: make(map[string][]cachedLocatrsDto),
+		initilized:    false,
 	}
 }
 func (l *BaseLocatr) getCurrentUrl() string {
@@ -103,18 +103,18 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 
 func (l *BaseLocatr) addLocatrToState(url string, locatrName string, locatrs []string) {
 	fmt.Println("Locatrs are", locatrs)
-	if _, ok := l.currentState[url]; !ok {
-		l.currentState[url] = []currentStateDto{}
+	if _, ok := l.cachedLocatrs[url]; !ok {
+		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
 	found := false
-	for i, v := range l.currentState[url] {
+	for i, v := range l.cachedLocatrs[url] {
 		if v.LocatrName == locatrName {
-			l.currentState[url][i].Locatrs = append(l.currentState[url][i].Locatrs, locatrs...)
+			l.cachedLocatrs[url][i].Locatrs = append(l.cachedLocatrs[url][i].Locatrs, locatrs...)
 			return
 		}
 	}
 	if !found {
-		l.currentState[url] = append(l.currentState[url], currentStateDto{LocatrName: locatrName, Locatrs: locatrs})
+		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
 	}
 }
 
@@ -128,7 +128,7 @@ func (l *BaseLocatr) initilizeState() {
 		return
 	}
 	log.Println("Cache loaded successfully")
-	fmt.Println(l.currentState)
+	fmt.Println(l.cachedLocatrs)
 	l.initilized = true
 }
 
@@ -173,7 +173,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		return "", ErrUnableToFindValidLocator
 	}
 	l.addLocatrToState(currnetUrl, userReq, locators)
-	value, err := json.Marshal(l.currentState)
+	value, err := json.Marshal(l.cachedLocatrs)
 	if err != nil {
 		return "", err
 	}
@@ -216,7 +216,7 @@ func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
 	}
-	err = json.Unmarshal(byteValue, &l.currentState)
+	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
 	}
@@ -224,7 +224,7 @@ func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 }
 
 func (l *BaseLocatr) getLocatrsFromState(key string) ([]string, error) {
-	if locatrs, ok := l.currentState[l.getCurrentUrl()]; ok {
+	if locatrs, ok := l.cachedLocatrs[l.getCurrentUrl()]; ok {
 		for _, v := range locatrs {
 			if v.LocatrName == key {
 				return v.Locatrs, nil
