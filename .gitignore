@@ -13,6 +13,7 @@
 
 # Go workspace file
 go.work
+coverage
 
 # Dependency directories (may be project-specific)
 vendor/
