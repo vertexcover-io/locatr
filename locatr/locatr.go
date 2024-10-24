@@ -2,9 +2,7 @@ package locatr
 
 import (
 	_ "embed"
-	"crypto/sha256"
 	"encoding/csv"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,7 +17,7 @@ var HTML_MINIFIER_JS_CONTENTT string
 //go:embed meta/locate_element.prompt
 var LOCATE_ELEMENT_PROMPT string
 
-var DEFAULT_CACHE_PATH = "locatr.cache"
+var DEFAULT_CACHE_PATH = ".locatr.cache"
 
 var (
 	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
@@ -52,12 +50,12 @@ type BaseLocatr struct {
 }
 
 type BaseLocatrOptions struct {
-	cachePath string
+	CachePath string
 }
 
 func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLocatrOptions) *BaseLocatr {
-	if len(options.cachePath) == 0 {
-		options.cachePath = DEFAULT_CACHE_PATH
+	if len(options.CachePath) == 0 {
+		options.CachePath = DEFAULT_CACHE_PATH
 	}
 	return &BaseLocatr{
 		plugin:    plugin,
@@ -100,8 +98,8 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	}
 
 	log.Println("Searching for locator in cache")
-	hashingKey := hashLocatorKeyWithUrl(l.getCurrentUrl(), userReq)
-	locators, err := readLocatorsFromCache(l.options.cachePath, hashingKey)
+	hashingKey := fmt.Sprintf("%s-%s", l.getCurrentUrl(), userReq)
+	locators, err := readLocatorsFromCache(l.options.CachePath, hashingKey)
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
 		if err == nil {
@@ -134,17 +132,11 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		return "", ErrUnableToFindValidLocator
 	}
 
-	if err = writeLocatorsToCache(l.options.cachePath, hashingKey, locators); err != nil {
+	if err = writeLocatorsToCache(l.options.CachePath, hashingKey, locators); err != nil {
 		log.Println(err)
 	}
 	return validLocator, nil
 
-}
-
-func hashLocatorKeyWithUrl(url string, userReq string) string {
-	fullKey := fmt.Sprintf("%s-%s", url, userReq)
-	hash := sha256.Sum256([]byte(fullKey))
-	return hex.EncodeToString(hash[:])
 }
 
 func writeLocatorsToCache(cachePath string, key string, locators []string) error {
