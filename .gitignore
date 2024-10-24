@@ -21,6 +21,8 @@ vendor/
 *.log
 *.tmp
 
+*.cache
+
 # IDE-specific files (for example, VSCode)
 .vscode/
 .idea/
