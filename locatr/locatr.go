@@ -73,37 +73,6 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		initilized:    false,
 	}
 }
-func (l *BaseLocatr) getCurrentUrl() string {
-	if value, err := l.plugin.EvaluateJsFunction("window.location.href"); err == nil {
-		return value
-	}
-	return ""
-}
-
-func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
-	systemPrompt := LOCATE_ELEMENT_PROMPT
-	jsonData, err := json.Marshal(&llmWebInputDto{
-		HtmlDom: htmlDOM,
-		UserReq: userReq,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
-	}
-
-	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
-
-	llmResponse, err := al.llmClient.ChatCompletion(prompt)
-	if err != nil {
-		return "", fmt.Errorf("failed to get response from LLM: %v", err)
-	}
-
-	llmLocatorOutput := &llmLocatorOutputDto{}
-	if err = json.Unmarshal([]byte(llmResponse), llmLocatorOutput); err != nil {
-		return "", fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
-	}
-
-	return llmLocatorOutput.LocatorID, nil
-}
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
@@ -133,6 +102,49 @@ func (l *BaseLocatr) initilizeState() {
 	log.Println("Cache loaded successfully")
 	l.initilized = true
 }
+func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]string, error) {
+	if locatrs, ok := l.cachedLocatrs[currentUrl]; ok {
+		for _, v := range locatrs {
+			if v.LocatrName == key {
+				return v.Locatrs, nil
+			}
+		}
+	}
+	return nil, errors.New("key not found")
+}
+func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
+	file, err := os.Open(cachePath)
+	if err != nil {
+		return nil // ignore this error for now
+	}
+	defer file.Close()
+	byteValue, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
+	}
+	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
+	}
+	return nil
+}
+func writeLocatorsToCache(cachePath string, cacheString []byte) error {
+	err := os.MkdirAll(filepath.Dir(cachePath), 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %v", err)
+	}
+	defer file.Close()
+	if _, err := file.Write(cacheString); err != nil {
+		return fmt.Errorf("failed to write cache: %v", err)
+	}
+
+	return nil
+}
 
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.EvaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
@@ -141,7 +153,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	l.initilizeState()
 	log.Println("Searching for locator in cache")
 	currnetUrl := l.getCurrentUrl()
-	locators, err := l.getLocatrsFromState(userReq)
+	locators, err := l.getLocatrsFromState(userReq, currnetUrl)
 
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
@@ -187,55 +199,11 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	return validLocators, nil
 
 }
-
-func writeLocatorsToCache(cachePath string, cacheString []byte) error {
-	err := os.MkdirAll(filepath.Dir(cachePath), 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create directory: %v", err)
+func (l *BaseLocatr) getCurrentUrl() string {
+	if value, err := l.plugin.EvaluateJsFunction("window.location.href"); err == nil {
+		return value
 	}
-
-	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %v", err)
-	}
-	defer file.Close()
-	if _, err := file.Write(cacheString); err != nil {
-		return fmt.Errorf("failed to write cache: %v", err)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to write record: %v", err)
-	}
-
-	return nil
-}
-
-func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
-	file, err := os.Open(cachePath)
-	if err != nil {
-		return nil // ignore this error for now
-	}
-	defer file.Close()
-	byteValue, err := io.ReadAll(file)
-	if err != nil {
-		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
-	}
-	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
-	}
-	return nil
-}
-
-func (l *BaseLocatr) getLocatrsFromState(key string) ([]string, error) {
-	if locatrs, ok := l.cachedLocatrs[l.getCurrentUrl()]; ok {
-		for _, v := range locatrs {
-			if v.LocatrName == key {
-				return v.Locatrs, nil
-			}
-		}
-	}
-	return nil, errors.New("key not found")
+	return ""
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
@@ -261,4 +229,28 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 		}
 	}
 	return "", ErrUnableToFindValidLocator
+}
+func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
+	systemPrompt := LOCATE_ELEMENT_PROMPT
+	jsonData, err := json.Marshal(&llmWebInputDto{
+		HtmlDom: htmlDOM,
+		UserReq: userReq,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
+	}
+
+	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
+
+	llmResponse, err := al.llmClient.ChatCompletion(prompt)
+	if err != nil {
+		return "", fmt.Errorf("failed to get response from LLM: %v", err)
+	}
+
+	llmLocatorOutput := &llmLocatorOutputDto{}
+	if err = json.Unmarshal([]byte(llmResponse), llmLocatorOutput); err != nil {
+		return "", fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
+	}
+
+	return llmLocatorOutput.LocatorID, nil
 }

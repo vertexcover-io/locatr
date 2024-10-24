@@ -1,4 +1,4 @@
-package plugins
+package locatr
 
 import (
 	"fmt"
@@ -29,10 +29,10 @@ func NewPlaywrightLocatr(page playwright.Page, llmClient locatr.LlmClient, optio
 func (pl *playwrightPlugin) EvaluateJsFunction(function string) (string, error) {
 	result, err := pl.page.Evaluate(function)
 	if err != nil {
-		return "", fmt.Errorf("Error evaluating js function: %v", err)
+		return "", fmt.Errorf("error evaluating js function: %v", err)
 	}
 	if result == nil {
-		return "", fmt.Errorf("Error evaluating js function: result is nil")
+		return "", fmt.Errorf("error evaluating js function: result is nil")
 	}
 
 	if str, ok := result.(string); ok {
@@ -44,24 +44,24 @@ func (pl *playwrightPlugin) EvaluateJsFunction(function string) (string, error) 
 	if boolval, ok := result.(bool); ok {
 		return fmt.Sprint(boolval), nil
 	}
-	return "", fmt.Errorf("Error evaluating js function: result is not string, number or boolean")
+	return "", fmt.Errorf("error evaluating js function: result is not string, number or boolean")
 }
 
 func (pl *playwrightPlugin) EvaluateJsScript(scriptContent string) error {
 	if _, err := pl.page.Evaluate(string(scriptContent)); err != nil {
-		return fmt.Errorf("Error evaluating js script: %v", err)
+		return fmt.Errorf("error evaluating js script: %v", err)
 	}
 	return nil
 }
 
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
-		return nil, fmt.Errorf("Error waiting for load state: %v", err)
+		return nil, fmt.Errorf("error waiting for load state: %v", err)
 	}
 
 	locatorStr, err := pl.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting locator string: %v", err)
+		return nil, fmt.Errorf("error getting locator string: %v", err)
 	}
 	return pl.page.Locator(locatorStr), nil
 }
