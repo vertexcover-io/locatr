@@ -1,16 +1,5 @@
-# Locatr 
+// nolint
 
-Locatr is a package which will help your scraping DX (Developer Experience). It supports
-multiple automation web-drivers using plugins. You're able to generate the locator using
-a simple `locator_description` in natural language.
-
-## Getting Started
-
-### Example Usage
-
-Here's a quick example of how to use the project:
-
-```go
 /*
 This is an example of how to use the locatr package to interact with a webpage using Playwright and an LLM (Large Language Model) client.
 In this example, we launch a Chromium browser, navigate to Docker Hub, interact with the search input field by filling in a search term ('Python'),
@@ -18,11 +7,11 @@ and perform additional actions like clicking on a Python repository link and nav
 identification, and an LLM client is integrated for contextual descriptions of the locators. Predefined locators are leveraged to simplify interaction
 with the webpage elements.
 */
-
 package main
 
 import (
 	"fmt"
+	_ "fmt"
 	"log"
 	"os"
 	"time"
@@ -103,6 +92,3 @@ func main() {
 	}
 	time.Sleep(3 * time.Second)
 }
-
-```
-
