@@ -2,10 +2,10 @@ package locatr
 
 import (
 	_ "embed"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -53,6 +53,7 @@ type BaseLocatr struct {
 	llmClient    LlmClient
 	options      BaseLocatrOptions
 	currentState map[string][]currentStateDto
+	initilized   bool
 }
 
 type BaseLocatrOptions struct {
@@ -68,6 +69,7 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		llmClient:    llmClient,
 		options:      options,
 		currentState: make(map[string][]currentStateDto),
+		initilized:   false,
 	}
 }
 func (l *BaseLocatr) getCurrentUrl() string {
@@ -116,20 +118,33 @@ func (l *BaseLocatr) addLocatrToState(url string, locatrName string, locatrs []s
 	}
 }
 
+func (l *BaseLocatr) initilizeState() {
+	if l.initilized {
+		return
+	}
+	err := l.loadLocatorsCache(l.options.CachePath)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("Cache loaded successfully")
+	fmt.Println(l.currentState)
+	l.initilized = true
+}
+
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.EvaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
-
+	l.initilizeState()
 	log.Println("Searching for locator in cache")
 	currnetUrl := l.getCurrentUrl()
-	locators, err := readLocatorsFromCache(l.options.CachePath, currnetUrl)
+	locators, err := l.getLocatrsFromState(currnetUrl)
 
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
 		if err == nil {
 			log.Println("Cache hit; returning locator")
-			l.addLocatrToState(l.getCurrentUrl(), userReq, []string{validLocator})
 			return validLocator, nil
 		}
 		log.Println("All cached locators are outdated.")
@@ -191,25 +206,31 @@ func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 	return nil
 }
 
-func readLocatorsFromCache(cachePath string, key string) ([]string, error) {
+func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	file, err := os.Open(cachePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
+		return fmt.Errorf("failed to open cache file (%s): %v", cachePath, err)
 	}
 	defer file.Close()
-
-	reader := csv.NewReader(file)
-	records, err := reader.ReadAll()
+	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV: %v", err)
+		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
 	}
+	err = json.Unmarshal(byteValue, &l.currentState)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
+	}
+	return nil
+}
 
-	for _, record := range records {
-		if len(record) > 0 && record[0] == key {
-			return record[1:], nil
+func (l *BaseLocatr) getLocatrsFromState(key string) ([]string, error) {
+	if locatrs, ok := l.currentState[l.getCurrentUrl()]; ok {
+		for _, v := range locatrs {
+			if v.LocatrName == key {
+				return v.Locatrs, nil
+			}
 		}
 	}
-
 	return nil, errors.New("key not found")
 }
 
