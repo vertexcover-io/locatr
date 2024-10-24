@@ -1,4 +1,4 @@
-package locatr
+package core
 
 import (
 	"testing"

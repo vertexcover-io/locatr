@@ -1,28 +1,27 @@
-package locatr
+package core
 
 import (
 	"fmt"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/locatr"
 )
 
 type playwrightPlugin struct {
 	page playwright.Page
-	locatr.PluginInterface
+	PluginInterface
 }
 
 type playwrightLocator struct {
 	page   playwright.Page
-	locatr *locatr.BaseLocatr
+	locatr *BaseLocatr
 }
 
-func NewPlaywrightLocatr(page playwright.Page, llmClient locatr.LlmClient, options locatr.BaseLocatrOptions) *playwrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, llmClient LlmClient, options BaseLocatrOptions) *playwrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
 	return &playwrightLocator{
 		page:   page,
-		locatr: locatr.NewBaseLocatr(pwPlugin, llmClient, options),
+		locatr: NewBaseLocatr(pwPlugin, llmClient, options),
 	}
 }
 
