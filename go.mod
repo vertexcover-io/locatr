@@ -3,6 +3,7 @@ module github.com/vertexcover-io/locatr
 go 1.22.3
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/liushuangls/go-anthropic/v2 v2.4.1
 	github.com/playwright-community/playwright-go v0.4501.1
 	github.com/sashabaranov/go-openai v1.28.1

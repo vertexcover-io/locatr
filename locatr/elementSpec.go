@@ -15,10 +15,12 @@ type ElementSpec struct {
 	Children   []ElementSpec     `json:"children"`
 }
 
+// nolint:unused
 func (e *ElementSpec) decapitalizeTagName() {
 	e.TagName = strings.ToLower(strings.TrimSpace(e.TagName))
 }
 
+// nolint:unused
 func (e *ElementSpec) trimAttributes() {
 	trimmedAttributes := make(map[string]string)
 	for k, v := range e.Attributes {

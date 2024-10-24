@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/locatr"
 )
@@ -47,14 +48,16 @@ func (pl *playwrightPlugin) EvaluateJsFunction(function string) string {
 }
 
 func (pl *playwrightPlugin) EvaluateJsScript(scriptContent string) error {
-	pl.page.Evaluate(string(scriptContent))
+	if _, err := pl.page.Evaluate(string(scriptContent)); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
-	pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{
-		State: playwright.LoadStateDomcontentloaded,
-	})
+	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
+		return nil, err
+	}
 
 	locatorStr, err := pl.locatr.GetLocatorStr(userReq)
 	if err != nil {

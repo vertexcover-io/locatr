@@ -43,10 +43,16 @@ type LlmClient interface {
 	ChatCompletion(prompt string) (string, error)
 }
 
+type currentStateDto struct {
+	LocatrName string   `json:"locatr_name"`
+	Locatrs    []string `json:"locatrs"`
+}
+
 type BaseLocatr struct {
-	plugin    PluginInterface
-	llmClient LlmClient
-	options   BaseLocatrOptions
+	plugin       PluginInterface
+	llmClient    LlmClient
+	options      BaseLocatrOptions
+	currentState map[string][]currentStateDto
 }
 
 type BaseLocatrOptions struct {
@@ -58,9 +64,10 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		options.CachePath = DEFAULT_CACHE_PATH
 	}
 	return &BaseLocatr{
-		plugin:    plugin,
-		llmClient: llmClient,
-		options:   options,
+		plugin:       plugin,
+		llmClient:    llmClient,
+		options:      options,
+		currentState: make(map[string][]currentStateDto),
 	}
 }
 func (l *BaseLocatr) getCurrentUrl() string {
@@ -92,18 +99,37 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 	return llmLocatorOutput.LocatorID, nil
 }
 
+func (l *BaseLocatr) addLocatrToState(url string, locatrName string, locatrs []string) {
+	fmt.Println("Locatrs are", locatrs)
+	if _, ok := l.currentState[url]; !ok {
+		l.currentState[url] = []currentStateDto{}
+	}
+	found := false
+	for i, v := range l.currentState[url] {
+		if v.LocatrName == locatrName {
+			l.currentState[url][i].Locatrs = append(l.currentState[url][i].Locatrs, locatrs...)
+			return
+		}
+	}
+	if !found {
+		l.currentState[url] = append(l.currentState[url], currentStateDto{LocatrName: locatrName, Locatrs: locatrs})
+	}
+}
+
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.EvaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
 
 	log.Println("Searching for locator in cache")
-	hashingKey := fmt.Sprintf("%s-%s", l.getCurrentUrl(), userReq)
-	locators, err := readLocatorsFromCache(l.options.CachePath, hashingKey)
+	currnetUrl := l.getCurrentUrl()
+	locators, err := readLocatorsFromCache(l.options.CachePath, currnetUrl)
+
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
 		if err == nil {
 			log.Println("Cache hit; returning locator")
+			l.addLocatrToState(l.getCurrentUrl(), userReq, []string{validLocator})
 			return validLocator, nil
 		}
 		log.Println("All cached locators are outdated.")
@@ -126,36 +152,38 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		return "", ErrInvalidElementIdGenerated
 	}
 
-	validLocator, err := l.getValidLocator(locators)
+	validLocators, err := l.getValidLocator(locators)
 	if err != nil {
 		log.Println(err)
 		return "", ErrUnableToFindValidLocator
 	}
-
-	if err = writeLocatorsToCache(l.options.CachePath, hashingKey, locators); err != nil {
+	l.addLocatrToState(currnetUrl, userReq, locators)
+	value, err := json.Marshal(l.currentState)
+	if err != nil {
+		return "", err
+	}
+	if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
 		log.Println(err)
 	}
-	return validLocator, nil
+	return validLocators, nil
 
 }
 
-func writeLocatorsToCache(cachePath string, key string, locators []string) error {
+func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 	err := os.MkdirAll(filepath.Dir(cachePath), 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	file, err := os.OpenFile(cachePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %v", err)
 	}
 	defer file.Close()
+	if _, err := file.Write(cacheString); err != nil {
+		return fmt.Errorf("failed to write cache: %v", err)
+	}
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	record := append([]string{key}, locators...)
-	err = writer.Write(record)
 	if err != nil {
 		return fmt.Errorf("failed to write record: %v", err)
 	}
