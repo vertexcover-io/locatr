@@ -1,4 +1,4 @@
-package locatr
+package core
 
 func GetUniqueStringArray(input []string) []string {
 	keys := make(map[string]bool)

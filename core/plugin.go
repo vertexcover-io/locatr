@@ -1,4 +1,4 @@
-package locatr
+package core
 
 type PluginInterface interface {
 	EvaluateJsScript(scriptContent string) error
