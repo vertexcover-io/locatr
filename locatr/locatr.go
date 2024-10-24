@@ -213,7 +213,7 @@ func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	file, err := os.Open(cachePath)
 	if err != nil {
-		return fmt.Errorf("failed to open cache file (%s): %v", cachePath, err)
+		return nil // ignore this error for now
 	}
 	defer file.Close()
 	byteValue, err := io.ReadAll(file)
