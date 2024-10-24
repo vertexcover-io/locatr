@@ -2,12 +2,10 @@ package locatr
 
 import (
 	_ "embed"
-	"crypto/sha256"
-	"encoding/csv"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,7 +17,7 @@ var HTML_MINIFIER_JS_CONTENTT string
 //go:embed meta/locate_element.prompt
 var LOCATE_ELEMENT_PROMPT string
 
-var DEFAULT_CACHE_PATH = "locatr.cache"
+var DEFAULT_CACHE_PATH = ".locatr.cache"
 
 var (
 	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
@@ -45,28 +43,41 @@ type LlmClient interface {
 	ChatCompletion(prompt string) (string, error)
 }
 
+type cachedLocatrsDto struct {
+	LocatrName string   `json:"locatr_name"`
+	Locatrs    []string `json:"locatrs"`
+}
+
 type BaseLocatr struct {
-	plugin    PluginInterface
-	llmClient LlmClient
-	options   BaseLocatrOptions
+	plugin        PluginInterface
+	llmClient     LlmClient
+	options       BaseLocatrOptions
+	cachedLocatrs map[string][]cachedLocatrsDto
+	initilized    bool
 }
 
 type BaseLocatrOptions struct {
-	cachePath string
+	CachePath string
+	UseCache  bool
 }
 
 func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLocatrOptions) *BaseLocatr {
-	if len(options.cachePath) == 0 {
-		options.cachePath = DEFAULT_CACHE_PATH
+	if len(options.CachePath) == 0 {
+		options.CachePath = DEFAULT_CACHE_PATH
 	}
 	return &BaseLocatr{
-		plugin:    plugin,
-		llmClient: llmClient,
-		options:   options,
+		plugin:        plugin,
+		llmClient:     llmClient,
+		options:       options,
+		cachedLocatrs: make(map[string][]cachedLocatrsDto),
+		initilized:    false,
 	}
 }
 func (l *BaseLocatr) getCurrentUrl() string {
-	return l.plugin.EvaluateJsFunction("window.location.href")
+	if value, err := l.plugin.EvaluateJsFunction("window.location.href"); err == nil {
+		return value
+	}
+	return ""
 }
 
 func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
@@ -76,32 +87,62 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 		UserReq: userReq,
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
 
 	llmResponse, err := al.llmClient.ChatCompletion(prompt)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get response from LLM: %v", err)
 	}
 
 	llmLocatorOutput := &llmLocatorOutputDto{}
 	if err = json.Unmarshal([]byte(llmResponse), llmLocatorOutput); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
 	}
 
 	return llmLocatorOutput.LocatorID, nil
+}
+
+func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
+	if _, ok := l.cachedLocatrs[url]; !ok {
+		l.cachedLocatrs[url] = []cachedLocatrsDto{}
+	}
+	found := false
+	for i, v := range l.cachedLocatrs[url] {
+		if v.LocatrName == locatrName {
+			l.cachedLocatrs[url][i].Locatrs = GetUniqueStringArray(append(l.cachedLocatrs[url][i].Locatrs, locatrs...))
+			return
+		}
+	}
+	if !found {
+		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
+	}
+}
+
+func (l *BaseLocatr) initilizeState() {
+	if l.initilized || !l.options.UseCache {
+		return
+	}
+	err := l.loadLocatorsCache(l.options.CachePath)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println("Cache loaded successfully")
+	l.initilized = true
 }
 
 func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.EvaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
-
+	l.initilizeState()
 	log.Println("Searching for locator in cache")
-	hashingKey := hashLocatorKeyWithUrl(l.getCurrentUrl(), userReq)
-	locators, err := readLocatorsFromCache(l.options.cachePath, hashingKey)
+	currnetUrl := l.getCurrentUrl()
+	locators, err := l.getLocatrsFromState(userReq)
+
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
 		if err == nil {
@@ -128,42 +169,40 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		return "", ErrInvalidElementIdGenerated
 	}
 
-	validLocator, err := l.getValidLocator(locators)
+	validLocators, err := l.getValidLocator(locators)
 	if err != nil {
 		log.Println(err)
 		return "", ErrUnableToFindValidLocator
 	}
-
-	if err = writeLocatorsToCache(l.options.cachePath, hashingKey, locators); err != nil {
-		log.Println(err)
+	if l.options.UseCache {
+		l.addCachedLocatrs(currnetUrl, userReq, locators)
+		value, err := json.Marshal(l.cachedLocatrs)
+		if err != nil {
+			return "", err
+		}
+		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
+			log.Println(err)
+		}
 	}
-	return validLocator, nil
+	return validLocators, nil
 
 }
 
-func hashLocatorKeyWithUrl(url string, userReq string) string {
-	fullKey := fmt.Sprintf("%s-%s", url, userReq)
-	hash := sha256.Sum256([]byte(fullKey))
-	return hex.EncodeToString(hash[:])
-}
-
-func writeLocatorsToCache(cachePath string, key string, locators []string) error {
+func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 	err := os.MkdirAll(filepath.Dir(cachePath), 0755)
 	if err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	file, err := os.OpenFile(cachePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(cachePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %v", err)
 	}
 	defer file.Close()
+	if _, err := file.Write(cacheString); err != nil {
+		return fmt.Errorf("failed to write cache: %v", err)
+	}
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	record := append([]string{key}, locators...)
-	err = writer.Write(record)
 	if err != nil {
 		return fmt.Errorf("failed to write record: %v", err)
 	}
@@ -171,39 +210,45 @@ func writeLocatorsToCache(cachePath string, key string, locators []string) error
 	return nil
 }
 
-func readLocatorsFromCache(cachePath string, key string) ([]string, error) {
+func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	file, err := os.Open(cachePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
+		return nil // ignore this error for now
 	}
 	defer file.Close()
-
-	reader := csv.NewReader(file)
-	records, err := reader.ReadAll()
+	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read CSV: %v", err)
+		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
 	}
+	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
+	}
+	return nil
+}
 
-	for _, record := range records {
-		if len(record) > 0 && record[0] == key {
-			return record[1:], nil
+func (l *BaseLocatr) getLocatrsFromState(key string) ([]string, error) {
+	if locatrs, ok := l.cachedLocatrs[l.getCurrentUrl()]; ok {
+		for _, v := range locatrs {
+			if v.LocatrName == key {
+				return v.Locatrs, nil
+			}
 		}
 	}
-
 	return nil, errors.New("key not found")
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
-	result := l.plugin.EvaluateJsFunction("minifyHTML()")
+	result, _ := l.plugin.EvaluateJsFunction("minifyHTML()")
 	elementSpec := &ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
-	result = l.plugin.EvaluateJsFunction("mapElementsToJson()")
+	result, _ = l.plugin.EvaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
 
 	return elementSpec, idLocatorMap, nil
@@ -211,7 +256,7 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
-		if l.plugin.EvaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)) == "true" {
+		if value, _ := l.plugin.EvaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)); value == "true" {
 			return locator, nil
 		}
 	}

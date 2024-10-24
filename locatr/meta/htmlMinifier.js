@@ -315,16 +315,16 @@ function generateCssSelectors(element) {
  * @returns {string} JSON map of CSS locators to unique IDs.
  */
 function mapElementsToJson() {
-  const elements = document.querySelectorAll("*");
-  const map = {};
+	const elements = document.querySelectorAll("*");
+	const map = {};
 
-  elements.forEach((element) => {
-    const cssSelectors = generateCssSelectors(element);
-    const uniqueId = generateUniqueId(cssSelectors[0]);
-    map[uniqueId] = cssSelectors;
-  });
+	elements.forEach((element) => {
+		const cssSelectors = generateCssSelectors(element);
+		const uniqueId = generateUniqueId(cssSelectors[0]);
+		map[uniqueId] = cssSelectors;
+	});
 
-  return JSON.stringify(map, null, 2);
+	return JSON.stringify(map, null, 2);
 }
 
 /**
