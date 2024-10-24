@@ -49,19 +49,19 @@ func (pl *playwrightPlugin) EvaluateJsFunction(function string) (string, error) 
 
 func (pl *playwrightPlugin) EvaluateJsScript(scriptContent string) error {
 	if _, err := pl.page.Evaluate(string(scriptContent)); err != nil {
-		return err
+		return fmt.Errorf("Error evaluating js script: %v", err)
 	}
 	return nil
 }
 
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error waiting for load state: %v", err)
 	}
 
 	locatorStr, err := pl.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error getting locator string: %v", err)
 	}
 	return pl.page.Locator(locatorStr), nil
 }

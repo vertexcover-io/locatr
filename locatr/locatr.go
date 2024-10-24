@@ -87,19 +87,19 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 		UserReq: userReq,
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
 
 	llmResponse, err := al.llmClient.ChatCompletion(prompt)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get response from LLM: %v", err)
 	}
 
 	llmLocatorOutput := &llmLocatorOutputDto{}
 	if err = json.Unmarshal([]byte(llmResponse), llmLocatorOutput); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
 	}
 
 	return llmLocatorOutput.LocatorID, nil
@@ -242,13 +242,13 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 	result, _ := l.plugin.EvaluateJsFunction("minifyHTML()")
 	elementSpec := &ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
 	result, _ = l.plugin.EvaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
 
 	return elementSpec, idLocatorMap, nil
