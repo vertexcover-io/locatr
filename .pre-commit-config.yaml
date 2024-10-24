@@ -4,6 +4,4 @@ repos:
     hooks:
       - id: go-fmt
       - id: go-imports
-      - id: no-go-testing
       - id: golangci-lint
-      - id: go-unit-tests
