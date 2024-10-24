@@ -101,8 +101,7 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 	return llmLocatorOutput.LocatorID, nil
 }
 
-func (l *BaseLocatr) addLocatrToState(url string, locatrName string, locatrs []string) {
-	fmt.Println("Locatrs are", locatrs)
+func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
@@ -128,7 +127,6 @@ func (l *BaseLocatr) initilizeState() {
 		return
 	}
 	log.Println("Cache loaded successfully")
-	fmt.Println(l.cachedLocatrs)
 	l.initilized = true
 }
 
@@ -172,7 +170,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		log.Println(err)
 		return "", ErrUnableToFindValidLocator
 	}
-	l.addLocatrToState(currnetUrl, userReq, locators)
+	l.addCachedLocatrs(currnetUrl, userReq, locators)
 	value, err := json.Marshal(l.cachedLocatrs)
 	if err != nil {
 		return "", err
