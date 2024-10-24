@@ -112,7 +112,7 @@ func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []s
 	found := false
 	for i, v := range l.cachedLocatrs[url] {
 		if v.LocatrName == locatrName {
-			l.cachedLocatrs[url][i].Locatrs = append(l.cachedLocatrs[url][i].Locatrs, locatrs...)
+			l.cachedLocatrs[url][i].Locatrs = GetUniqueStringArray(append(l.cachedLocatrs[url][i].Locatrs, locatrs...))
 			return
 		}
 	}
@@ -141,7 +141,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	l.initilizeState()
 	log.Println("Searching for locator in cache")
 	currnetUrl := l.getCurrentUrl()
-	locators, err := l.getLocatrsFromState(currnetUrl)
+	locators, err := l.getLocatrsFromState(userReq)
 
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
