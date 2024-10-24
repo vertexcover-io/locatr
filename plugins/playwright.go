@@ -26,25 +26,25 @@ func NewPlaywrightLocatr(page playwright.Page, llmClient locatr.LlmClient, optio
 	}
 }
 
-func (pl *playwrightPlugin) EvaluateJsFunction(function string) string {
+func (pl *playwrightPlugin) EvaluateJsFunction(function string) (string, error) {
 	result, err := pl.page.Evaluate(function)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("Error evaluating js function: %v", err)
 	}
 	if result == nil {
-		return ""
+		return "", fmt.Errorf("Error evaluating js function: result is nil")
 	}
 
 	if str, ok := result.(string); ok {
-		return str
+		return str, nil
 	}
 	if num, ok := result.(float64); ok {
-		return fmt.Sprint(num)
+		return fmt.Sprint(num), nil
 	}
 	if boolval, ok := result.(bool); ok {
-		return fmt.Sprint(boolval)
+		return fmt.Sprint(boolval), nil
 	}
-	return ""
+	return "", fmt.Errorf("Error evaluating js function: result is not string, number or boolean")
 }
 
 func (pl *playwrightPlugin) EvaluateJsScript(scriptContent string) error {

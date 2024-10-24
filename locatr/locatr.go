@@ -58,6 +58,7 @@ type BaseLocatr struct {
 
 type BaseLocatrOptions struct {
 	CachePath string
+	UseCache  bool
 }
 
 func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLocatrOptions) *BaseLocatr {
@@ -73,7 +74,10 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 	}
 }
 func (l *BaseLocatr) getCurrentUrl() string {
-	return l.plugin.EvaluateJsFunction("window.location.href")
+	if value, err := l.plugin.EvaluateJsFunction("window.location.href"); err == nil {
+		return value
+	}
+	return ""
 }
 
 func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
@@ -118,7 +122,7 @@ func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []s
 }
 
 func (l *BaseLocatr) initilizeState() {
-	if l.initilized {
+	if l.initilized || !l.options.UseCache {
 		return
 	}
 	err := l.loadLocatorsCache(l.options.CachePath)
@@ -170,13 +174,15 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 		log.Println(err)
 		return "", ErrUnableToFindValidLocator
 	}
-	l.addCachedLocatrs(currnetUrl, userReq, locators)
-	value, err := json.Marshal(l.cachedLocatrs)
-	if err != nil {
-		return "", err
-	}
-	if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
-		log.Println(err)
+	if l.options.UseCache {
+		l.addCachedLocatrs(currnetUrl, userReq, locators)
+		value, err := json.Marshal(l.cachedLocatrs)
+		if err != nil {
+			return "", err
+		}
+		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
+			log.Println(err)
+		}
 	}
 	return validLocators, nil
 
@@ -233,13 +239,13 @@ func (l *BaseLocatr) getLocatrsFromState(key string) ([]string, error) {
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
-	result := l.plugin.EvaluateJsFunction("minifyHTML()")
+	result, _ := l.plugin.EvaluateJsFunction("minifyHTML()")
 	elementSpec := &ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
 		return nil, nil, err
 	}
 
-	result = l.plugin.EvaluateJsFunction("mapElementsToJson()")
+	result, _ = l.plugin.EvaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, err
@@ -250,7 +256,7 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
-		if l.plugin.EvaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)) == "true" {
+		if value, _ := l.plugin.EvaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)); value == "true" {
 			return locator, nil
 		}
 	}
