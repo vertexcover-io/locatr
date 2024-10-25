@@ -1,6 +1,6 @@
 # Locatr 
 
-LLM based html element locatar using natural language. 
+LLM based html element locator using natural language. 
 
 
 ## Table of Contents
@@ -11,8 +11,7 @@ LLM based html element locatar using natural language.
 
 
 #### Locatr Options
-`core.BaseLocatrOptions`
-`BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
+`core.BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
 **Fields**
 
 - **CachePath** (`string`): 
