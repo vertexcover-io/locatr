@@ -1,24 +1,34 @@
 # Locatr 
 
-Locatr is a package which will help your scraping DX (Developer Experience). It supports
-multiple automation web-drivers using plugins. You're able to generate the locator using
-a simple `locator_description` in natural language.
+LLM based html element locatar using natural language. 
 
-## Getting Started
 
-### Example Usage
+## Table of Contents
 
-Here's a quick example of how to use the project:
+- [ Quick Example ](#quick-example)
+
+- [ Locatr Settings ](#locatr-options)
+
+
+#### Locatr Options
+`core.BaseLocatrOptions`
+`BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
+**Fields**
+
+- **CachePath** (`string`): 
+    - Path where the cache will be saved. 
+    - Example: `"/path/to/cache/file"`
+  
+- **UseCache** (`bool`): 
+    - Default is `false`. Set to `true` to use the cache.
+
+
+
+### Quick Example
+
+Here's a quick example on how to use the project:
 
 ```go
-/*
-This is an example of how to use the locatr package to interact with a webpage using Playwright and an LLM (Large Language Model) client.
-In this example, we launch a Chromium browser, navigate to Docker Hub, interact with the search input field by filling in a search term ('Python'),
-and perform additional actions like clicking on a Python repository link and navigating to its 'Tags' tab. The locatr package is used for web element
-identification, and an LLM client is integrated for contextual descriptions of the locators. Predefined locators are leveraged to simplify interaction
-with the webpage elements.
-*/
-
 package main
 
 import (
@@ -75,34 +85,7 @@ func main() {
 		log.Fatalf("could not get locator: %v", err)
 	}
 	fmt.Println(searchBarLocator.InnerHTML())
-	stringToSend := "Python"
-	err = searchBarLocator.Fill(stringToSend)
-	if err != nil {
-		log.Fatalf("could not fill search bar: %v", err)
-	}
-	searchBarLocator.Press("Enter")
-	time.Sleep(5 * time.Second)
-	pythonLink, err := locatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
-	if err != nil {
-		log.Fatalf("could not get locator: %v", err)
-	}
-	log.Println("Clicking on python link")
-	err = pythonLink.First().Click()
-	if err != nil {
-		log.Fatalf("could not click on python link: %v", err)
-	}
-	time.Sleep(3 * time.Second)
-	tagsLocator, err := locatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
-	if err != nil {
-		log.Fatalf("could not get locator: %v", err)
-	}
-	log.Println("Clicking on tags locator")
-	err = tagsLocator.Nth(2).Click()
-	if err != nil {
-		log.Fatalf("could not click on tags locator: %v", err)
-	}
-	time.Sleep(3 * time.Second)
 }
-
 ```
 
+## 

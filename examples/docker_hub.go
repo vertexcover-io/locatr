@@ -1,11 +1,7 @@
 // nolint
 
 /*
-This is an example of how to use the locatr package to interact with a webpage using Playwright and an LLM (Large Language Model) client.
-In this example, we launch a Chromium browser, navigate to Docker Hub, interact with the search input field by filling in a search term ('Python'),
-and perform additional actions like clicking on a Python repository link and navigating to its 'Tags' tab. The locatr package is used for web element
-identification, and an LLM client is integrated for contextual descriptions of the locators. Predefined locators are leveraged to simplify interaction
-with the webpage elements.
+Example on how to use locatr with playwright to interact with docker hub.
 */
 package main
 
