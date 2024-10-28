@@ -7,13 +7,12 @@ Example on how to use locatr with playwright to interact with steam.
 
 import (
 	"fmt"
-	_ "fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/core"
+	"github.com/vertexcover-io/locatr"
 )
 
 func main() {
@@ -46,7 +45,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := core.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
@@ -54,11 +53,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := core.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true}
 
-	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
-	searchBarLocator, err := locatr.GetLocatr("Search input bar on the steam store.")
+	searchBarLocator, err := playWrightLocatr.GetLocatr("Search input bar on the steam store.")
 	if err != nil {
 		log.Fatalf("could not get search bar locator: %v", err)
 	}
@@ -71,7 +70,7 @@ func main() {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	counterStrike2Locator, err := locatr.GetLocatr("Counter Strike 2 game on he list")
+	counterStrike2Locator, err := playWrightLocatr.GetLocatr("Counter Strike 2 game on he list")
 	if err != nil {
 		log.Fatalf("could not get first video locator: %v", err)
 		return
@@ -81,7 +80,7 @@ func main() {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	systemRequirementsLocator, err := locatr.GetLocatr("System Requirements section on the game page.")
+	systemRequirementsLocator, err := playWrightLocatr.GetLocatr("System Requirements section on the game page.")
 	if err != nil {
 		log.Fatalf("could not get system requirements locator: %v", err)
 		return

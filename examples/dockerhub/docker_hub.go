@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/core"
+	"github.com/vertexcover-io/locatr"
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := core.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
@@ -49,11 +49,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := core.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true}
 
-	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
-	searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
+	searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -65,7 +65,7 @@ func main() {
 	}
 	searchBarLocator.Press("Enter")
 	time.Sleep(5 * time.Second)
-	pythonLink, err := locatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
+	pythonLink, err := playWrightLocatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -75,7 +75,7 @@ func main() {
 		log.Fatalf("could not click on python link: %v", err)
 	}
 	time.Sleep(3 * time.Second)
-	tagsLocator, err := locatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
+	tagsLocator, err := playWrightLocatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}

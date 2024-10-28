@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/core"
+	"github.com/vertexcover-io/locatr"
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := core.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
@@ -48,9 +48,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := core.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true}
 
-	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+	locatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
 	codeDropDownLocatr, err := locatr.GetLocatr("<> Code dropdown")
 	if err != nil {
