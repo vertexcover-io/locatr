@@ -38,7 +38,6 @@ import (
 
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/core"
-	"github.com/vertexcover-io/locatr/llm"
 )
 
 func main() {
@@ -67,7 +66,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := llm.NewLlmClient(
+	llmClient, err := core.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
