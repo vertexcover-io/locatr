@@ -1,7 +1,18 @@
 # Locatr 
+[![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
+![Test](https://github.com/vertexcover-io/locatr/actions/workflows/main.yaml/badge.svg)
 
-LLM based html element locator using natural language. 
+Locatr pacakge is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
 
+Example: 
+
+(input) `Search bar` -> (output) `input#search`
+
+### Install Locatr with
+
+```
+go get github.com/vertexcover-io/locatr
+```
 
 ## Table of Contents
 
@@ -20,7 +31,6 @@ LLM based html element locator using natural language.
   
 - **UseCache** (`bool`): 
     - Default is `false`. Set to `true` to use the cache.
-
 
 
 ### Quick Example
