@@ -1,0 +1,74 @@
+/*
+Package locatr is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
+
+For example:
+
+Providing "Search bar" as input generates a locator like "input#search".
+
+Example: "Search bar" -> "input#search"
+
+To get started, let's open a new page in the browser using playwright-go.
+
+	func main() {
+		pw, _ := playwright.Run()
+		defer pw.Stop()
+		browser, _ := pw.Chromium.Launch(
+			playwright.BrowserTypeLaunchOptions{
+				Headless: playwright.Bool(false),
+			},
+		)
+		defer browser.Close()
+		page, _ := browser.NewPage()
+		page.Goto("https://hub.docker.com/")
+	}
+
+After opening a page, we need to create a new LLM client. Currently, we support `anthropic` and `openai`. The `LlmClient` struct is available in `github.com/vertexcover-io/locatr/core`.
+
+	import (
+		"github.com/vertexcover-io/locatr/core"
+		"os"
+	)
+
+	llmClient, err := core.NewLlmClient(
+		os.Getenv("LLM_PROVIDER"), // Supported providers: "openai" | "anthropic"
+		os.Getenv("LLM_MODEL_NAME"),
+		os.Getenv("LLM_API_KEY"),
+	)
+
+Once we have an `llmClient`, we need to configure `BaseLocatrOptions`. This struct sets caching and configuration options.
+
+	options := core.BaseLocatrOptions{UseCache: true, CachePath: ".locatr.cache"}
+
+- `CachePath` has a default value of ".locatr.cache".
+- `UseCache` is false by default. To enable caching, set `UseCache` to `true`.
+
+Now, we can create a new `PlaywrightLocatr` instance by calling `NewPlaywrightLocatr` with the `page`, `llmClient`, and `options`.
+
+	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+
+To locate an element, use the `GetLocatr` method. This method takes a descriptive string as input and returns a `Locator` object.
+
+	searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
+
+The `GetLocatr` method returns either an error or a Playwright locator object. You can then interact with the located element through the returned locator.
+
+	fmt.Println(searchBarLocator.InnerHTML())
+	stringToSend := "Python"
+	err = searchBarLocator.Fill(stringToSend)
+
+The cache is stored in json format. The schema is as follows:
+
+	{
+		"Page Full Url" : [
+			{
+				"locatr_name": "The description of the element you gave",
+				"locatrs": [
+					input#search",
+				]
+			}
+		]
+	}
+
+To remove the cache, you should delete the file at the path specified in `BaseLocatrOptions`.
+*/
+package locatr
