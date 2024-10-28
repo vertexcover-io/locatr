@@ -19,6 +19,8 @@ go get github.com/vertexcover-io/locatr
 - [ Quick Example ](#quick-example)
 
 - [ Locatr Settings ](#locatr-options)
+- [ LLM Client ](#llm-client)
+- [ Cache Schema & Management ](#cache)
 
 
 #### Locatr Options
@@ -32,6 +34,64 @@ go get github.com/vertexcover-io/locatr
 - **UseCache** (`bool`): 
     - Default is `false`. Set to `true` to use the cache.
 
+#### LLM Client
+
+The `LlmClient` struct is used to create an LLM client. Supported providers are `anthropic` and `openai`.
+
+```go
+import (
+	"github.com/vertexcover-io/locatr/core"
+	"os"
+)
+
+llmClient, err := core.NewLlmClient(
+	os.Getenv("LLM_PROVIDER"), // Supported providers: "openai" | "anthropic"
+	os.Getenv("LLM_MODEL_NAME"),
+	os.Getenv("LLM_API_KEY"),
+)
+```
+
+### Locatrs
+
+Locatrs are  are wrapper around the main plugin (playwright, selenium) we use. Currently only playwright is supported.
+
+#### PlaywrightLocatr
+Create an instance of `PlayWrightLocatr` using 
+
+```go
+locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+```
+
+### Methods
+
+- **GetLocatr**: Locates an element using a descriptive string and returns a `Locator` object.
+  
+  ```go
+  searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
+  ```
+
+### Cache
+
+#### Cache Schema
+
+The cache is stored in JSON format. The schema is as follows:
+
+```json
+{
+	"Page Full Url" : [
+		{
+			"locatr_name": "The description of the element you gave",
+			"locatrs": [
+				"input#search"
+			]
+		}
+	]
+}
+```
+
+#### Cache Management
+
+To remove the cache, delete the file at the path specified in `BaseLocatrOptions`'s `CachePath`.
 
 ### Quick Example
 
