@@ -7,7 +7,6 @@ Example on how to use locatr with playwright to interact with docker hub.
 
 import (
 	"fmt"
-	_ "fmt"
 	"log"
 	"os"
 	"time"

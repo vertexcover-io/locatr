@@ -14,8 +14,7 @@ import (
 	"github.com/vertexcover-io/locatr/core"
 )
 
-// fix this function to be main
-func Main() {
+func main() {
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("could not start playwright: %v", err)
