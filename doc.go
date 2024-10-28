@@ -1,11 +1,10 @@
 /*
-Package locatr is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
+Locatr simplifies the process of generating HTML element locators from your straightforward descriptions. It currently supports Playwright and will soon offer compatibility with Selenium and other frameworks. With its internal caching system, Locatr enhances efficiency in locator generation, making your web automation tasks smoother.
 
-For example:
+Example:
 
-Providing "Search bar" as input generates a locator like "input#search".
-
-Example: "Search bar" -> "input#search"
+	starButtonLocator, err := locatr.GetLocatr("Star button on the page")
+	starButtonLocator.click()
 
 To get started, let's open a new page in the browser using playwright-go.
 
