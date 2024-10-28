@@ -2,7 +2,13 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
 ![Test](https://github.com/vertexcover-io/locatr/actions/workflows/test.yaml/badge.svg)
 
-Locatr simplifies the process of generating HTML element locators from your straightforward descriptions. It currently supports Playwright and will soon offer compatibility with Selenium and other frameworks. With its internal caching system, Locatr enhances efficiency in locator generation, making your web automation tasks smoother.
+Locatr helps you to find javascript locators on a webpage using prompt.
+
+## Overview 
+- LLM based HTML javascript locator finder.
+- Supports playwright and there will be addon in the future for other web automation engines.  
+- Uses cache to reduce calls to llm apis.
+
 
 Example: 
 
@@ -23,6 +29,7 @@ go get github.com/vertexcover-io/locatr
 - [ Locatr Settings ](#locatr-options)
 - [ LLM Client ](#llm-client)
 - [ Cache Schema & Management ](#cache)
+- [ Contributing ](#contributing)
 
 ### Quick Example
 
@@ -86,6 +93,8 @@ func main() {
 	fmt.Println(searchBarLocator.InnerHTML())
 }
 ```
+
+**Please check the examples directory for more examples.**
 
 #### Locatr Options
 `core.BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
@@ -157,3 +166,8 @@ The cache is stored in JSON format. The schema is as follows:
 #### Cache Management
 
 To remove the cache, delete the file at the path specified in `BaseLocatrOptions`'s `CachePath`.
+
+
+### Contributing
+
+We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) guide to get started.
