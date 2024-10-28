@@ -1,9 +1,9 @@
 // nolint
+package main
 
 /*
 Example on how to use locatr with playwright to interact with docker hub.
 */
-package main
 
 import (
 	"fmt"
