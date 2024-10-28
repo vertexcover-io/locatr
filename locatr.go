@@ -53,7 +53,7 @@ type BaseLocatr struct {
 	llmClient     LlmClient
 	options       BaseLocatrOptions
 	cachedLocatrs map[string][]cachedLocatrsDto
-	initilized    bool
+	initialized   bool
 }
 
 // BaseLocatrOptions is a struct that holds all the options for the locatr package
@@ -77,7 +77,7 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		llmClient:     llmClient,
 		options:       options,
 		cachedLocatrs: make(map[string][]cachedLocatrsDto),
-		initilized:    false,
+		initialized:   false,
 	}
 }
 
@@ -97,8 +97,8 @@ func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []s
 	}
 }
 
-func (l *BaseLocatr) initilizeState() {
-	if l.initilized || !l.options.UseCache {
+func (l *BaseLocatr) initializeState() {
+	if l.initialized || !l.options.UseCache {
 		return
 	}
 	err := l.loadLocatorsCache(l.options.CachePath)
@@ -107,7 +107,7 @@ func (l *BaseLocatr) initilizeState() {
 		return
 	}
 	log.Println("Cache loaded successfully")
-	l.initilized = true
+	l.initialized = true
 }
 func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]string, error) {
 	if locatrs, ok := l.cachedLocatrs[currentUrl]; ok {
@@ -158,10 +158,10 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	if err := l.plugin.evaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
-	l.initilizeState()
+	l.initializeState()
 	log.Println("Searching for locator in cache")
-	currnetUrl := l.getCurrentUrl()
-	locators, err := l.getLocatrsFromState(userReq, currnetUrl)
+	currentUrl := l.getCurrentUrl()
+	locators, err := l.getLocatrsFromState(userReq, currentUrl)
 
 	if err == nil && len(locators) > 0 {
 		validLocator, err := l.getValidLocator(locators)
@@ -195,7 +195,7 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		return "", ErrUnableToFindValidLocator
 	}
 	if l.options.UseCache {
-		l.addCachedLocatrs(currnetUrl, userReq, locators)
+		l.addCachedLocatrs(currentUrl, userReq, locators)
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
 			return "", err

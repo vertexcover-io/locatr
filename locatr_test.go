@@ -89,8 +89,8 @@ func TestInitilizeState(t *testing.T) {
 	}
 	defer os.Remove(options.CachePath)
 
-	baseLocatr.initilizeState()
-	if !baseLocatr.initilized {
+	baseLocatr.initializeState()
+	if !baseLocatr.initialized {
 		t.Errorf("Expected initilized to be true, got false")
 	}
 }
