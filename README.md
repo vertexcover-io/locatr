@@ -1,6 +1,6 @@
 # Locatr 
 [![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
-![Test](https://github.com/vertexcover-io/locatr/actions/workflows/main.yaml/badge.svg)
+![Test](https://github.com/vertexcover-io/locatr/actions/workflows/test.yaml/badge.svg)
 
 Locatr pacakge is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
 
