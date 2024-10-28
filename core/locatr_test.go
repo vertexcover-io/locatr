@@ -9,11 +9,11 @@ import (
 
 type MockPlugin struct{}
 
-func (m *MockPlugin) EvaluateJsFunction(js string) (string, error) {
+func (m *MockPlugin) evaluateJsFunction(js string) (string, error) {
 	return "", nil
 }
 
-func (m *MockPlugin) EvaluateJsScript(js string) error {
+func (m *MockPlugin) evaluateJsScript(js string) error {
 	return nil
 }
 

@@ -22,6 +22,11 @@ type llmClient struct {
 	anthropicClient *anthropic.Client
 }
 
+// NewLlmClient creates a new LLM client based on the specified provider, model, and API key.
+// The `provider` parameter specifies the LLM provider (options: "openai" or "anthropic").
+// The `model` parameter is the name of the model to use for the completion (e.g., "gpt-4o").
+// The `apiKey` is the API key associated with the chosen provider.
+// Returns an initialized *llmClient or an error if validation or provider initialization fails.
 func NewLlmClient(provider string, model string, apiKey string) (*llmClient, error) {
 	client := &llmClient{
 		apiKey:   apiKey,
@@ -45,6 +50,7 @@ func NewLlmClient(provider string, model string, apiKey string) (*llmClient, err
 	return client, nil
 }
 
+// ChatCompletion sends a prompt to the LLM model and returns the completion string or and error.
 func (c *llmClient) ChatCompletion(prompt string) (string, error) {
 	switch c.provider {
 	case "openai":

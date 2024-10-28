@@ -1,6 +1,6 @@
 package core
 
 type PluginInterface interface {
-	EvaluateJsScript(scriptContent string) error
-	EvaluateJsFunction(function string) (string, error)
+	evaluateJsScript(scriptContent string) error
+	evaluateJsFunction(function string) (string, error)
 }
