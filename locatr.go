@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -26,6 +25,8 @@ var (
 	ErrUnableToLocateElementId     = errors.New("unable to locate element ID")
 	ErrInvalidElementIdGenerated   = errors.New("invalid element ID generated")
 	ErrUnableToFindValidLocator    = errors.New("unable to find valid locator")
+	ErrFailedToWriteCache          = errors.New("failed to write cache")
+	ErrFailedToMarshalJson         = errors.New("failed to marshal json")
 )
 
 type IdToLocatorMap map[string][]string
@@ -54,6 +55,7 @@ type BaseLocatr struct {
 	options       BaseLocatrOptions
 	cachedLocatrs map[string][]cachedLocatrsDto
 	initialized   bool
+	logger        logInterface
 }
 
 // BaseLocatrOptions is a struct that holds all the options for the locatr package
@@ -62,6 +64,8 @@ type BaseLocatrOptions struct {
 	CachePath string
 	// UseCache is a flag to enable/disable cache
 	UseCache bool
+	// LogConfig is the log configuration
+	LogConfig LogConfig
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
@@ -78,50 +82,58 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 		options:       options,
 		cachedLocatrs: make(map[string][]cachedLocatrsDto),
 		initialized:   false,
+		logger:        NewLogger(options.LogConfig),
 	}
 }
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
+		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cachedLocatrsDto", url))
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
 	found := false
 	for i, v := range l.cachedLocatrs[url] {
 		if v.LocatrName == locatrName {
+			l.logger.Debug(fmt.Sprintf("Found locatr %s in cache... Updating locators", locatrName))
 			l.cachedLocatrs[url][i].Locatrs = GetUniqueStringArray(append(l.cachedLocatrs[url][i].Locatrs, locatrs...))
 			return
 		}
 	}
 	if !found {
+		l.logger.Debug(fmt.Sprintf("Locatr %s not found in cache... Creating new locatr", locatrName))
 		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
 	}
 }
 
 func (l *BaseLocatr) initializeState() {
 	if l.initialized || !l.options.UseCache {
+		l.logger.Debug("Cache disabled or already initialized")
 		return
 	}
 	err := l.loadLocatorsCache(l.options.CachePath)
 	if err != nil {
-		log.Println(err)
+		l.logger.Error(fmt.Sprintf("Failed to load cache: %v", err))
 		return
 	}
-	log.Println("Cache loaded successfully")
+	l.logger.Debug("Cache loaded successfully")
 	l.initialized = true
 }
 func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]string, error) {
 	if locatrs, ok := l.cachedLocatrs[currentUrl]; ok {
 		for _, v := range locatrs {
 			if v.LocatrName == key {
+				l.logger.Debug(fmt.Sprintf("Key %s found in cache", key))
 				return v.Locatrs, nil
 			}
 		}
 	}
+	l.logger.Debug(fmt.Sprintf("Key %s not found in cache", key))
 	return nil, errors.New("key not found")
 }
 func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	file, err := os.Open(cachePath)
 	if err != nil {
+		l.logger.Debug(fmt.Sprintf("Cache file not found: %v", err))
 		return nil // ignore this error for now
 	}
 	defer file.Close()
@@ -159,49 +171,63 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		return "", ErrUnableToLoadJsScripts
 	}
 	l.initializeState()
-	log.Println("Searching for locator in cache")
+	l.logger.Info(fmt.Sprintf("Getting locator for user request: %s", userReq))
 	currentUrl := l.getCurrentUrl()
 	locators, err := l.getLocatrsFromState(userReq, currentUrl)
 
-	if err == nil && len(locators) > 0 {
-		validLocator, err := l.getValidLocator(locators)
-		if err == nil {
-			log.Println("Cache hit; returning locator")
-			return validLocator, nil
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to get locators from cache: %v", err))
+	} else {
+		if len(locators) > 0 {
+			validLocator, err := l.getValidLocator(locators)
+			if err == nil {
+				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
+				return validLocator, nil
+			} else {
+				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
+			}
+			l.logger.Info("All cached locators are outdated.")
 		}
-		log.Println("All cached locators are outdated.")
+
 	}
 
-	log.Println("Cache miss; going forward with dom minification")
+	l.logger.Info("Cache miss, starting dom minification")
 	minifiedDOM, locatorsMap, err := l.getMinifiedDomAndLocatorMap()
 	if err != nil {
-		return "", err
+		l.logger.Error(fmt.Sprintf("Failed to minify DOM and extract ID locator map: %v", err))
+		return "", ErrUnableToMinifyHtmlDom
 	}
 
-	log.Println("Extracting element ID using LLM")
+	l.logger.Info("Extracting element ID using LLM")
 	elementID, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
-		return "", err
+		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
+		return "", ErrUnableToLocateElementId
 	}
 
 	locators, ok := (*locatorsMap)[elementID]
 	if !ok {
+		l.logger.Error("Invalid element ID generated")
 		return "", ErrInvalidElementIdGenerated
 	}
 
 	validLocators, err := l.getValidLocator(locators)
 	if err != nil {
-		log.Println(err)
+		l.logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
 		return "", ErrUnableToFindValidLocator
 	}
 	if l.options.UseCache {
+		l.logger.Info(fmt.Sprintf("Adding locatrs of %s to cache", userReq))
+		l.logger.Debug(fmt.Sprintf("Adding Locars of %s: %v to cache", userReq, locators))
 		l.addCachedLocatrs(currentUrl, userReq, locators)
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
-			return "", err
+			l.logger.Error(fmt.Sprintf("Failed to marshal cache: %v", err))
+			return "", fmt.Errorf("%w: %v", ErrFailedToMarshalJson, err)
 		}
 		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
-			log.Println(err)
+			l.logger.Error(fmt.Sprintf("Failed to write cache: %v", err))
+			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
 		}
 	}
 	return validLocators, nil
@@ -210,6 +236,8 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 func (l *BaseLocatr) getCurrentUrl() string {
 	if value, err := l.plugin.evaluateJsFunction("window.location.href"); err == nil {
 		return value
+	} else {
+		l.logger.Error(fmt.Sprintf("Failed to get current URL: %v", err))
 	}
 	return ""
 }
