@@ -1,8 +1,8 @@
 package locatr
 
 import (
-	"fmt"
-	"time"
+	"log"
+	"os"
 )
 
 type LogLevel int
@@ -32,14 +32,14 @@ type logInterface interface {
 	Error(string)
 	Debug(string)
 }
+type Writer interface {
+	Printf(string, ...interface{})
+}
 
 type logger struct {
 	config                               LogConfig
 	infoStr, warnStr, errorStr, debugStr string
-}
-
-func getCurrentTime() string {
-	return time.Now().Format("2006-01-02 15:04:05")
+	Writer
 }
 
 func (l *logger) LogMode(level LogLevel) logInterface {
@@ -49,8 +49,7 @@ func (l *logger) LogMode(level LogLevel) logInterface {
 
 func (l *logger) log(level LogLevel, formatStr, message string) {
 	if l.config.Level >= level {
-		logMessage := fmt.Sprintf(formatStr, getCurrentTime(), message)
-		fmt.Println(logMessage)
+		l.Printf(formatStr, message)
 	}
 }
 
@@ -72,10 +71,10 @@ func (l *logger) Debug(message string) {
 
 func NewLogger(config LogConfig) logInterface {
 	var (
-		infoStr  = "INFO: %s %s"
-		warnStr  = "WARN: %s %s"
-		errorStr = "ERROR: %s %s"
-		debugStr = "DEBUG: %s %s"
+		infoStr  = "INFO: %s"
+		warnStr  = "WARN: %s"
+		errorStr = "ERROR: %s"
+		debugStr = "DEBUG: %s"
 	)
 	if config.Level == 0 {
 		config.Level = Info
@@ -86,5 +85,6 @@ func NewLogger(config LogConfig) logInterface {
 		warnStr:  warnStr,
 		errorStr: errorStr,
 		debugStr: debugStr,
+		Writer:   log.New(os.Stdout, "\n", log.LstdFlags),
 	}
 }
