@@ -76,6 +76,9 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 	if len(options.CachePath) == 0 {
 		options.CachePath = DEFAULT_CACHE_PATH
 	}
+	if options.LogConfig.Writer == nil {
+		options.LogConfig.Writer = DefaultLogWriter
+	}
 	return &BaseLocatr{
 		plugin:        plugin,
 		llmClient:     llmClient,

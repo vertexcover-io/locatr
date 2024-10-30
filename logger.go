@@ -20,9 +20,15 @@ const (
 	Debug
 )
 
+type Writer interface {
+	Printf(string, ...interface{})
+}
+
 type LogConfig struct {
 	// Level is the log level
 	Level LogLevel
+	// Writer is the writer to write logs to
+	Writer Writer
 }
 
 type logInterface interface {
@@ -31,9 +37,6 @@ type logInterface interface {
 	Warn(string)
 	Error(string)
 	Debug(string)
-}
-type Writer interface {
-	Printf(string, ...interface{})
 }
 
 type logger struct {
@@ -69,6 +72,8 @@ func (l *logger) Debug(message string) {
 	l.log(Debug, l.debugStr, message)
 }
 
+var DefaultLogWriter = log.New(os.Stdout, "\n", log.LstdFlags)
+
 func NewLogger(config LogConfig) logInterface {
 	var (
 		infoStr  = "INFO: %s"
@@ -85,6 +90,6 @@ func NewLogger(config LogConfig) logInterface {
 		warnStr:  warnStr,
 		errorStr: errorStr,
 		debugStr: debugStr,
-		Writer:   log.New(os.Stdout, "\n", log.LstdFlags),
+		Writer:   config.Writer,
 	}
 }
