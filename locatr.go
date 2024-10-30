@@ -91,7 +91,7 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLoca
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
-		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cachedLocatrsDto", url))
+		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cache object", url))
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
 	found := false
@@ -276,7 +276,7 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, e
 		UserReq: userReq,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
+		return "", fmt.Errorf("failed to marshal web input json: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
