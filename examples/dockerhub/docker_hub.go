@@ -6,7 +6,6 @@ Example on how to use locatr with playwright to interact with docker hub.
 */
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -49,7 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
 
 	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
@@ -57,7 +56,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
-	fmt.Println(searchBarLocator.InnerHTML())
 	stringToSend := "Python"
 	err = searchBarLocator.Fill(stringToSend)
 	if err != nil {
