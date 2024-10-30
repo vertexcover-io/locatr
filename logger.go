@@ -82,7 +82,7 @@ var DefaultLogWriter = log.New(os.Stdout, "\n", log.LstdFlags)
 
 func NewLogger(config LogConfig) logInterface {
 	if config.Level == 0 {
-		config.Level = Info
+		config.Level = Error
 	}
 	return &logger{
 		config: config,
