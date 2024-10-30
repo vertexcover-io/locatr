@@ -21,6 +21,8 @@ To get started, let's open a new page in the browser using playwright-go.
 		page.Goto("https://hub.docker.com/")
 	}
 
+# LLM Client
+
 After opening a page, we need to create a new LLM client. Currently, we support `anthropic` and `openai`. The `LlmClient` struct is available in `github.com/vertexcover-io/locatr/core`.
 
 	import (
@@ -34,12 +36,17 @@ After opening a page, we need to create a new LLM client. Currently, we support 
 		os.Getenv("LLM_API_KEY"),
 	)
 
+# Options
+
 Once we have an `llmClient`, we need to configure `BaseLocatrOptions`. This struct sets caching and configuration options.
 
 	options := locatr.BaseLocatrOptions{UseCache: true, CachePath: ".locatr.cache"}
 
 - `CachePath` has a default value of ".locatr.cache".
+
 - `UseCache` is false by default. To enable caching, set `UseCache` to `true`.
+
+# Playwright Locatr
 
 Now, we can create a new `PlaywrightLocatr` instance by calling `NewPlaywrightLocatr` with the `page`, `llmClient`, and `options`.
 
@@ -55,6 +62,8 @@ The `GetLocatr` method returns either an error or a Playwright locator object. Y
 	stringToSend := "Python"
 	err = searchBarLocator.Fill(stringToSend)
 
+# Caching
+
 The cache is stored in json format. The schema is as follows:
 
 	{
@@ -69,5 +78,23 @@ The cache is stored in json format. The schema is as follows:
 	}
 
 To remove the cache, you should delete the file at the path specified in `BaseLocatrOptions`.
+
+# Logging
+
+Logging is enabled by default in locatr and it's set to `Info` log level. Pass the `LogConfig` value in the `BaseLocatrOptions` struct.
+
+	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
+
+# Available Log Levels
+
+The following log levels are available, in increasing order of priority:
+
+- Debug: Logs all messages, info, warn, error.
+
+- Info (Default): Logs informational messages, warnings, and errors.
+
+- Warning: Logs warnings and errors only.
+
+- Error: Logs only error messages.
 */
 package locatr
