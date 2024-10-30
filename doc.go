@@ -1,11 +1,10 @@
 /*
-Package locatr is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
+Locatr simplifies the process of generating HTML element locators from your straightforward descriptions. It currently supports Playwright and will soon offer compatibility with Selenium and other frameworks. With its internal caching system, Locatr enhances efficiency in locator generation, making your web automation tasks smoother.
 
-For example:
+Example:
 
-Providing "Search bar" as input generates a locator like "input#search".
-
-Example: "Search bar" -> "input#search"
+	starButtonLocator, err := locatr.GetLocatr("Star button on the page")
+	starButtonLocator.click()
 
 To get started, let's open a new page in the browser using playwright-go.
 
@@ -25,11 +24,11 @@ To get started, let's open a new page in the browser using playwright-go.
 After opening a page, we need to create a new LLM client. Currently, we support `anthropic` and `openai`. The `LlmClient` struct is available in `github.com/vertexcover-io/locatr/core`.
 
 	import (
-		"github.com/vertexcover-io/locatr/core"
+		"github.com/vertexcover-io/locatr"
 		"os"
 	)
 
-	llmClient, err := core.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // Supported providers: "openai" | "anthropic"
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
@@ -37,18 +36,18 @@ After opening a page, we need to create a new LLM client. Currently, we support 
 
 Once we have an `llmClient`, we need to configure `BaseLocatrOptions`. This struct sets caching and configuration options.
 
-	options := core.BaseLocatrOptions{UseCache: true, CachePath: ".locatr.cache"}
+	options := locatr.BaseLocatrOptions{UseCache: true, CachePath: ".locatr.cache"}
 
 - `CachePath` has a default value of ".locatr.cache".
 - `UseCache` is false by default. To enable caching, set `UseCache` to `true`.
 
 Now, we can create a new `PlaywrightLocatr` instance by calling `NewPlaywrightLocatr` with the `page`, `llmClient`, and `options`.
 
-	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
 To locate an element, use the `GetLocatr` method. This method takes a descriptive string as input and returns a `Locator` object.
 
-	searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
+	searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
 
 The `GetLocatr` method returns either an error or a Playwright locator object. You can then interact with the located element through the returned locator.
 

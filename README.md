@@ -2,11 +2,20 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
 ![Test](https://github.com/vertexcover-io/locatr/actions/workflows/test.yaml/badge.svg)
 
-Locatr pacakge is an HTML element locator library for playwright-go. It supports natural language inputs to generate JavaScript locators, making it easier to locate HTML elements based on simple descriptions. Future updates may include support for additional plugins like selinium.
+Locatr package helps you to find HTML locators on a webpage using prompts and llms.
+
+## Overview 
+- LLM based HTML locator finder.
+- Supports playwright and there will be addon in the future for other web automation engines.  
+- Uses cache to reduce calls to llm apis.
+
 
 Example: 
 
-(input) `Search bar` -> (output) `input#search`
+```go
+starButtonLocator, err := locatr.GetLocatr("Star button on the page")
+starButtonLocator.click()
+```
 
 ### Install Locatr with
 
@@ -17,81 +26,10 @@ go get github.com/vertexcover-io/locatr
 ## Table of Contents
 
 - [ Quick Example ](#quick-example)
-
 - [ Locatr Settings ](#locatr-options)
 - [ LLM Client ](#llm-client)
 - [ Cache Schema & Management ](#cache)
-
-
-#### Locatr Options
-`core.BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
-**Fields**
-
-- **CachePath** (`string`): 
-    - Path where the cache will be saved. 
-    - Example: `"/path/to/cache/file"`
-  
-- **UseCache** (`bool`): 
-    - Default is `false`. Set to `true` to use the cache.
-
-#### LLM Client
-
-The `LlmClient` struct is used to create an LLM client. Supported providers are `anthropic` and `openai`.
-
-```go
-import (
-	"github.com/vertexcover-io/locatr/core"
-	"os"
-)
-
-llmClient, err := core.NewLlmClient(
-	os.Getenv("LLM_PROVIDER"), // Supported providers: "openai" | "anthropic"
-	os.Getenv("LLM_MODEL_NAME"),
-	os.Getenv("LLM_API_KEY"),
-)
-```
-
-### Locatrs
-
-Locatrs are  are wrapper around the main plugin (playwright, selenium) we use. Currently only playwright is supported.
-
-#### PlaywrightLocatr
-Create an instance of `PlayWrightLocatr` using 
-
-```go
-locatr := core.NewPlaywrightLocatr(page, llmClient, options)
-```
-
-### Methods
-
-- **GetLocatr**: Locates an element using a descriptive string and returns a `Locator` object.
-  
-  ```go
-  searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
-  ```
-
-### Cache
-
-#### Cache Schema
-
-The cache is stored in JSON format. The schema is as follows:
-
-```json
-{
-	"Page Full Url" : [
-		{
-			"locatr_name": "The description of the element you gave",
-			"locatrs": [
-				"input#search"
-			]
-		}
-	]
-}
-```
-
-#### Cache Management
-
-To remove the cache, delete the file at the path specified in `BaseLocatrOptions`'s `CachePath`.
+- [ Contributing ](#contributing)
 
 ### Quick Example
 
@@ -107,7 +45,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/core"
+	"github.com/vertexcover-io/locatr"
 )
 
 func main() {
@@ -136,7 +74,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := core.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
@@ -144,11 +82,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := core.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true}
 
-	locatr := core.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightlocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 
-	searchBarLocator, err := locatr.GetLocatr("Search Docker Hub input field")
+	searchBarLocator, err := playWrightlocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -156,4 +94,80 @@ func main() {
 }
 ```
 
-## 
+**Please check the examples directory for more examples.**
+
+#### Locatr Options
+`locatr.BaseLocatrOptions` is a struct with two fields used to configure caching in `locatr`.
+
+**Fields**
+
+- **CachePath** (`string`): 
+    - Path where the cache will be saved. 
+    - Example: `"/path/to/cache/file"`
+  
+- **UseCache** (`bool`): 
+    - Default is `false`. Set to `true` to use the cache.
+
+#### LLM Client
+
+The `LlmClient` is a wrapper around the llm provider you want to use. Supported providers are `anthropic` and `openai`.
+
+```go
+import (
+	"github.com/vertexcover-io/locatr.
+	"os"
+)
+
+llmClient, err := locatr.NewLlmClient(
+	os.Getenv("LLM_PROVIDER"), // Supported providers: "openai" | "anthropic"
+	os.Getenv("LLM_MODEL_NAME"),
+	os.Getenv("LLM_API_KEY"),
+)
+```
+
+### Locatrs
+
+Locatrs are  are wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
+
+#### PlaywrightLocatr
+Create an instance of `PlayWrightLocatr` using 
+
+```go
+playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+```
+
+### Methods
+
+- **GetLocatr**: Locates an element using a descriptive string and returns a `Locator` object.
+  
+  ```go
+  searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
+  ```
+
+### Cache
+
+#### Cache Schema
+
+The cache is stored in JSON format. The schema is as follows:
+
+```json
+{
+	"Page Full Url" : [
+		{
+			"locatr_name": "The description of the element you gave",
+			"locatrs": [
+				"input#search"
+			]
+		}
+	]
+}
+```
+
+#### Cache Management
+
+To remove the cache, delete the file at the path specified in `BaseLocatrOptions`'s `CachePath`.
+
+
+### Contributing
+
+We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) guide to get started.

@@ -1,4 +1,4 @@
-package core
+package locatr
 
 import (
 	"fmt"
@@ -56,7 +56,7 @@ func (pl *playwrightPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-// GetLocatr returns a pywright locator object for the given user request.
+// GetLocatr returns a playwright locator object for the given user request.
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
 		return nil, fmt.Errorf("error waiting for load state: %v", err)
