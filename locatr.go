@@ -46,7 +46,7 @@ type locatrResult struct {
 	InputTokens             int    `json:"input_tokens"`
 	OutputTokens            int    `json:"output_tokens"`
 	TotalTokens             int    `json:"total_tokens"`
-	ChatCompletionTimeTaken int    `json:"time_taken"`
+	ChatCompletionTimeTaken int    `json:"llm_locatr_generation_time_taken"`
 }
 
 type cachedLocatrsDto struct {

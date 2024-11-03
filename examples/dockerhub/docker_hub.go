@@ -82,5 +82,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not click on tags locator: %v", err)
 	}
+	playWrightLocatr.WriteResultsToFile()
 	time.Sleep(3 * time.Second)
 }
