@@ -18,7 +18,8 @@ var LOCATE_ELEMENT_PROMPT string
 
 var DEFAULT_CACHE_PATH = ".locatr.cache"
 
-var DEFAULT_LOCATR_RESULTS_FILE = "locatr_results.json"
+// Default file to write locatr results
+var DEFAULT_LOCATR_RESULTS_PATH = "locatr_results.json"
 
 var (
 	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
@@ -32,11 +33,6 @@ var (
 )
 
 type IdToLocatorMap map[string][]string
-
-type llmWebInputDto struct {
-	HtmlDom string `json:"html_dom"`
-	UserReq string `json:"user_req"`
-}
 
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
@@ -76,6 +72,10 @@ type BaseLocatrOptions struct {
 	UseCache bool
 	// LogConfig is the log configuration
 	LogConfig LogConfig
+
+	// LocatrResultsFilePath is the path to the file where the locatr results will be written
+	// If not provided, the results will be written to DEFAULT_LOCATR_RESULTS_FILE
+	ResultsFilePath string
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
@@ -85,6 +85,9 @@ type BaseLocatrOptions struct {
 func NewBaseLocatr(plugin PluginInterface, llmClient LlmClientInterface, options BaseLocatrOptions) *BaseLocatr {
 	if len(options.CachePath) == 0 {
 		options.CachePath = DEFAULT_CACHE_PATH
+	}
+	if len(options.ResultsFilePath) == 0 {
+		options.ResultsFilePath = DEFAULT_LOCATR_RESULTS_PATH
 	}
 	return &BaseLocatr{
 		plugin:        plugin,
@@ -321,21 +324,25 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocat
 	return llmLocatorOutput, nil
 }
 
-func (l *BaseLocatr) GetAllCompletions() []chatCompletionResponse {
-	return l.llmClient.GetAllCompletionResponses()
-}
-
-func (l *BaseLocatr) WriteLocatrResultsToFile() {
-	file, err := os.OpenFile(DEFAULT_LOCATR_RESULTS_FILE, os.O_CREATE|os.O_WRONLY, 0644)
+func (l *BaseLocatr) writeLocatrResultsToFile() {
+	file, err := os.OpenFile(l.options.ResultsFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		l.logger.Error(fmt.Sprintf("Failed to create file: %v", err))
+		l.logger.Error(fmt.Sprintf("Failed to create file locatr results file: %v", err))
+		return
 	}
 	defer file.Close()
 	value, err := json.Marshal(l.locatrResults)
 	if err != nil {
-		l.logger.Error(fmt.Sprintf("Failed to marshal json: %v", err))
+		l.logger.Error(fmt.Sprintf("Failed to marshal locatr results json: %v", err))
+		return
 	}
 	if _, err := file.Write(value); err != nil {
-		l.logger.Error(fmt.Sprintf("Failed to write to file: %v", err))
+		l.logger.Error(fmt.Sprintf("Failed to write locatr results to file: %v", err))
+	} else {
+		l.logger.Info(fmt.Sprintf("Results written to file: %s", l.options.ResultsFilePath))
 	}
+}
+
+func (l *BaseLocatr) getLocatrResults() []locatrResult {
+	return l.locatrResults
 }

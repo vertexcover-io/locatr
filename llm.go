@@ -21,6 +21,11 @@ const (
 	Anthropic LlmProvider = "anthropic"
 )
 
+type llmWebInputDto struct {
+	HtmlDom string `json:"html_dom"`
+	UserReq string `json:"user_req"`
+}
+
 type llmClient struct {
 	apiKey          string      `validate:"regexp=sk-*"`
 	provider        LlmProvider `validate:"regexp=(openai|anthropic)"`
@@ -32,7 +37,6 @@ type llmClient struct {
 
 type LlmClientInterface interface {
 	ChatCompletion(prompt string) (*chatCompletionResponse, error)
-	GetAllCompletionResponses() []chatCompletionResponse
 }
 
 type chatCompletionResponse struct {
@@ -108,7 +112,6 @@ func (c *llmClient) anthropicRequest(prompt string) (*chatCompletionResponse, er
 		TimeTaken:    int(time.Since(start).Seconds()),
 		Provider:     Anthropic,
 	}
-	c.completions = append(c.completions, completionResponse)
 
 	return &completionResponse, nil
 }
@@ -139,11 +142,6 @@ func (c *llmClient) openaiRequest(prompt string) (*chatCompletionResponse, error
 		TimeTaken:    int(time.Since(start).Seconds()),
 		Provider:     OpenAI,
 	}
-	c.completions = append(c.completions, completionResponse)
 
 	return &completionResponse, nil
-}
-
-func (c *llmClient) GetAllCompletionResponses() []chatCompletionResponse {
-	return c.completions
 }

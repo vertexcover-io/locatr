@@ -41,7 +41,7 @@ func main() {
 	time.Sleep(5 * time.Second) // wait for page to load
 
 	llmClient, err := locatr.NewLlmClient(
-		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
+		locatr.OpenAI, // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
 	)

@@ -19,8 +19,8 @@ func (m *MockPlugin) evaluateJsScript(js string) error {
 
 type MockLlmClient struct{}
 
-func (m *MockLlmClient) ChatCompletion(prompt string) (string, error) {
-	return "", nil
+func (m *MockLlmClient) ChatCompletion(prompt string) (*chatCompletionResponse, error) {
+	return nil, nil
 }
 
 func TestAddCachedLocatrs(t *testing.T) {

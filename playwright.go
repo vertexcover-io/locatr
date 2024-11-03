@@ -69,6 +69,12 @@ func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 	return pl.page.Locator(locatorStr), nil
 }
 
-func (pl *playwrightLocator) WriteToFile() {
-	pl.locatr.WriteLocatrResultsToFile()
+// WriteResultsToFile writes the locatr results to path specified in BaseLocatrOptions.ResultsFilePath.
+func (pl *playwrightLocator) WriteResultsToFile() {
+	pl.locatr.writeLocatrResultsToFile()
+}
+
+// GetLocatrResults returns the locatr results.
+func (pl *playwrightLocator) GetLocatrResults() []locatrResult {
+	return pl.locatr.getLocatrResults()
 }
