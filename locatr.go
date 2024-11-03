@@ -89,6 +89,9 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClientInterface, options
 	if len(options.ResultsFilePath) == 0 {
 		options.ResultsFilePath = DEFAULT_LOCATR_RESULTS_PATH
 	}
+	if options.LogConfig.Writer == nil {
+		options.LogConfig.Writer = DefaultLogWriter
+	}
 	return &BaseLocatr{
 		plugin:        plugin,
 		llmClient:     llmClient,
@@ -304,7 +307,7 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocat
 		UserReq: userReq,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal llmWebInputDto json: %v", err)
+		return nil, fmt.Errorf("failed to marshal web input json: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))

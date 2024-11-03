@@ -170,7 +170,7 @@ To remove the cache, delete the file at the path specified in `BaseLocatrOptions
 
 #### Logging 
 
-Logging is enabled by default in locatr and it's set to `Info` log level. Pass the `LogConfig` value in the `BaseLocatrOptions` struct.
+Logging is enabled by default in locatr and it's set to `Error` log level. Pass the `LogConfig` value in the `BaseLocatrOptions` struct.
 
 ```
 	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
@@ -181,9 +181,9 @@ Logging is enabled by default in locatr and it's set to `Info` log level. Pass t
 The following log levels are available, in increasing order of priority:
 
 - `Debug`: Logs all messages, info, warn, error.
-- `Info` (Default): Logs informational messages, warnings, and errors.
+- `Info` : Logs informational messages, warnings, and errors.
 - `Warning`: Logs warnings and errors only.
-- `Error`: Logs only error messages.
+- `Error` (Default): Logs only error messages.
 
 ### Contributing
 

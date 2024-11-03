@@ -20,9 +20,22 @@ const (
 	Debug
 )
 
+var (
+	infoStr  = "INFO: %s"
+	warnStr  = "WARN: %s"
+	errorStr = "ERROR: %s"
+	debugStr = "DEBUG: %s"
+)
+
+type Writer interface {
+	Printf(string, ...interface{})
+}
+
 type LogConfig struct {
 	// Level is the log level
 	Level LogLevel
+	// Writer is the writer to write logs to
+	Writer Writer
 }
 
 type logInterface interface {
@@ -32,13 +45,9 @@ type logInterface interface {
 	Error(string)
 	Debug(string)
 }
-type Writer interface {
-	Printf(string, ...interface{})
-}
 
 type logger struct {
-	config                               LogConfig
-	infoStr, warnStr, errorStr, debugStr string
+	config LogConfig
 	Writer
 }
 
@@ -54,37 +63,29 @@ func (l *logger) log(level LogLevel, formatStr, message string) {
 }
 
 func (l *logger) Info(message string) {
-	l.log(Info, l.infoStr, message)
+	l.log(Info, infoStr, message)
 }
 
 func (l *logger) Warn(message string) {
-	l.log(Warn, l.warnStr, message)
+	l.log(Warn, warnStr, message)
 }
 
 func (l *logger) Error(message string) {
-	l.log(Error, l.errorStr, message)
+	l.log(Error, errorStr, message)
 }
 
 func (l *logger) Debug(message string) {
-	l.log(Debug, l.debugStr, message)
+	l.log(Debug, debugStr, message)
 }
 
+var DefaultLogWriter = log.New(os.Stdout, "\n", log.LstdFlags)
+
 func NewLogger(config LogConfig) logInterface {
-	var (
-		infoStr  = "INFO: %s"
-		warnStr  = "WARN: %s"
-		errorStr = "ERROR: %s"
-		debugStr = "DEBUG: %s"
-	)
 	if config.Level == 0 {
-		config.Level = Info
+		config.Level = Error
 	}
 	return &logger{
-		config:   config,
-		infoStr:  infoStr,
-		warnStr:  warnStr,
-		errorStr: errorStr,
-		debugStr: debugStr,
-		Writer:   log.New(os.Stdout, "\n", log.LstdFlags),
+		config: config,
+		Writer: config.Writer,
 	}
 }
