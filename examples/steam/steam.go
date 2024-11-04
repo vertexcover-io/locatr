@@ -53,9 +53,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Silent}}
+	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Silent}, LlmClient: llmClient}
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
 
 	searchBarLocator, err := playWrightLocatr.GetLocatr("Search input bar on the steam store.")
 	if err != nil {

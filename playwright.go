@@ -17,12 +17,12 @@ type playwrightLocator struct {
 }
 
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
-func NewPlaywrightLocatr(page playwright.Page, llmClient LlmClientInterface, options BaseLocatrOptions) *playwrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *playwrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
 	return &playwrightLocator{
 		page:   page,
-		locatr: NewBaseLocatr(pwPlugin, llmClient, options),
+		locatr: NewBaseLocatr(pwPlugin, options),
 	}
 }
 

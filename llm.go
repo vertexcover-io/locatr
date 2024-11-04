@@ -2,17 +2,13 @@ package locatr
 
 import (
 	"context"
-	"errors"
+	"os"
 	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/validator.v2"
 )
-
-var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
-
-type LlmProvider string
 
 const MaxTokens int = 256
 
@@ -144,4 +140,15 @@ func (c *llmClient) openaiRequest(prompt string) (*chatCompletionResponse, error
 	}
 
 	return &completionResponse, nil
+}
+
+func createLlmClientFromEnv() (*llmClient, error) {
+	var provider LlmProvider
+	envProvider := os.Getenv("LLM_PROVIDER")
+	if envProvider == string(OpenAI) {
+		provider = OpenAI
+	} else if envProvider == string(Anthropic) {
+		provider = Anthropic
+	}
+	return NewLlmClient(provider, os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"))
 }

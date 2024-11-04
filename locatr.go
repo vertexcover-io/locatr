@@ -21,19 +21,6 @@ var DEFAULT_CACHE_PATH = ".locatr.cache"
 // Default file to write locatr results
 var DEFAULT_LOCATR_RESULTS_PATH = "locatr_results.json"
 
-var (
-	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
-	ErrUnableToMinifyHtmlDom       = errors.New("unable to minify HTML DOM")
-	ErrUnableToExtractIdLocatorMap = errors.New("unable to extract ID locator map")
-	ErrUnableToLocateElementId     = errors.New("unable to locate element ID")
-	ErrInvalidElementIdGenerated   = errors.New("invalid element ID generated")
-	ErrUnableToFindValidLocator    = errors.New("unable to find valid locator")
-	ErrFailedToWriteCache          = errors.New("failed to write cache")
-	ErrFailedToMarshalJson         = errors.New("failed to marshal json")
-)
-
-type IdToLocatorMap map[string][]string
-
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
 	completionResponse chatCompletionResponse
@@ -76,13 +63,16 @@ type BaseLocatrOptions struct {
 	// LocatrResultsFilePath is the path to the file where the locatr results will be written
 	// If not provided, the results will be written to DEFAULT_LOCATR_RESULTS_FILE
 	ResultsFilePath string
+
+	// LLmClient is the client to interact with LLM
+	LlmClient LlmClientInterface
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
 // plugin: (playwright, puppeteer, etc)
 // llmClient: struct that are returned by NewLlmClient
 // options: All the options for the locatr package
-func NewBaseLocatr(plugin PluginInterface, llmClient LlmClientInterface, options BaseLocatrOptions) *BaseLocatr {
+func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocatr {
 	if len(options.CachePath) == 0 {
 		options.CachePath = DEFAULT_CACHE_PATH
 	}
@@ -92,15 +82,25 @@ func NewBaseLocatr(plugin PluginInterface, llmClient LlmClientInterface, options
 	if options.LogConfig.Writer == nil {
 		options.LogConfig.Writer = DefaultLogWriter
 	}
-	return &BaseLocatr{
+	locatr := &BaseLocatr{
 		plugin:        plugin,
-		llmClient:     llmClient,
 		options:       options,
 		cachedLocatrs: make(map[string][]cachedLocatrsDto),
 		initialized:   false,
 		logger:        NewLogger(options.LogConfig),
 		locatrResults: []locatrResult{},
 	}
+	if options.LlmClient == nil {
+		client, err := createLlmClientFromEnv()
+		if err != nil {
+			locatr.logger.Error(fmt.Sprintf("Failed to create LLM client: %v", err))
+			return nil
+		}
+		locatr.llmClient = client
+	} else {
+		locatr.llmClient = options.LlmClient
+	}
+	return locatr
 }
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {

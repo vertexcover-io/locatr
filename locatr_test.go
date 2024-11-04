@@ -26,8 +26,8 @@ func (m *MockLlmClient) ChatCompletion(prompt string) (*chatCompletionResponse, 
 func TestAddCachedLocatrs(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	tests := []struct {
 		url        string
@@ -79,8 +79,8 @@ func TestAddCachedLocatrs(t *testing.T) {
 func TestInitilizeState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json"}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json", LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	// Test when cache is successfully loaded
 	err := os.WriteFile(options.CachePath, []byte(`{"http://example.com":[{"locatr_name":"testLocator","locatrs":["locator1"]}]}`), 0644)
@@ -98,8 +98,8 @@ func TestInitilizeState(t *testing.T) {
 func TestLoadLocatorsCache(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json"}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json", LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	// Test loading a valid cache file
 	err := os.WriteFile(options.CachePath, []byte(`{"http://example.com":[{"locatr_name":"testLocator","locatrs":["locator1"]}]}`), 0644)
@@ -185,8 +185,8 @@ func TestWriteLocatorsToCache(t *testing.T) {
 func TestGetLocatrsFromState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	testUrl := "https://example.com"
 	baseLocatr.cachedLocatrs = map[string][]cachedLocatrsDto{
