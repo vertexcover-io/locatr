@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type MockPlugin struct{}
@@ -21,6 +23,13 @@ type MockLlmClient struct{}
 
 func (m *MockLlmClient) ChatCompletion(prompt string) (*chatCompletionResponse, error) {
 	return nil, nil
+}
+func (m *MockLlmClient) getProvider() LlmProvider {
+	return "test_provider"
+}
+
+func (m *MockLlmClient) getModel() string {
+	return "test_model"
 }
 
 func TestAddCachedLocatrs(t *testing.T) {
@@ -257,4 +266,18 @@ func TestGetLocatrsFromState(t *testing.T) {
 			t.Errorf("Expected locatr %v at position %v, got %v", v, i, locatrs[i])
 		}
 	}
+}
+
+func TestNewBaseLocatrNoLLmClient(t *testing.T) {
+	os.Setenv("LLM_PROVIDER", "openai")
+	os.Setenv("LLM_MODEL", "test_model")
+	os.Setenv("LLM_API_KEY", "test_key")
+	mockPlugin := &MockPlugin{}
+	options := BaseLocatrOptions{UseCache: true}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
+	if baseLocatr.llmClient == nil {
+		t.Errorf("Expected llmClient, got %v", baseLocatr.llmClient)
+	}
+	assert.Equal(t, baseLocatr.llmClient.getProvider(), OpenAI)
+	assert.Equal(t, baseLocatr.llmClient.getProvider(), "test_model")
 }

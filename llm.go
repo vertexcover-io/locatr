@@ -28,11 +28,12 @@ type llmClient struct {
 	model           string      `validate:"min=2,max=50"`
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
-	completions     []chatCompletionResponse
 }
 
 type LlmClientInterface interface {
 	ChatCompletion(prompt string) (*chatCompletionResponse, error)
+	getProvider() LlmProvider
+	getModel() string
 }
 
 type chatCompletionResponse struct {
@@ -52,10 +53,9 @@ type chatCompletionResponse struct {
 // Returns an initialized *llmClient or an error if validation or provider initialization fails.
 func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient, error) {
 	client := &llmClient{
-		apiKey:      apiKey,
-		provider:    provider,
-		model:       model,
-		completions: []chatCompletionResponse{},
+		apiKey:   apiKey,
+		provider: provider,
+		model:    model,
 	}
 	validate := validator.NewValidator()
 	if err := validate.Validate(client); err != nil {
@@ -151,4 +151,12 @@ func createLlmClientFromEnv() (*llmClient, error) {
 		provider = Anthropic
 	}
 	return NewLlmClient(provider, os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"))
+}
+
+func (c *llmClient) getProvider() LlmProvider {
+	return c.provider
+}
+
+func (c *llmClient) getModel() string {
+	return c.model
 }
