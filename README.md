@@ -84,9 +84,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true}
+    options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Silent}, LlmClient: llmClient}
 
-	playWrightlocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightlocatr := locatr.NewPlaywrightLocatr(page, options)
 
 	searchBarLocator, err := playWrightlocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
