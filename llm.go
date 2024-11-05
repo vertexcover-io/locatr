@@ -10,13 +10,6 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-const MaxTokens int = 256
-
-const (
-	OpenAI    LlmProvider = "openai"
-	Anthropic LlmProvider = "anthropic"
-)
-
 type llmWebInputDto struct {
 	HtmlDom string `json:"html_dom"`
 	UserReq string `json:"user_req"`

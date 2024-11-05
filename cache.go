@@ -39,6 +39,35 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]strin
 	l.logger.Debug(fmt.Sprintf("Key %s not found in cache", key))
 	return nil, errors.New("key not found")
 }
+func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
+	currentUrl := l.getCurrentUrl()
+	locators, err := l.getLocatrsFromState(userReq, currentUrl)
+
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to get locators from cache: %v", err))
+		return "", err
+	} else {
+		if len(locators) > 0 {
+			validLocator, err := l.getValidLocator(locators)
+			if err == nil {
+				result := locatrResult{
+					LocatrDescription: userReq,
+					CacheHit:          true,
+					Locatr:            validLocator,
+				}
+				l.locatrResults = append(l.locatrResults, result)
+				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
+				return validLocator, nil
+			} else {
+				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
+			}
+			l.logger.Info("All cached locators are outdated.")
+		}
+
+	}
+	return "", LocatrCacheMiss
+}
+
 func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	file, err := os.Open(cachePath)
 	if err != nil {
