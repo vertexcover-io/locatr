@@ -7,8 +7,6 @@ import (
 	cohereclient "github.com/cohere-ai/cohere-go/v2/client"
 )
 
-var CohereReRankModel = "rerank-english-v3.0"
-
 type cohereClient struct {
 	Token  string
 	model  string

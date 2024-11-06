@@ -10,14 +10,6 @@ import (
 //go:embed meta/htmlMinifier.js
 var HTML_MINIFIER_JS_CONTENTT string
 
-//go:embed meta/locate_element.prompt
-var LOCATE_ELEMENT_PROMPT string
-
-var DEFAULT_CACHE_PATH = ".locatr.cache"
-
-// Default file to write locatr results
-var DEFAULT_LOCATR_RESULTS_PATH = "locatr_results.json"
-
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
 	completionResponse chatCompletionResponse
@@ -41,6 +33,7 @@ type cachedLocatrsDto struct {
 type BaseLocatr struct {
 	plugin        PluginInterface
 	llmClient     LlmClientInterface
+	reRankClinet  ReRankInterface
 	options       BaseLocatrOptions
 	cachedLocatrs map[string][]cachedLocatrsDto
 	initialized   bool
@@ -63,6 +56,9 @@ type BaseLocatrOptions struct {
 
 	// LLmClient is the client to interact with LLM
 	LlmClient LlmClientInterface
+
+	// ReRankClient is the client to interact with ReRank
+	ReRankClient ReRankInterface
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
@@ -86,6 +82,7 @@ func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocat
 		initialized:   false,
 		logger:        NewLogger(options.LogConfig),
 		locatrResults: []locatrResult{},
+		reRankClinet:  options.ReRankClient,
 	}
 	if options.LlmClient == nil {
 		client, err := createLlmClientFromEnv()
@@ -108,28 +105,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	l.initializeState()
 	l.logger.Info(fmt.Sprintf("Getting locator for user request: %s", userReq))
 	currentUrl := l.getCurrentUrl()
-	locators, err := l.getLocatrsFromState(userReq, currentUrl)
-
-	if err != nil {
-		l.logger.Error(fmt.Sprintf("Failed to get locators from cache: %v", err))
+	locatr, err := l.loadLocatrsFromCache(userReq)
+	if err == nil {
+		return locatr, nil
 	} else {
-		if len(locators) > 0 {
-			validLocator, err := l.getValidLocator(locators)
-			if err == nil {
-				result := locatrResult{
-					LocatrDescription: userReq,
-					CacheHit:          true,
-					Locatr:            validLocator,
-				}
-				l.locatrResults = append(l.locatrResults, result)
-				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
-				return validLocator, nil
-			} else {
-				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
-			}
-			l.logger.Info("All cached locators are outdated.")
-		}
-
+		l.logger.Error(fmt.Sprintf("Failed to load locatrs from cache: %v", err))
 	}
 
 	l.logger.Info("Cache miss, starting dom minification")
@@ -223,11 +203,40 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 			return locator, nil
 		}
 	}
-	fmt.Println("No valid locator found")
 	return "", ErrUnableToFindValidLocator
 }
-func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
-	systemPrompt := LOCATE_ELEMENT_PROMPT
+func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
+	chunks := split(htmlDom)
+	request := reRankRequest{
+		Query:     userReq,
+		Documents: chunks,
+	}
+	reRankResults, err := l.reRankClinet.reRank(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-rank chunks: %v", err)
+	}
+	finalChunks := []string{}
+	for _, result := range *reRankResults {
+		if result.Score >= CohereReRankThreshold {
+			finalChunks = append(finalChunks, chunks[result.Index])
+		}
+	}
+	return finalChunks, nil
+
+}
+func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
+	if l.reRankClinet != nil {
+		chunks, err := l.getReRankedChunks(htmlDOM, userReq)
+		if err != nil {
+			l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
+			return nil, err
+		}
+		htmlDOM = ""
+		for _, chunk := range chunks {
+			htmlDOM += chunk
+		}
+	}
+	fmt.Println("HTML DOM", htmlDOM)
 	jsonData, err := json.Marshal(&llmWebInputDto{
 		HtmlDom: htmlDOM,
 		UserReq: userReq,
@@ -236,9 +245,9 @@ func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocat
 		return nil, fmt.Errorf("failed to marshal web input json: %v", err)
 	}
 
-	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
+	prompt := fmt.Sprintf("%s%s", locatrPrompt, string(jsonData))
 
-	llmResponse, err := al.llmClient.ChatCompletion(prompt)
+	llmResponse, err := l.llmClient.ChatCompletion(prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get response from LLM: %v", err)
 	}
