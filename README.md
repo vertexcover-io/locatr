@@ -8,7 +8,7 @@ Locatr package helps you to find HTML locators on a webpage using prompts and ll
 - LLM based HTML locator finder.
 - Supports playwright and there will be addon in the future for other web automation engines.  
 - Uses cache to reduce calls to llm apis.
-
+- Results/Statistics generation of api calls.
 
 Example: 
 
