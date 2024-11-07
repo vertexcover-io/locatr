@@ -279,5 +279,5 @@ func TestNewBaseLocatrNoLLmClient(t *testing.T) {
 		t.Errorf("Expected llmClient, got %v", baseLocatr.llmClient)
 	}
 	assert.Equal(t, baseLocatr.llmClient.getProvider(), OpenAI)
-	assert.Equal(t, baseLocatr.llmClient.getProvider(), "test_model")
+	assert.Equal(t, baseLocatr.llmClient.getModel(), "test_model")
 }
