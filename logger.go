@@ -5,8 +5,6 @@ import (
 	"os"
 )
 
-type LogLevel int
-
 const (
 	// Silent will not log anything
 	Silent LogLevel = iota + 1

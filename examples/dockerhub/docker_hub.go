@@ -41,16 +41,16 @@ func main() {
 	time.Sleep(5 * time.Second) // wait for page to load
 
 	llmClient, err := locatr.NewLlmClient(
-		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
+		locatr.OpenAI, // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
 	)
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
+	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}, LlmClient: llmClient}
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
 
 	searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
@@ -82,5 +82,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not click on tags locator: %v", err)
 	}
+	playWrightLocatr.WriteResultsToFile()
 	time.Sleep(3 * time.Second)
 }

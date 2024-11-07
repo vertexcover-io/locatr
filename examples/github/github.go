@@ -41,16 +41,16 @@ func main() {
 	time.Sleep(5 * time.Second) // wait for page to load
 
 	llmClient, err := locatr.NewLlmClient(
-		os.Getenv("LLM_PROVIDER"), // (openai | anthropic),
+		locatr.OpenAI, // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
 	)
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
 
-	locatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	locatr := locatr.NewPlaywrightLocatr(page, options)
 
 	codeDropDownLocatr, err := locatr.GetLocatr("<> Code dropdown")
 	if err != nil {

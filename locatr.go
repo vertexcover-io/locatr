@@ -18,30 +18,22 @@ var LOCATE_ELEMENT_PROMPT string
 
 var DEFAULT_CACHE_PATH = ".locatr.cache"
 
-var (
-	ErrUnableToLoadJsScripts       = errors.New("unable to load JS scripts")
-	ErrUnableToMinifyHtmlDom       = errors.New("unable to minify HTML DOM")
-	ErrUnableToExtractIdLocatorMap = errors.New("unable to extract ID locator map")
-	ErrUnableToLocateElementId     = errors.New("unable to locate element ID")
-	ErrInvalidElementIdGenerated   = errors.New("invalid element ID generated")
-	ErrUnableToFindValidLocator    = errors.New("unable to find valid locator")
-	ErrFailedToWriteCache          = errors.New("failed to write cache")
-	ErrFailedToMarshalJson         = errors.New("failed to marshal json")
-)
-
-type IdToLocatorMap map[string][]string
-
-type llmWebInputDto struct {
-	HtmlDom string `json:"html_dom"`
-	UserReq string `json:"user_req"`
-}
+// Default file to write locatr results
+var DEFAULT_LOCATR_RESULTS_PATH = "locatr_results.json"
 
 type llmLocatorOutputDto struct {
-	LocatorID string `json:"locator_id"`
+	LocatorID          string `json:"locator_id"`
+	completionResponse chatCompletionResponse
 }
 
-type LlmClient interface {
-	ChatCompletion(prompt string) (string, error)
+type locatrResult struct {
+	LocatrDescription       string `json:"locatr_description"`
+	CacheHit                bool   `json:"cache_hit"`
+	Locatr                  string `json:"locatr"`
+	InputTokens             int    `json:"input_tokens"`
+	OutputTokens            int    `json:"output_tokens"`
+	TotalTokens             int    `json:"total_tokens"`
+	ChatCompletionTimeTaken int    `json:"llm_locatr_generation_time_taken"`
 }
 
 type cachedLocatrsDto struct {
@@ -51,11 +43,12 @@ type cachedLocatrsDto struct {
 
 type BaseLocatr struct {
 	plugin        PluginInterface
-	llmClient     LlmClient
+	llmClient     LlmClientInterface
 	options       BaseLocatrOptions
 	cachedLocatrs map[string][]cachedLocatrsDto
 	initialized   bool
 	logger        logInterface
+	locatrResults []locatrResult
 }
 
 // BaseLocatrOptions is a struct that holds all the options for the locatr package
@@ -66,32 +59,53 @@ type BaseLocatrOptions struct {
 	UseCache bool
 	// LogConfig is the log configuration
 	LogConfig LogConfig
+
+	// LocatrResultsFilePath is the path to the file where the locatr results will be written
+	// If not provided, the results will be written to DEFAULT_LOCATR_RESULTS_FILE
+	ResultsFilePath string
+
+	// LLmClient is the client to interact with LLM
+	LlmClient LlmClientInterface
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
 // plugin: (playwright, puppeteer, etc)
 // llmClient: struct that are returned by NewLlmClient
 // options: All the options for the locatr package
-func NewBaseLocatr(plugin PluginInterface, llmClient LlmClient, options BaseLocatrOptions) *BaseLocatr {
+func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocatr {
 	if len(options.CachePath) == 0 {
 		options.CachePath = DEFAULT_CACHE_PATH
+	}
+	if len(options.ResultsFilePath) == 0 {
+		options.ResultsFilePath = DEFAULT_LOCATR_RESULTS_PATH
 	}
 	if options.LogConfig.Writer == nil {
 		options.LogConfig.Writer = DefaultLogWriter
 	}
-	return &BaseLocatr{
+	locatr := &BaseLocatr{
 		plugin:        plugin,
-		llmClient:     llmClient,
 		options:       options,
 		cachedLocatrs: make(map[string][]cachedLocatrsDto),
 		initialized:   false,
 		logger:        NewLogger(options.LogConfig),
+		locatrResults: []locatrResult{},
 	}
+	if options.LlmClient == nil {
+		client, err := createLlmClientFromEnv()
+		if err != nil {
+			locatr.logger.Error(fmt.Sprintf("Failed to create LLM client: %v", err))
+			return nil
+		}
+		locatr.llmClient = client
+	} else {
+		locatr.llmClient = options.LlmClient
+	}
+	return locatr
 }
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
-		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cache object", url))
+		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cachedLocatrsDto", url))
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
 	found := false
@@ -184,12 +198,16 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		if len(locators) > 0 {
 			validLocator, err := l.getValidLocator(locators)
 			if err == nil {
+				result := locatrResult{
+					LocatrDescription: userReq,
+					CacheHit:          true,
+					Locatr:            validLocator,
+				}
+				l.locatrResults = append(l.locatrResults, result)
 				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
 				return validLocator, nil
-			} else {
-				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
 			}
-			l.logger.Info("All cached locators are outdated.")
+			l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
 		}
 
 	}
@@ -202,19 +220,19 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 
 	l.logger.Info("Extracting element ID using LLM")
-	elementID, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
+	llmOtuput, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
 		return "", ErrUnableToLocateElementId
 	}
 
-	locators, ok := (*locatorsMap)[elementID]
+	locators, ok := (*locatorsMap)[llmOtuput.LocatorID]
 	if !ok {
 		l.logger.Error("Invalid element ID generated")
 		return "", ErrInvalidElementIdGenerated
 	}
 
-	validLocators, err := l.getValidLocator(locators)
+	validLocator, err := l.getValidLocator(locators)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
 		return "", ErrUnableToFindValidLocator
@@ -233,7 +251,18 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
 		}
 	}
-	return validLocators, nil
+	result := locatrResult{
+		LocatrDescription:       userReq,
+		CacheHit:                false,
+		Locatr:                  validLocator,
+		InputTokens:             llmOtuput.completionResponse.InputTokens,
+		OutputTokens:            llmOtuput.completionResponse.OutputTokens,
+		TotalTokens:             llmOtuput.completionResponse.TotalTokens,
+		ChatCompletionTimeTaken: llmOtuput.completionResponse.TimeTaken,
+	}
+
+	l.locatrResults = append(l.locatrResults, result)
+	return validLocator, nil
 
 }
 func (l *BaseLocatr) getCurrentUrl() string {
@@ -269,27 +298,52 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	}
 	return "", ErrUnableToFindValidLocator
 }
-func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (string, error) {
+func (al *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
 	systemPrompt := LOCATE_ELEMENT_PROMPT
 	jsonData, err := json.Marshal(&llmWebInputDto{
 		HtmlDom: htmlDOM,
 		UserReq: userReq,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal web input json: %v", err)
+		return nil, fmt.Errorf("failed to marshal web input json: %v", err)
 	}
 
 	prompt := fmt.Sprintf("%s%s", string(systemPrompt), string(jsonData))
 
 	llmResponse, err := al.llmClient.ChatCompletion(prompt)
 	if err != nil {
-		return "", fmt.Errorf("failed to get response from LLM: %v", err)
+		return nil, fmt.Errorf("failed to get response from LLM: %v", err)
 	}
 
-	llmLocatorOutput := &llmLocatorOutputDto{}
-	if err = json.Unmarshal([]byte(llmResponse), llmLocatorOutput); err != nil {
-		return "", fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
+	llmLocatorOutput := &llmLocatorOutputDto{
+		completionResponse: *llmResponse,
+	}
+	if err = json.Unmarshal([]byte(llmResponse.Completion), llmLocatorOutput); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
 	}
 
-	return llmLocatorOutput.LocatorID, nil
+	return llmLocatorOutput, nil
+}
+
+func (l *BaseLocatr) writeLocatrResultsToFile() {
+	file, err := os.OpenFile(l.options.ResultsFilePath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to create file locatr results file: %v", err))
+		return
+	}
+	defer file.Close()
+	value, err := json.Marshal(l.locatrResults)
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to marshal locatr results json: %v", err))
+		return
+	}
+	if _, err := file.Write(value); err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to write locatr results to file: %v", err))
+	} else {
+		l.logger.Info(fmt.Sprintf("Results written to file: %s", l.options.ResultsFilePath))
+	}
+}
+
+func (l *BaseLocatr) getLocatrResults() []locatrResult {
+	return l.locatrResults
 }

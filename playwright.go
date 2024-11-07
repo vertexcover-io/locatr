@@ -17,12 +17,12 @@ type playwrightLocator struct {
 }
 
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
-func NewPlaywrightLocatr(page playwright.Page, llmClient LlmClient, options BaseLocatrOptions) *playwrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *playwrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
 	return &playwrightLocator{
 		page:   page,
-		locatr: NewBaseLocatr(pwPlugin, llmClient, options),
+		locatr: NewBaseLocatr(pwPlugin, options),
 	}
 }
 
@@ -67,4 +67,14 @@ func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 		return nil, fmt.Errorf("error getting locator string: %v", err)
 	}
 	return pl.page.Locator(locatorStr), nil
+}
+
+// WriteResultsToFile writes the locatr results to path specified in BaseLocatrOptions.ResultsFilePath.
+func (pl *playwrightLocator) WriteResultsToFile() {
+	pl.locatr.writeLocatrResultsToFile()
+}
+
+// GetLocatrResults returns the locatr results.
+func (pl *playwrightLocator) GetLocatrResults() []locatrResult {
+	return pl.locatr.getLocatrResults()
 }

@@ -2,24 +2,48 @@ package locatr
 
 import (
 	"context"
-	"errors"
+	"os"
+	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/sashabaranov/go-openai"
 	"gopkg.in/validator.v2"
 )
 
-var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
-
 const MaxTokens int = 256
 
-type llmClient struct {
-	apiKey   string `validate:"regexp=sk-*"`
-	provider string `validate:"regexp=(openai|anthropic)"`
-	model    string `validate:"min=2,max=50"`
+const (
+	OpenAI    LlmProvider = "openai"
+	Anthropic LlmProvider = "anthropic"
+)
 
+type llmWebInputDto struct {
+	HtmlDom string `json:"html_dom"`
+	UserReq string `json:"user_req"`
+}
+
+type llmClient struct {
+	apiKey          string      `validate:"regexp=sk-*"`
+	provider        LlmProvider `validate:"regexp=(openai|anthropic)"`
+	model           string      `validate:"min=2,max=50"`
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
+}
+
+type LlmClientInterface interface {
+	ChatCompletion(prompt string) (*chatCompletionResponse, error)
+	getProvider() LlmProvider
+	getModel() string
+}
+
+type chatCompletionResponse struct {
+	Prompt       string      `json:"prompt"`
+	Completion   string      `json:"completion"`
+	TotalTokens  int         `json:"total_tokens"`
+	InputTokens  int         `json:"input_tokens"`
+	OutputTokens int         `json:"output_tokens"`
+	TimeTaken    int         `json:"time_taken"`
+	Provider     LlmProvider `json:"provider"`
 }
 
 // NewLlmClient creates a new LLM client based on the specified provider, model, and API key.
@@ -27,7 +51,7 @@ type llmClient struct {
 // The `model` parameter is the name of the model to use for the completion (e.g., "gpt-4o").
 // The `apiKey` is the API key associated with the chosen provider.
 // Returns an initialized *llmClient or an error if validation or provider initialization fails.
-func NewLlmClient(provider string, model string, apiKey string) (*llmClient, error) {
+func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient, error) {
 	client := &llmClient{
 		apiKey:   apiKey,
 		provider: provider,
@@ -39,30 +63,30 @@ func NewLlmClient(provider string, model string, apiKey string) (*llmClient, err
 	}
 
 	switch client.provider {
-	case "openai":
+	case OpenAI:
 		client.openaiClient = openai.NewClient(client.apiKey)
-	case "anthropic":
+	case Anthropic:
 		client.anthropicClient = anthropic.NewClient(client.apiKey)
 	default:
 		return nil, ErrInvalidProviderForLlm
 	}
-
 	return client, nil
 }
 
 // ChatCompletion sends a prompt to the LLM model and returns the completion string or and error.
-func (c *llmClient) ChatCompletion(prompt string) (string, error) {
+func (c *llmClient) ChatCompletion(prompt string) (*chatCompletionResponse, error) {
 	switch c.provider {
-	case "openai":
+	case OpenAI:
 		return c.openaiRequest(prompt)
-	case "anthropic":
+	case Anthropic:
 		return c.anthropicRequest(prompt)
 	default:
-		return "", ErrInvalidProviderForLlm
+		return nil, ErrInvalidProviderForLlm
 	}
 }
 
-func (c *llmClient) anthropicRequest(prompt string) (string, error) {
+func (c *llmClient) anthropicRequest(prompt string) (*chatCompletionResponse, error) {
+	start := time.Now()
 	resp, err := c.anthropicClient.CreateMessages(
 		context.Background(),
 		anthropic.MessagesRequest{
@@ -73,13 +97,23 @@ func (c *llmClient) anthropicRequest(prompt string) (string, error) {
 			MaxTokens: MaxTokens,
 		})
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	completionResponse := chatCompletionResponse{
+		Prompt:       prompt,
+		Completion:   resp.Content[0].GetText(),
+		TotalTokens:  resp.Usage.OutputTokens + resp.Usage.InputTokens,
+		InputTokens:  resp.Usage.InputTokens,
+		OutputTokens: resp.Usage.OutputTokens,
+		TimeTaken:    int(time.Since(start).Seconds()),
+		Provider:     Anthropic,
 	}
 
-	return resp.Content[0].GetText(), nil
+	return &completionResponse, nil
 }
 
-func (c *llmClient) openaiRequest(prompt string) (string, error) {
+func (c *llmClient) openaiRequest(prompt string) (*chatCompletionResponse, error) {
+	start := time.Now()
 	resp, err := c.openaiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -93,8 +127,36 @@ func (c *llmClient) openaiRequest(prompt string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	completionResponse := chatCompletionResponse{
+		Prompt:       prompt,
+		Completion:   resp.Choices[0].Message.Content,
+		TotalTokens:  resp.Usage.TotalTokens,
+		InputTokens:  resp.Usage.PromptTokens,
+		OutputTokens: resp.Usage.CompletionTokens,
+		TimeTaken:    int(time.Since(start).Seconds()),
+		Provider:     OpenAI,
 	}
 
-	return resp.Choices[0].Message.Content, nil
+	return &completionResponse, nil
+}
+
+func createLlmClientFromEnv() (*llmClient, error) {
+	var provider LlmProvider
+	envProvider := os.Getenv("LLM_PROVIDER")
+	if envProvider == string(OpenAI) {
+		provider = OpenAI
+	} else if envProvider == string(Anthropic) {
+		provider = Anthropic
+	}
+	return NewLlmClient(provider, os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"))
+}
+
+func (c *llmClient) getProvider() LlmProvider {
+	return c.provider
+}
+
+func (c *llmClient) getModel() string {
+	return c.model
 }

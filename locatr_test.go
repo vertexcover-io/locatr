@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type MockPlugin struct{}
@@ -19,15 +21,22 @@ func (m *MockPlugin) evaluateJsScript(js string) error {
 
 type MockLlmClient struct{}
 
-func (m *MockLlmClient) ChatCompletion(prompt string) (string, error) {
-	return "", nil
+func (m *MockLlmClient) ChatCompletion(prompt string) (*chatCompletionResponse, error) {
+	return nil, nil
+}
+func (m *MockLlmClient) getProvider() LlmProvider {
+	return "test_provider"
+}
+
+func (m *MockLlmClient) getModel() string {
+	return "test_model"
 }
 
 func TestAddCachedLocatrs(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	tests := []struct {
 		url        string
@@ -79,8 +88,8 @@ func TestAddCachedLocatrs(t *testing.T) {
 func TestInitilizeState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json"}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json", LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	// Test when cache is successfully loaded
 	err := os.WriteFile(options.CachePath, []byte(`{"http://example.com":[{"locatr_name":"testLocator","locatrs":["locator1"]}]}`), 0644)
@@ -98,8 +107,8 @@ func TestInitilizeState(t *testing.T) {
 func TestLoadLocatorsCache(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json"}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, CachePath: "test_cache.json", LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	// Test loading a valid cache file
 	err := os.WriteFile(options.CachePath, []byte(`{"http://example.com":[{"locatr_name":"testLocator","locatrs":["locator1"]}]}`), 0644)
@@ -185,8 +194,8 @@ func TestWriteLocatorsToCache(t *testing.T) {
 func TestGetLocatrsFromState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
-	options := BaseLocatrOptions{UseCache: true}
-	baseLocatr := NewBaseLocatr(mockPlugin, mockLlmClient, options)
+	options := BaseLocatrOptions{UseCache: true, LlmClient: mockLlmClient}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	testUrl := "https://example.com"
 	baseLocatr.cachedLocatrs = map[string][]cachedLocatrsDto{
@@ -257,4 +266,18 @@ func TestGetLocatrsFromState(t *testing.T) {
 			t.Errorf("Expected locatr %v at position %v, got %v", v, i, locatrs[i])
 		}
 	}
+}
+
+func TestNewBaseLocatrNoLLmClient(t *testing.T) {
+	os.Setenv("LLM_PROVIDER", "openai")
+	os.Setenv("LLM_MODEL", "test_model")
+	os.Setenv("LLM_API_KEY", "test_key")
+	mockPlugin := &MockPlugin{}
+	options := BaseLocatrOptions{UseCache: true}
+	baseLocatr := NewBaseLocatr(mockPlugin, options)
+	if baseLocatr.llmClient == nil {
+		t.Errorf("Expected llmClient, got %v", baseLocatr.llmClient)
+	}
+	assert.Equal(t, baseLocatr.llmClient.getProvider(), OpenAI)
+	assert.Equal(t, baseLocatr.llmClient.getModel(), "test_model")
 }

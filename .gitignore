@@ -18,6 +18,8 @@ coverage
 # Dependency directories (may be project-specific)
 vendor/
 
+locatr_results.json
+
 # Temporary files
 *.log
 *.tmp
