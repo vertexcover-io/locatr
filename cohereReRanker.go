@@ -51,6 +51,7 @@ func (c *cohereClient) reRank(request reRankRequest) (*[]reRankResult, error) {
 	return &results, nil
 }
 
+// NewCohereClient creates a new cohere client.
 func NewCohereClient(token string) ReRankInterface {
 	client := cohereclient.NewClient(cohereclient.WithToken(token))
 	return &cohereClient{

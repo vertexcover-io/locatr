@@ -126,6 +126,20 @@ options := locatr.BaseLocatrOptions{
 }
 ```
 
+Run without creating the llm client..
+
+```go
+import (
+	"github.com/vertexcover-io/locatr.
+	"os"
+)
+
+options := locatr.BaseLocatrOptions{
+	UseCache: true,
+}
+```
+
+
 ### Re-ranking Client
 
 `ReRankClient` is a wrapper around the ranking provider you want to use. Currently, we only support the `cohere` re-ranker. To create a `cohere` re-ranker, use the following code:

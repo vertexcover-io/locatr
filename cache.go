@@ -2,7 +2,6 @@ package locatr
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,7 +36,7 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]strin
 		}
 	}
 	l.logger.Debug(fmt.Sprintf("Key %s not found in cache", key))
-	return nil, errors.New("key not found")
+	return nil, fmt.Errorf("key %s not found in cache", key)
 }
 func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 	currentUrl := l.getCurrentUrl()
