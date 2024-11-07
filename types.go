@@ -11,3 +11,7 @@ type PluginInterface interface {
 type LlmProvider string
 
 type LogLevel int
+
+type ReRankInterface interface {
+	reRank(request reRankRequest) (*[]reRankResult, error)
+}

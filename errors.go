@@ -16,3 +16,5 @@ var (
 
 // LLM client errors
 var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
+
+var LocatrCacheMiss = errors.New("cache miss")
