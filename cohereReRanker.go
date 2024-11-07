@@ -55,7 +55,7 @@ func NewCohereClient(token string) ReRankInterface {
 	client := cohereclient.NewClient(cohereclient.WithToken(token))
 	return &cohereClient{
 		Token:  token,
-		model:  CohereReRankModel,
+		model:  COHERE_RERANK_MODEL,
 		client: client,
 	}
 }

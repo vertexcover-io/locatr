@@ -33,7 +33,7 @@ type cachedLocatrsDto struct {
 type BaseLocatr struct {
 	plugin        PluginInterface
 	llmClient     LlmClientInterface
-	reRankClinet  ReRankInterface
+	reRankClient  ReRankInterface
 	options       BaseLocatrOptions
 	cachedLocatrs map[string][]cachedLocatrsDto
 	initialized   bool
@@ -82,7 +82,7 @@ func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocat
 		initialized:   false,
 		logger:        NewLogger(options.LogConfig),
 		locatrResults: []locatrResult{},
-		reRankClinet:  options.ReRankClient,
+		reRankClient:  options.ReRankClient,
 	}
 	if options.LlmClient == nil {
 		client, err := createLlmClientFromEnv()
@@ -120,7 +120,6 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 
 	l.logger.Info("Extracting element ID using LLM")
-	llmOtuput, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	// file, err := os.Create("temp.html")
 	// if err != nil {
 	// 	l.logger.Error(fmt.Sprintf("Failed to create temp file: %v", err))
@@ -128,12 +127,13 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	// defer file.Close()
 	// file.WriteString(minifiedDOM.ContentStr())
 	// l.logger.Info("Temp file created")
+	llmOutput, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
 		return "", ErrUnableToLocateElementId
 	}
 
-	locators, ok := (*locatorsMap)[llmOtuput.LocatorID]
+	locators, ok := (*locatorsMap)[llmOutput.LocatorID]
 	if !ok {
 		l.logger.Error("Invalid element ID generated")
 		return "", ErrInvalidElementIdGenerated
@@ -162,10 +162,10 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		LocatrDescription:       userReq,
 		CacheHit:                false,
 		Locatr:                  validLocator,
-		InputTokens:             llmOtuput.completionResponse.InputTokens,
-		OutputTokens:            llmOtuput.completionResponse.OutputTokens,
-		TotalTokens:             llmOtuput.completionResponse.TotalTokens,
-		ChatCompletionTimeTaken: llmOtuput.completionResponse.TimeTaken,
+		InputTokens:             llmOutput.completionResponse.InputTokens,
+		OutputTokens:            llmOutput.completionResponse.OutputTokens,
+		TotalTokens:             llmOutput.completionResponse.TotalTokens,
+		ChatCompletionTimeTaken: llmOutput.completionResponse.TimeTaken,
 	}
 
 	l.locatrResults = append(l.locatrResults, result)
@@ -206,18 +206,18 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	return "", ErrUnableToFindValidLocator
 }
 func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
-	chunks := splitHtml(htmlDom, ChunkSize)
+	chunks := SplitHtml(htmlDom, HTML_SEPARATORS, CHUNK_SIZE)
 	request := reRankRequest{
 		Query:     userReq,
 		Documents: chunks,
 	}
-	reRankResults, err := l.reRankClinet.reRank(request)
+	reRankResults, err := l.reRankClient.reRank(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to re-rank chunks: %v", err)
 	}
 	finalChunks := []string{}
 	for _, result := range *reRankResults {
-		if result.Score >= CohereReRankThreshold {
+		if result.Score >= COHERE_RERANK_THRESHOLD {
 			finalChunks = append(finalChunks, chunks[result.Index])
 		}
 	}
@@ -225,18 +225,20 @@ func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string
 
 }
 func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
-	if l.reRankClinet != nil {
+	if l.reRankClient != nil {
 		chunks, err := l.getReRankedChunks(htmlDOM, userReq)
 		if err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
 			return nil, err
 		}
-		htmlDOM = ""
-		for _, chunk := range chunks {
-			htmlDOM += chunk
+		if len(chunks) != 0 {
+			htmlDOM = ""
+			for _, chunk := range chunks {
+				fmt.Println("Chunk", chunk)
+				htmlDOM += chunk
+			}
 		}
 	}
-	fmt.Println("HTML DOM", htmlDOM)
 	jsonData, err := json.Marshal(&llmWebInputDto{
 		HtmlDom: htmlDOM,
 		UserReq: userReq,
@@ -245,7 +247,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocato
 		return nil, fmt.Errorf("failed to marshal web input json: %v", err)
 	}
 
-	prompt := fmt.Sprintf("%s%s", locatrPrompt, string(jsonData))
+	prompt := fmt.Sprintf("%s%s", LOCATR_PROMPT, string(jsonData))
 
 	llmResponse, err := l.llmClient.ChatCompletion(prompt)
 	if err != nil {

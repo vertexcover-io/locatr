@@ -4,7 +4,7 @@
 package locatr
 
 import (
-	_ "fmt"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -25,12 +25,12 @@ func splitWithSeparator(text, separator string) []string {
 }
 
 func splitTextWithRegex(
-	text string, seperator string, keepSeperator bool,
+	text string, separator string, keepSeparator bool,
 ) []string {
 	splits := []string{}
-	if seperator != "" {
-		if keepSeperator {
-			_splits := splitWithSeparator(text, seperator)
+	if separator != "" {
+		if keepSeparator {
+			_splits := splitWithSeparator(text, separator)
 			for i := 1; i < len(_splits); i += 2 {
 				if i < len(_splits)-1 {
 					splits = append(splits, _splits[i]+_splits[i+1])
@@ -44,7 +44,7 @@ func splitTextWithRegex(
 			// prepend the first part of the _split
 			splits = append([]string{_splits[0]}, splits...)
 		} else {
-			splits = splitWithSeparator(text, seperator)
+			splits = splitWithSeparator(text, separator)
 		}
 	} else {
 		splits = []string{text}
@@ -68,105 +68,107 @@ func joinDocs(docs []string, separator string, stripWhitespace bool) *string {
 	return &text
 }
 
-func mergeSplits(parts []string, separator string, maxChunkSize int) []string {
+func mergeSplits(splits []string, separator string, maxChunkSize int) []string {
 	separatorLength := len(separator)
-	resultingChunks := []string{}
-	currentChunk := []string{}
+	mergedDocs := []string{}
+	currentChunks := []string{}
 	currentSize := 0
 
-	for _, part := range parts {
-		partLength := len(part)
-		var additionalLength int
-		if len(currentChunk) > 0 {
-			additionalLength = separatorLength
+	for _, split := range splits {
+		splitLength := len(split)
+		var additionalSeparatorLength int
+		if len(currentChunks) > 0 {
+			additionalSeparatorLength = separatorLength
 		} else {
-			additionalLength = 0
+			additionalSeparatorLength = 0
 		}
-		if currentSize+partLength+(separatorLength+additionalLength) > maxChunkSize {
-			if len(currentChunk) > 0 {
-				chunkString := joinDocs(currentChunk, separator, false)
-				if chunkString != nil {
-					resultingChunks = append(resultingChunks, *chunkString)
+
+		if currentSize+splitLength+additionalSeparatorLength > maxChunkSize {
+			if currentSize > maxChunkSize {
+				log.Println("Create chunk size of ", currentSize, " is greater than ", maxChunkSize)
+			}
+			if len(currentChunks) > 0 {
+				mergedDoc := joinDocs(currentChunks, separator, false)
+				if mergedDoc != nil {
+					mergedDocs = append(mergedDocs, *mergedDoc)
 				}
 
 				for {
-					if len(currentChunk) > 0 {
-						additionalLength = separatorLength
+					if len(currentChunks) > 0 {
+						additionalSeparatorLength = separatorLength
 					} else {
-						additionalLength = 0
+						additionalSeparatorLength = 0
 					}
-					if !((currentSize > ChunkOverlap) ||
-						(currentSize+partLength+additionalLength > maxChunkSize) && (currentSize > 0)) {
+					if !((currentSize > CHUNK_OVERLAP) ||
+						(currentSize+splitLength+additionalSeparatorLength > maxChunkSize) && (currentSize > 0)) {
 						break
 					}
-					removedLength := 0
-					if len(currentChunk) > 0 {
-						removedLength = separatorLength
+					sizeReduction := 0
+					if len(currentChunks) > 0 {
+						sizeReduction = separatorLength
 					}
-					currentSize -= len(currentChunk[0]) + removedLength
-					currentChunk = currentChunk[1:]
+					currentSize -= len(currentChunks[0]) + sizeReduction
+					currentChunks = currentChunks[1:]
 				}
 			}
-
 		}
 
-		currentChunk = append(currentChunk, part)
-		currentSize += partLength
-		if len(currentChunk) > 0 {
+		currentChunks = append(currentChunks, split)
+		currentSize += splitLength
+		if len(currentChunks) > 0 {
 			currentSize += separatorLength
 		}
-
 	}
-	chunkString := joinDocs(currentChunk, separator, false)
-	if chunkString != nil {
-		resultingChunks = append(resultingChunks, *chunkString)
+	mergedDoc := joinDocs(currentChunks, separator, false)
+	if mergedDoc != nil {
+		mergedDocs = append(mergedDocs, *mergedDoc)
 	}
-	return resultingChunks
+	return mergedDocs
 }
 
-func splitHtml(text string, chunkSize int) []string {
-	finalChunks := []string{}
-	seperators := Seperators
-	sepeartor := seperators[len(seperators)-1]
-	newSeperators := []string{}
-	var _seperator string
+func SplitHtml(text string, separators []string, chunkSize int) []string {
 
-	for i, _s := range seperators {
-		_seperator = _s
+	finalChunks := []string{}
+	separator := separators[len(separators)-1]
+	newSeparators := []string{}
+	var _separator string
+
+	for i, _s := range separators {
+		_separator = _s
 		if _s == "" {
-			sepeartor = _s
+			separator = _s
 			break
 		}
-		if ok, _ := regexp.MatchString(_seperator, text); ok {
-			sepeartor = _s
-			newSeperators = seperators[i+1:]
+		if ok, _ := regexp.MatchString(_separator, text); ok {
+			separator = _s
+			newSeparators = separators[i+1:]
 			break
 		}
 	}
-	_seperator = sepeartor
+	_separator = separator
 
-	splits := splitTextWithRegex(text, _seperator, true)
+	splits := splitTextWithRegex(text, _separator, true)
 	goodSplits := []string{}
-	_seperator = ""
+	_separator = ""
 	for _, s := range splits {
 		if len(s) < chunkSize {
 			goodSplits = append(goodSplits, s)
 		} else {
 			if len(goodSplits) > 0 {
-				mergedText := mergeSplits(goodSplits, _seperator, chunkSize)
+				mergedText := mergeSplits(goodSplits, _separator, chunkSize)
 				finalChunks = append(finalChunks, mergedText...)
 				goodSplits = []string{}
 			}
-			if len(newSeperators) == 0 {
+			if len(newSeparators) == 0 {
 				finalChunks = append(finalChunks, s)
 			} else {
-				other_info := splitHtml(s, chunkSize)
+				other_info := SplitHtml(s, newSeparators, chunkSize)
 				finalChunks = append(finalChunks, other_info...)
 			}
 		}
 	}
 	if len(goodSplits) > 0 {
-		mergedText := mergeSplits(goodSplits, _seperator, chunkSize)
+		mergedText := mergeSplits(goodSplits, _separator, chunkSize)
 		finalChunks = append(finalChunks, mergedText...)
 	}
 	return finalChunks

@@ -87,7 +87,7 @@ func (c *llmClient) anthropicRequest(prompt string) (*chatCompletionResponse, er
 			Messages: []anthropic.Message{
 				anthropic.NewUserTextMessage(prompt),
 			},
-			MaxTokens: MaxTokens,
+			MaxTokens: MAX_TOKENS,
 		})
 	if err != nil {
 		return nil, err

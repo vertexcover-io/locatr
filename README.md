@@ -149,7 +149,7 @@ llmClient, err := locatr.NewLlmClient(
 
 ### Locatrs
 
-Locatrs are  are wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
+Locatrs are a wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
 
 #### PlaywrightLocatr
 Create an instance of `PlayWrightLocatr` using 
