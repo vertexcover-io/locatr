@@ -120,13 +120,6 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 
 	l.logger.Info("Extracting element ID using LLM")
-	// file, err := os.Create("temp.html")
-	// if err != nil {
-	// 	l.logger.Error(fmt.Sprintf("Failed to create temp file: %v", err))
-	// }
-	// defer file.Close()
-	// file.WriteString(minifiedDOM.ContentStr())
-	// l.logger.Info("Temp file created")
 	llmOutput, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
