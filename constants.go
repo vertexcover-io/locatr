@@ -1,6 +1,6 @@
 package locatr
 
-const COHERE_RERANK_THRESHOLD = 0.8
+const COHERE_RERANK_THRESHOLD = 0.9
 
 const COHERE_RERANK_MODEL = "rerank-english-v3.0"
 

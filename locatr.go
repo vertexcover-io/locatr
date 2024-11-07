@@ -207,25 +207,33 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 }
 func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
 	chunks := SplitHtml(htmlDom, HTML_SEPARATORS, CHUNK_SIZE)
+	l.logger.Debug(fmt.Sprintf("SplitHtml resulted in %d chunks.", len(chunks)))
 	request := reRankRequest{
 		Query:     userReq,
 		Documents: chunks,
 	}
 	reRankResults, err := l.reRankClient.reRank(request)
 	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
 		return nil, fmt.Errorf("failed to re-rank chunks: %v", err)
 	}
+	l.logger.Debug(fmt.Sprintf("ReRrank results %v", reRankResults))
 	finalChunks := []string{}
+	l.logger.Debug(fmt.Sprintf("Current re-rank threshold: %f", COHERE_RERANK_THRESHOLD))
 	for _, result := range *reRankResults {
+		l.logger.Debug(fmt.Sprintf("Re-rank result index: %d, score: %f, chunk: %s", result.Index, result.Score, chunks[result.Index]))
 		if result.Score >= COHERE_RERANK_THRESHOLD {
 			finalChunks = append(finalChunks, chunks[result.Index])
+			l.logger.Debug(fmt.Sprintf("Chunk at index %d added to final chunks.", result.Index))
 		}
 	}
+	l.logger.Debug((fmt.Sprintf("Final chunks length after re-rank: %v", len(finalChunks))))
 	return finalChunks, nil
 
 }
 func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
 	if l.reRankClient != nil {
+		l.logger.Info("Re-ranking html chunks before sending to LLM")
 		chunks, err := l.getReRankedChunks(htmlDOM, userReq)
 		if err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
@@ -234,7 +242,6 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocato
 		if len(chunks) != 0 {
 			htmlDOM = ""
 			for _, chunk := range chunks {
-				fmt.Println("Chunk", chunk)
 				htmlDOM += chunk
 			}
 		}
