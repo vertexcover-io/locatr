@@ -1,6 +1,7 @@
 package locatr
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -235,7 +236,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for non-existing key, got nil")
 	}
-	if err.Error() != "key not found" {
+	if err.Error() != fmt.Sprintf("key %s not found in cache", "non_existing_key") {
 		t.Errorf("Expected 'key not found' error, got %v", err.Error())
 	}
 	if locatrs != nil {
@@ -246,7 +247,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for non-existing URL, got nil")
 	}
-	if err.Error() != "key not found" {
+	if err.Error() != fmt.Sprintf("key %s not found in cache", "test_key") {
 		t.Errorf("Expected 'key not found' error, got %v", err.Error())
 	}
 	if locatrs != nil {
