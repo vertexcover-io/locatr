@@ -44,3 +44,39 @@ Input Format:
   "html_dom": "<!-- Your HTML DOM here -->",
   "user_req": "The user's requirement here"
 }`
+
+// Seperators used by html chunk splitter
+var Seperators = []string{
+	"<body",
+	"<div",
+	"<p",
+	"<br",
+	"<li",
+	"<h1",
+	"<h2",
+	"<h3",
+	"<h4",
+	"<h5",
+	"<h6",
+	"<span",
+	"<table",
+	"<tr",
+	"<td",
+	"<th",
+	"<ul",
+	"<ol",
+	"<header",
+	"<footer",
+	"<nav",
+	"<head",
+	"<style",
+	"<script",
+	"<meta",
+	"<title",
+	"",
+}
+
+// ChunkSize is the maximum size of a html chunk
+var ChunkSize = 4000
+
+var ChunkOverlap = 200

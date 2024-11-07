@@ -206,7 +206,7 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	return "", ErrUnableToFindValidLocator
 }
 func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
-	chunks := split(htmlDom)
+	chunks := splitHtml(htmlDom, ChunkSize)
 	request := reRankRequest{
 		Query:     userReq,
 		Documents: chunks,
