@@ -48,9 +48,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true}
+	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
 
-	locatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	locatr := locatr.NewPlaywrightLocatr(page, options)
 
 	codeDropDownLocatr, err := locatr.GetLocatr("<> Code dropdown")
 	if err != nil {

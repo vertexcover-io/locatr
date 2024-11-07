@@ -27,7 +27,7 @@ go get github.com/vertexcover-io/locatr
 
 - [ Quick Example ](#quick-example)
 - [ Locatr Settings ](#locatr-options)
-- [ LLM Client ](#llm-client)
+- [ Create LLM Client ](#create-llm-client)
 - [ Cache Schema & Management ](#cache)
 - [ Logging ](#logging)
 - [ Generate Statistics ](#locatr-results)
@@ -84,9 +84,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true}
+    options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Silent}, LlmClient: llmClient}
 
-	playWrightlocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+	playWrightlocatr := locatr.NewPlaywrightLocatr(page, options)
 
 	searchBarLocator, err := playWrightlocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
@@ -124,10 +124,15 @@ func main() {
     - Path to the file where `locatr` results will be saved.
     - If not provided, results will be saved to `DEFAULT_LOCATR_RESULTS_FILE`.
 
-#### LLM Client
+- **LlmClient** (`LlmClientInterface`): 
+    - The `LlmClient` is a wrapper around the llm provider you want to use. Supported providers are `locatr.OpenAI`, `locatr.Anthropic`
+    - It is optional; if not provided in the options, Locatr will automatically create an LlmClient using environment variables. 
+    - The following environment variables will be read to create a default LlmClient:
+        - **LLM_PROVIDER**: Defines which provider's LLM should be utilized (`openai`, `anthropic`).
+        - **LLM_MODEL**: Specifies the model to use 
+        - **LLM_API_KEY**: The API key required to authenticate with the LLM provider.
 
-The `LlmClient` is a wrapper around the llm provider you want to use. Supported providers are `locatr.OpenAI`, `locatr.Anthropic`
-
+#### Create LLM Client
 
 ```go
 import (
@@ -215,7 +220,7 @@ Locatr provides a feature to get all the information about each locatr request m
 
 **Saving Results**
 
-Results can be saved to a file specified by `locatr.BaseLocatrOptions.ResultsFilePath`. If no file path is specified, results are written to `locatr.DEFAULT_LOCATR_RESULTS_PATH`.
+Results can be saved to a file specified by `locatr.BaseLocatrOptions.ResultsFilePath` (`locatr_results.json`). If no file path is specified, results are written to `locatr.DEFAULT_LOCATR_RESULTS_PATH`.
 
 - **To write results to a file**: Use the `playwrightLocatr.WriteResultsToFile` function.
 
