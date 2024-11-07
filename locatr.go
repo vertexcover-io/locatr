@@ -206,10 +206,8 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 				l.locatrResults = append(l.locatrResults, result)
 				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
 				return validLocator, nil
-			} else {
-				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
 			}
-			l.logger.Info("All cached locators are outdated.")
+			l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
 		}
 
 	}
