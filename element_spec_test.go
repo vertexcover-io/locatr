@@ -6,9 +6,10 @@ import (
 
 func TestContentStr(t *testing.T) {
 	tests := []struct {
-		name     string
-		element  ElementSpec
-		expected string
+		name          string
+		element       ElementSpec
+		expected      string
+		otherExpected string
 	}{
 		{
 			name: "Single element with no attributes or children",
@@ -30,7 +31,8 @@ func TestContentStr(t *testing.T) {
 					"style": "color: red;",
 				},
 			},
-			expected: `<span class="greeting" style="color: red;" id="2">Hello</span>`,
+			expected:      `<span class="greeting" style="color: red;" id="2">Hello</span>`,
+			otherExpected: `<span style="color: red;" class="greeting" id="2">Hello</span>`,
 		},
 		{
 			name: "Element with children",
@@ -75,8 +77,8 @@ func TestContentStr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.element.ContentStr()
-			if result != tt.expected {
-				t.Errorf("got %s, want %s", result, tt.expected)
+			if result != tt.expected && result != tt.otherExpected {
+				t.Errorf("got %s, want %s or %s", result, tt.expected, tt.otherExpected)
 			}
 		})
 	}
