@@ -20,7 +20,7 @@ type llmLocatorOutputDto struct {
 
 type locatrOutputDto struct {
 	llmLocatorOutputDto
-	AttempNo                 int    `json:"attempt_no"`
+	AttemptNo                int    `json:"attempt_no"`
 	LocatrRequestInitiatedAt string `json:"request_initiated_at"`
 	LocatrRequestCompletedAt string `json:"request_completed_at"`
 }
@@ -259,7 +259,7 @@ func (l *BaseLocatr) llmGetElementId(htmlDom string, userReq string) (*llmLocato
 	}
 	return llmLocatorOutput, nil
 }
-func (l *BaseLocatr) getLocatrOtuput(htmlDOM string, userReq string) (*locatrOutputDto, error) {
+func (l *BaseLocatr) getLocatrOutput(htmlDOM string, userReq string) (*locatrOutputDto, error) {
 	result, err := l.llmGetElementId(htmlDOM, userReq)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 	requestInitiatedAt := time.Now()
 	if l.reRankClient == nil {
 		l.logger.Debug("No rerank client setup sending full dom to llm.")
-		result, err := l.getLocatrOtuput(htmlDOM, userReq)
+		result, err := l.getLocatrOutput(htmlDOM, userReq)
 		if err != nil {
 			return llmOutputs, err
 		}
@@ -299,7 +299,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 	}
 	if len(chunks) == 1 {
 		l.logger.Debug("Only one chunk to process, sending to llm.")
-		result, err := l.getLocatrOtuput(htmlDOM, userReq)
+		result, err := l.getLocatrOutput(htmlDOM, userReq)
 		if err != nil {
 			return llmOutputs, err
 		}
@@ -333,7 +333,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 
 		llmOutputs = append(llmOutputs, locatrOutputDto{
 			llmLocatorOutputDto:      *result,
-			AttempNo:                 attempt,
+			AttemptNo:                attempt,
 			LocatrRequestInitiatedAt: requestInitiatedAt.Format(time.RFC3339),
 			LocatrRequestCompletedAt: requestCompletedAt.Format(time.RFC3339),
 		})

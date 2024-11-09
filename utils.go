@@ -23,7 +23,7 @@ func sortRerankChunks(chunks []string, reRankResults []reRankResult) []string {
 }
 
 func createLocatrResultFromOutput(userReq string, validLocatr string, currentUrl string, output []locatrOutputDto) []locatrResult {
-	resutls := []locatrResult{}
+	results := []locatrResult{}
 	for _, outputDto := range output {
 		r := locatrResult{
 			LocatrDescription:        userReq,
@@ -36,13 +36,13 @@ func createLocatrResultFromOutput(userReq string, validLocatr string, currentUrl
 			Url:                      currentUrl,
 			LocatrRequestInitiatedAt: outputDto.LocatrRequestInitiatedAt,
 			LocatrRequestCompletedAt: outputDto.LocatrRequestCompletedAt,
-			AttemptNo:                outputDto.AttempNo,
+			AttemptNo:                outputDto.AttemptNo,
 			LlmErrorMessage:          outputDto.Error,
 		}
-		resutls = append(resutls, r)
+		results = append(results, r)
 
 	}
-	return resutls
+	return results
 }
 
 func fixLLmJson(json string) string {
