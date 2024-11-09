@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 )
 
 //go:embed meta/htmlMinifier.js
@@ -13,16 +15,29 @@ var HTML_MINIFIER_JS_CONTENTT string
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
 	completionResponse chatCompletionResponse
+	Error              string `json:"error"`
+}
+
+type locatrOutputDto struct {
+	llmLocatorOutputDto
+	AttempNo                 int    `json:"attempt_no"`
+	LocatrRequestInitiatedAt string `json:"request_initiated_at"`
+	LocatrRequestCompletedAt string `json:"request_completed_at"`
 }
 
 type locatrResult struct {
-	LocatrDescription       string `json:"locatr_description"`
-	CacheHit                bool   `json:"cache_hit"`
-	Locatr                  string `json:"locatr"`
-	InputTokens             int    `json:"input_tokens"`
-	OutputTokens            int    `json:"output_tokens"`
-	TotalTokens             int    `json:"total_tokens"`
-	ChatCompletionTimeTaken int    `json:"llm_locatr_generation_time_taken"`
+	LocatrDescription        string `json:"locatr_description"`
+	Url                      string `json:"url"`
+	CacheHit                 bool   `json:"cache_hit"`
+	Locatr                   string `json:"locatr"`
+	InputTokens              int    `json:"input_tokens"`
+	OutputTokens             int    `json:"output_tokens"`
+	TotalTokens              int    `json:"total_tokens"`
+	LlmErrorMessage          string `json:"llm_error_message"`
+	ChatCompletionTimeTaken  int    `json:"llm_locatr_generation_time_taken"`
+	AttemptNo                int    `json:"attempt_no"`
+	LocatrRequestInitiatedAt string `json:"request_initiated_at"`
+	LocatrRequestCompletedAt string `json:"request_completed_at"`
 }
 
 type cachedLocatrsDto struct {
@@ -108,10 +123,7 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	locatr, err := l.loadLocatrsFromCache(userReq)
 	if err == nil {
 		return locatr, nil
-	} else {
-		l.logger.Error(fmt.Sprintf("Failed to load locatrs from cache: %v", err))
 	}
-
 	l.logger.Info("Cache miss, starting dom minification")
 	minifiedDOM, locatorsMap, err := l.getMinifiedDomAndLocatorMap()
 	if err != nil {
@@ -120,13 +132,20 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 
 	l.logger.Info("Extracting element ID using LLM")
-	llmOutput, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
+	llmOutputs, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
+		if len(llmOutputs) > 0 {
+			l.locatrResults = append(l.locatrResults,
+				createLocatrResultFromOutput(
+					userReq, "", currentUrl, llmOutputs,
+				)...,
+			)
+		}
 		return "", ErrUnableToLocateElementId
 	}
 
-	locators, ok := (*locatorsMap)[llmOutput.LocatorID]
+	locators, ok := (*locatorsMap)[llmOutputs[len(llmOutputs)-1].LocatorID]
 	if !ok {
 		l.logger.Error("Invalid element ID generated")
 		return "", ErrInvalidElementIdGenerated
@@ -137,6 +156,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		l.logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
 		return "", ErrUnableToFindValidLocator
 	}
+	l.locatrResults = append(l.locatrResults,
+		createLocatrResultFromOutput(
+			userReq, validLocator, currentUrl, llmOutputs,
+		)...,
+	)
 	if l.options.UseCache {
 		l.logger.Info(fmt.Sprintf("Adding locatrs of %s to cache", userReq))
 		l.logger.Debug(fmt.Sprintf("Adding Locars of %s: %v to cache", userReq, locators))
@@ -151,17 +175,6 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
 		}
 	}
-	result := locatrResult{
-		LocatrDescription:       userReq,
-		CacheHit:                false,
-		Locatr:                  validLocator,
-		InputTokens:             llmOutput.completionResponse.InputTokens,
-		OutputTokens:            llmOutput.completionResponse.OutputTokens,
-		TotalTokens:             llmOutput.completionResponse.TotalTokens,
-		ChatCompletionTimeTaken: llmOutput.completionResponse.TimeTaken,
-	}
-
-	l.locatrResults = append(l.locatrResults, result)
 	return validLocator, nil
 
 }
@@ -210,37 +223,14 @@ func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string
 		l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
 		return nil, fmt.Errorf("failed to re-rank chunks: %v", err)
 	}
-	l.logger.Debug(fmt.Sprintf("ReRrank results %v", reRankResults))
-	finalChunks := []string{}
-	l.logger.Debug(fmt.Sprintf("Current re-rank threshold: %f", COHERE_RERANK_THRESHOLD))
 	for _, result := range *reRankResults {
-		l.logger.Debug(fmt.Sprintf("Re-rank result index: %d, score: %f, chunk: %s", result.Index, result.Score, chunks[result.Index]))
-		if result.Score >= COHERE_RERANK_THRESHOLD {
-			finalChunks = append(finalChunks, chunks[result.Index])
-			l.logger.Debug(fmt.Sprintf("Chunk at index %d added to final chunks.", result.Index))
-		}
+		l.logger.Debug(fmt.Sprintf("Re-rank result index: %d, score: %f", result.Index, result.Score))
 	}
-	l.logger.Debug((fmt.Sprintf("Final chunks length after re-rank: %v", len(finalChunks))))
-	return finalChunks, nil
-
+	return sortRerankChunks(chunks, *reRankResults), nil
 }
-func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocatorOutputDto, error) {
-	if l.reRankClient != nil {
-		l.logger.Info("Re-ranking html chunks before sending to LLM")
-		chunks, err := l.getReRankedChunks(htmlDOM, userReq)
-		if err != nil {
-			l.logger.Error(fmt.Sprintf("Failed to re-rank chunks: %v", err))
-			return nil, err
-		}
-		if len(chunks) != 0 {
-			htmlDOM = ""
-			for _, chunk := range chunks {
-				htmlDOM += chunk
-			}
-		}
-	}
+func (l *BaseLocatr) llmGetElementId(htmlDom string, userReq string) (*llmLocatorOutputDto, error) {
 	jsonData, err := json.Marshal(&llmWebInputDto{
-		HtmlDom: htmlDOM,
+		HtmlDom: htmlDom,
 		UserReq: userReq,
 	})
 	if err != nil {
@@ -257,20 +247,115 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) (*llmLocato
 	llmLocatorOutput := &llmLocatorOutputDto{
 		completionResponse: *llmResponse,
 	}
+
+	l.logger.Debug(fmt.Sprintf("LLM response: %s", llmResponse.Completion))
+
+	llmResponse.Completion = fixLLmJson(llmResponse.Completion)
+
+	l.logger.Debug(fmt.Sprintf("Repaired LLM response: %s", llmResponse.Completion))
+
 	if err = json.Unmarshal([]byte(llmResponse.Completion), llmLocatorOutput); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %v", err)
 	}
-
 	return llmLocatorOutput, nil
+}
+func (l *BaseLocatr) getLocatrOtuput(htmlDOM string, userReq string) (*locatrOutputDto, error) {
+	result, err := l.llmGetElementId(htmlDOM, userReq)
+	if err != nil {
+		return nil, err
+	}
+	endAt := time.Now()
+	if result.Error == "" {
+		return &locatrOutputDto{
+			llmLocatorOutputDto:      *result,
+			LocatrRequestCompletedAt: endAt.Format(time.RFC3339),
+		}, nil
+	}
+	return nil, ErrLocatrRetrievalFailed
+}
+func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOutputDto, error) {
+	llmOutputs := []locatrOutputDto{}
+	requestInitiatedAt := time.Now()
+	if l.reRankClient == nil {
+		l.logger.Debug("No rerank client setup sending full dom to llm.")
+		result, err := l.getLocatrOtuput(htmlDOM, userReq)
+		if err != nil {
+			return llmOutputs, err
+		}
+		result.LocatrRequestInitiatedAt = requestInitiatedAt.Format(time.RFC3339)
+		llmOutputs = append(llmOutputs, *result)
+		if result.Error == "" {
+			return llmOutputs, nil
+		}
+		return llmOutputs, ErrLocatrRetrievalFailed
+	}
+	chunks, err := l.getReRankedChunks(htmlDOM, userReq)
+	if err != nil {
+		return llmOutputs, err
+	}
+	if len(chunks) == 0 {
+		l.logger.Debug("No chunks to process")
+		return llmOutputs, ErrNoChunksToProcess
+	}
+	if len(chunks) == 1 {
+		l.logger.Debug("Only one chunk to process, sending to llm.")
+		result, err := l.getLocatrOtuput(htmlDOM, userReq)
+		if err != nil {
+			return llmOutputs, err
+		}
+		result.LocatrRequestInitiatedAt = requestInitiatedAt.Format(time.RFC3339)
+		llmOutputs = append(llmOutputs, *result)
+		if result.Error == "" {
+			return llmOutputs, nil
+		}
+		return llmOutputs, ErrLocatrRetrievalFailed
+	}
+
+	var domToProcess string
+
+	for attempt := 0; attempt < 3; attempt++ {
+		switch attempt {
+		case 0:
+			domToProcess = strings.Join(chunks[0:4], "\n")
+		case 1:
+			domToProcess = strings.Join(chunks[4:], "\n")
+		default:
+			domToProcess = htmlDOM
+		}
+
+		l.logger.Debug(fmt.Sprintf("%d attempt to find locatr with reranking", attempt+1))
+		requestCompletedAt := time.Now()
+
+		result, err := l.llmGetElementId(domToProcess, userReq)
+		if err != nil {
+			return llmOutputs, err
+		}
+
+		llmOutputs = append(llmOutputs, locatrOutputDto{
+			llmLocatorOutputDto:      *result,
+			AttempNo:                 attempt,
+			LocatrRequestInitiatedAt: requestInitiatedAt.Format(time.RFC3339),
+			LocatrRequestCompletedAt: requestCompletedAt.Format(time.RFC3339),
+		})
+
+		if result.Error == "" {
+			return llmOutputs, nil
+		}
+
+		l.logger.Error(fmt.Sprintf("Failed to get locatr in attempt(s) %d: %s", attempt+1, result.Error))
+	}
+	return llmOutputs, ErrLocatrRetrievalAttemptsExhausted
 }
 
 func (l *BaseLocatr) writeLocatrResultsToFile() {
+	l.logger.Info(fmt.Sprintf("Writing locatr results to file: %s", l.options.ResultsFilePath))
 	file, err := os.OpenFile(l.options.ResultsFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to create file locatr results file: %v", err))
 		return
 	}
 	defer file.Close()
+	l.logger.Debug(fmt.Sprintf("Results to write: %v", l.locatrResults))
 	value, err := json.Marshal(l.locatrResults)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to marshal locatr results json: %v", err))

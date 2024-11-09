@@ -53,6 +53,7 @@ func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 					LocatrDescription: userReq,
 					CacheHit:          true,
 					Locatr:            validLocator,
+					Url:               currentUrl,
 				}
 				l.locatrResults = append(l.locatrResults, result)
 				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
@@ -64,7 +65,7 @@ func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 		}
 
 	}
-	return "", LocatrCacheMiss
+	return "", ErrLocatrCacheMiss
 }
 
 func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {

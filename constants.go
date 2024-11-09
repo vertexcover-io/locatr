@@ -30,20 +30,20 @@ const (
 	Debug
 )
 
-const LOCATR_PROMPT = `You are provided with an HTML DOM structure and a user requirement. Your task is to find the element
-in the DOM that matches the user's requirement. Each element provided in the DOM has a guaranteed unique_id.
-Do not perform any other actions or modifications based on the user requirement—simply identify the element
-and return its unique_id in the provided JSON format. Make sure you give valid JSON and nothing else,
-you don't need to explain or add json in code-blocks, just pure-valid json is required.
+const LOCATR_PROMPT = `Given an HTML DOM structure and a user's requirement, your task is to identify the element that matches the user's requirement and return its unique_id in a JSON format. If the element is not found, provide an appropriate error message in the JSON output. 
+
+Ensure the JSON output is valid and nothing else is included.
 
 Output Format:
-{"locator_id": "str"}
+{"locator_id": "str", "error": "str"}
 
 Input Format:
 {
   "html_dom": "<!-- Your HTML DOM here -->",
   "user_req": "The user's requirement here"
-}`
+}
+
+Process the input accordingly and ensure that if the element is not found, the "error" field contains a relevant message.`
 
 // HTML_SEPARATORS used by html chunk splitter
 var HTML_SEPARATORS = []string{
@@ -80,3 +80,5 @@ var HTML_SEPARATORS = []string{
 const CHUNK_SIZE = 4000
 
 const CHUNK_OVERLAP = 200
+
+var TOP_N_CHUNKS int = 8

@@ -36,6 +36,7 @@ func (c *cohereClient) reRank(request reRankRequest) (*[]reRankResult, error) {
 			Query:     request.Query,
 			Model:     &c.model,
 			Documents: rerankDocs,
+			TopN:      &TOP_N_CHUNKS,
 		},
 	)
 	if err != nil {

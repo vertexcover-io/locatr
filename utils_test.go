@@ -47,3 +47,76 @@ func TestGetUniqueStringArray(t *testing.T) {
 		})
 	}
 }
+
+func TestFixLLmJson(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "No formatting",
+			input:    `{"key": "value"}`,
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Surrounded by backticks",
+			input:    "```{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Prefixed with json and surrounded by backticks",
+			input:    "```json{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Prefixed with json without backticks",
+			input:    "json{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Backticks only at start",
+			input:    "```{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Backticks only at end",
+			input:    "{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Json prefix without backticks",
+			input:    "json{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only backticks",
+			input:    "```",
+			expected: "",
+		},
+		{
+			name:     "Only json prefix",
+			input:    "json",
+			expected: "",
+		},
+		{
+			name:     "Json with escaped characters",
+			input:    "```json{\"key\": \"value\\n\"}```",
+			expected: `{"key": "value\n"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := fixLLmJson(test.input)
+			if result != test.expected {
+				t.Errorf("got %q, want %q", result, test.expected)
+			}
+		})
+	}
+}

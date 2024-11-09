@@ -17,4 +17,12 @@ var (
 // LLM client errors
 var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
 
-var LocatrCacheMiss = errors.New("cache miss")
+var ErrLocatrCacheMiss = errors.New("cache miss")
+
+var ErrLocatrRetrievalAttemptsExhausted = errors.New("failed to retrieve locatr after 3 attempts")
+
+var ErrLocatrRetrievalFailed = errors.New("failed to retieve locatr")
+
+var ErrNoChunksToProcess = errors.New("Got no chunks to process after reranking.")
+
+var ErrFailedToRepariJson = errors.New("failed to repair json")
