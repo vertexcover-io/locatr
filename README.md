@@ -273,8 +273,8 @@ Locatr provides a feature to get all the information about each locatr request m
 - **LlmErrorMessage** (`string`): The error message from the LLM, if any.
 - **ChatCompletionTimeTaken** (`int`): Time taken for the LLM to complete locatr generation in seconds.
 - **AttemptNo** (`int`): An integer field to indicate the attempt number with re rank.
-- **LocatrRequestInitiatedAt** (`string`): The timestamp when the request was initiated.
-- **LocatrRequestCompletedAt** (`string`): The timestamp when the request was completed.
+- **LocatrRequestInitiatedAt** (`time.Time`): The timestamp when the request was initiated.
+- **LocatrRequestCompletedAt** (`time.Time`): The timestamp when the request was completed.
 
 **Saving Results**
 
