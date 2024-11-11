@@ -355,7 +355,7 @@ function createElementSpec(element) {
 		.filter((el) => el !== null);
 
 	return {
-		tag_name: element.tagName,
+		tag_name: element.tagName.toLowerCase(),
 		id: uniqueId,
 		attributes: attrs,
 		text,

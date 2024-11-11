@@ -6,6 +6,7 @@ Locatr package helps you to find HTML locators on a webpage using prompts and ll
 
 ## Overview 
 - LLM based HTML locator finder.
+- Re-rank support for improved accuracy.
 - Supports playwright and there will be addon in the future for other web automation engines.  
 - Uses cache to reduce calls to llm apis.
 - Results/Statistics generation of api calls.
@@ -26,8 +27,9 @@ go get github.com/vertexcover-io/locatr
 ## Table of Contents
 
 - [ Quick Example ](#quick-example)
+- [ LLM Client ](#create-llm-client)
+- [ Re-ranking Client ](#re-ranking-client)
 - [ Locatr Settings ](#locatr-options)
-- [ Create LLM Client ](#create-llm-client)
 - [ Cache Schema & Management ](#cache)
 - [ Logging ](#logging)
 - [ Generate Statistics ](#locatr-results)
@@ -98,7 +100,75 @@ func main() {
 
 **Please check the examples directory for more examples.**
 
-#### Locatr Options
+### LLM Client
+The `LlmClient` is a wrapper around the llm provider you want to use. Supported providers are `locatr.OpenAI`, `locatr.Anthropic`. It is optional; if not provided in the options, Locatr will automatically create an LlmClient using environment variables. 
+
+- The following environment variables will be read to create a default LlmClient:
+	- **LLM_PROVIDER**: Defines which provider's LLM should be utilized (`openai`, `anthropic`).
+	- **LLM_MODEL**: Specifies the model to use 
+	- **LLM_API_KEY**: The API key required to authenticate with the LLM provider.
+
+To create a new llm client call the `locatr.NewLlmClient` function.
+
+```go
+import (
+	"github.com/vertexcover-io/locatr.
+	"os"
+)
+
+llmClient, err := locatr.NewLlmClient(
+	locatr.OpenAI, // Supported providers: "openai" | "anthropic"
+	os.Getenv("LLM_MODEL_NAME"),
+	os.Getenv("LLM_API_KEY"),
+)
+options := locatr.BaseLocatrOptions{
+	LlmClient: llmClient,
+}
+```
+
+Run without creating the llm client..
+
+```go
+import (
+	"github.com/vertexcover-io/locatr.
+	"os"
+)
+
+options := locatr.BaseLocatrOptions{
+	UseCache: true,
+}
+```
+
+
+### Re-ranking Client
+
+`ReRankClient` is a wrapper around the ranking provider you want to use. Currently, we only support the `cohere` re-ranker. To create a `cohere` re-ranker, use the following code:
+
+**note: There is no support to create a re-ranking client by default if not provided in `BaseLocatrOptions`**
+- Only re-ranked HTML chunks with a score greater than `0.9` are sent to the LLM.
+- The default `cohere` re-ranking model is `rerank-english-v3.0`.
+
+```go
+import (
+	"github.com/vertexcover-io/locatr"
+	"os"
+)
+
+reRankClient, err := locatr.NewCohereClient(
+	os.Getenv("COHERE_API_KEY"),
+)
+options := locatr.BaseLocatrOptions{
+	ReRankClient: reRankClient,
+}
+```
+
+**Advantages of using re-ranking in Locatr**
+
+- Using re-ranking reduces the input context sent to the LLM.
+- Re-ranked chunks will contain only the most relevant HTML chunks, improving the accuracy.
+- Sending less input context to the LLM reduces response time and lowers the cost per LLM call.
+
+### Locatr Options
 `locatr.BaseLocatrOptions` is a struct with multiple fields used to configure caching, logging, and output file paths in `locatr`.
 
 **Fields**
@@ -125,31 +195,14 @@ func main() {
     - If not provided, results will be saved to `DEFAULT_LOCATR_RESULTS_FILE`.
 
 - **LlmClient** (`LlmClientInterface`): 
-    - The `LlmClient` is a wrapper around the llm provider you want to use. Supported providers are `locatr.OpenAI`, `locatr.Anthropic`
-    - It is optional; if not provided in the options, Locatr will automatically create an LlmClient using environment variables. 
-    - The following environment variables will be read to create a default LlmClient:
-        - **LLM_PROVIDER**: Defines which provider's LLM should be utilized (`openai`, `anthropic`).
-        - **LLM_MODEL**: Specifies the model to use 
-        - **LLM_API_KEY**: The API key required to authenticate with the LLM provider.
+    - Optional value; if not provided will be created by default ([read more about llm client](#llm-client))
 
-#### Create LLM Client
-
-```go
-import (
-	"github.com/vertexcover-io/locatr.
-	"os"
-)
-
-llmClient, err := locatr.NewLlmClient(
-	locatr.OpenAI, // Supported providers: "openai" | "anthropic"
-	os.Getenv("LLM_MODEL_NAME"),
-	os.Getenv("LLM_API_KEY"),
-)
-```
+- **ReRankClient** (`ReRankInterface`)
+	- The `ReRankClient` you want to use. When this is passed locatr will use the re-ranking client to re-rank the html chunks. ([More about re-ranking](#re-ranking-client)).
 
 ### Locatrs
 
-Locatrs are  are wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
+Locatrs are a wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
 
 #### PlaywrightLocatr
 Create an instance of `PlayWrightLocatr` using 
@@ -211,12 +264,17 @@ The following log levels are available, in increasing order of priority:
 Locatr provides a feature to get all the information about each locatr request made (**call to GetLocatr function**). The result has the following schema.
 
 - **LocatrDescription** (`string`): Description of the locatr passed to the request.
+- **Url** (`string`): The URL associated with the locatr.
 - **CacheHit** (`bool`): Indicates if the result was retrieved from the cache (`true`) or freshly generated (`false`).
 - **Locatr** (`string`): The locatr generated by the operation.
 - **InputTokens** (`int`): Number of input tokens processed by the LLM call.
 - **OutputTokens** (`int`): Number of tokens generated in the output by the LLM call.
 - **TotalTokens** (`int`): Sum of input and output tokens.
-- **ChatCompletionTimeTaken** (`int`): Time taken for the LLM to complete locatr generation.
+- **LlmErrorMessage** (`string`): The error message from the LLM, if any.
+- **ChatCompletionTimeTaken** (`int`): Time taken for the LLM to complete locatr generation in seconds.
+- **AttemptNo** (`int`): An integer field to indicate the attempt number with re rank.
+- **LocatrRequestInitiatedAt** (`time.Time`): The timestamp when the request was initiated.
+- **LocatrRequestCompletedAt** (`time.Time`): The timestamp when the request was completed.
 
 **Saving Results**
 
@@ -228,13 +286,18 @@ Schema of the json file:
 
 ```json
 {
-  "locatr_description": "Example locatr description",
-  "cache_hit": true,
-  "locatr": "generated_locatr_string",
-  "input_tokens": 10,
-  "output_tokens": 5,
-  "total_tokens": 15,
-  "llm_locatr_generation_time_taken": 120
+    "locatr_description": "",
+    "url": "",
+    "cache_hit": false,
+    "locatr": "",
+    "input_tokens": 8399,
+    "output_tokens": 22,
+    "total_tokens": 8421,
+    "llm_error_message": "",
+    "llm_locatr_generation_time_taken": 1,
+    "attempt_no": 0,
+    "request_initiated_at": "",
+    "request_completed_at": ""
 }
 ```
 - **To retrieve results as a slice**: Use the `playwrightLocatr.GetLocatrResults` function.

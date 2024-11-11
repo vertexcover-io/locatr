@@ -10,13 +10,6 @@ import (
 	"gopkg.in/validator.v2"
 )
 
-const MaxTokens int = 256
-
-const (
-	OpenAI    LlmProvider = "openai"
-	Anthropic LlmProvider = "anthropic"
-)
-
 type llmWebInputDto struct {
 	HtmlDom string `json:"html_dom"`
 	UserReq string `json:"user_req"`
@@ -94,7 +87,7 @@ func (c *llmClient) anthropicRequest(prompt string) (*chatCompletionResponse, er
 			Messages: []anthropic.Message{
 				anthropic.NewUserTextMessage(prompt),
 			},
-			MaxTokens: MaxTokens,
+			MaxTokens: MAX_TOKENS,
 		})
 	if err != nil {
 		return nil, err
@@ -123,6 +116,9 @@ func (c *llmClient) openaiRequest(prompt string) (*chatCompletionResponse, error
 					Role:    openai.ChatMessageRoleUser,
 					Content: prompt,
 				},
+			},
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
 			},
 		},
 	)

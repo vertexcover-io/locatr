@@ -5,19 +5,6 @@ import (
 	"os"
 )
 
-const (
-	// Silent will not log anything
-	Silent LogLevel = iota + 1
-	// Error will log only errors
-	Error
-	// Warn will log errors and warnings
-	Warn
-	// Info will log errors, warnings and info
-	Info
-	// Debug will log everything
-	Debug
-)
-
 var (
 	infoStr  = "INFO: %s"
 	warnStr  = "WARN: %s"
