@@ -27,7 +27,7 @@ go get github.com/vertexcover-io/locatr
 ## Table of Contents
 
 - [ Quick Example ](#quick-example)
-- [ LLM Client ](#create-llm-client)
+- [ LLM Client ](#llm-client)
 - [ Re-ranking Client ](#re-ranking-client)
 - [ Locatr Settings ](#locatr-options)
 - [ Cache Schema & Management ](#cache)
