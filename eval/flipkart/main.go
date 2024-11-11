@@ -1,10 +1,6 @@
 // nolint
 package main
 
-/*
-Example on how to use locatr without passing the llm client.
-*/
-
 import (
 	"fmt"
 	"log"
@@ -46,12 +42,11 @@ func main() {
 	options := locatr.BaseLocatrOptions{
 		ReRankClient:    rerankClient,
 		ResultsFilePath: "flipkart_locatr_results.json",
-		// UseCache:        true,
-		CachePath: "bigbasket_cache",
+		CachePath:       ".flipkart_cache",
 		LogConfig: locatr.LogConfig{
 			Level: locatr.Debug,
 		},
-	} // llm client is created by default by reading the environment variables.
+	}
 
 	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
 	playWrightLocatr.WriteResultsToFile()

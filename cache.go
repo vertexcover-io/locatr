@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
@@ -39,6 +40,7 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]strin
 	return nil, fmt.Errorf("key %s not found in cache", key)
 }
 func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
+	requestInitatedAt := time.Now()
 	currentUrl := l.getCurrentUrl()
 	locators, err := l.getLocatrsFromState(userReq, currentUrl)
 
@@ -50,10 +52,12 @@ func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 			validLocator, err := l.getValidLocator(locators)
 			if err == nil {
 				result := locatrResult{
-					LocatrDescription: userReq,
-					CacheHit:          true,
-					Locatr:            validLocator,
-					Url:               currentUrl,
+					LocatrDescription:        userReq,
+					CacheHit:                 true,
+					Locatr:                   validLocator,
+					Url:                      currentUrl,
+					LocatrRequestInitiatedAt: requestInitatedAt,
+					LocatrRequestCompletedAt: time.Now(),
 				}
 				l.locatrResults = append(l.locatrResults, result)
 				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
