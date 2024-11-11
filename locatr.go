@@ -10,7 +10,7 @@ import (
 )
 
 //go:embed meta/htmlMinifier.js
-var HTML_MINIFIER_JS_CONTENTT string
+var HTML_MINIFIER_JS_CONTENT string
 
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
@@ -20,24 +20,37 @@ type llmLocatorOutputDto struct {
 
 type locatrOutputDto struct {
 	llmLocatorOutputDto
-	AttemptNo                int    `json:"attempt_no"`
-	LocatrRequestInitiatedAt string `json:"request_initiated_at"`
-	LocatrRequestCompletedAt string `json:"request_completed_at"`
+	AttemptNo                int       `json:"attempt_no"`
+	LocatrRequestInitiatedAt time.Time `json:"request_initiated_at"`
+	LocatrRequestCompletedAt time.Time `json:"request_completed_at"`
 }
 
 type locatrResult struct {
-	LocatrDescription        string `json:"locatr_description"`
-	Url                      string `json:"url"`
-	CacheHit                 bool   `json:"cache_hit"`
-	Locatr                   string `json:"locatr"`
-	InputTokens              int    `json:"input_tokens"`
-	OutputTokens             int    `json:"output_tokens"`
-	TotalTokens              int    `json:"total_tokens"`
-	LlmErrorMessage          string `json:"llm_error_message"`
-	ChatCompletionTimeTaken  int    `json:"llm_locatr_generation_time_taken"`
-	AttemptNo                int    `json:"attempt_no"`
-	LocatrRequestInitiatedAt string `json:"request_initiated_at"`
-	LocatrRequestCompletedAt string `json:"request_completed_at"`
+	LocatrDescription        string    `json:"locatr_description"`
+	Url                      string    `json:"url"`
+	CacheHit                 bool      `json:"cache_hit"`
+	Locatr                   string    `json:"locatr"`
+	InputTokens              int       `json:"input_tokens"`
+	OutputTokens             int       `json:"output_tokens"`
+	TotalTokens              int       `json:"total_tokens"`
+	LlmErrorMessage          string    `json:"llm_error_message"`
+	ChatCompletionTimeTaken  int       `json:"llm_locatr_generation_time_taken"`
+	AttemptNo                int       `json:"attempt_no"`
+	LocatrRequestInitiatedAt time.Time `json:"request_initiated_at"`
+	LocatrRequestCompletedAt time.Time `json:"request_completed_at"`
+}
+
+func (l *locatrResult) MarshalJSON() ([]byte, error) {
+	type Alias locatrResult
+	return json.Marshal(&struct {
+		*Alias
+		LocatrRequestInitiatedAt string `json:"request_initiated_at"`
+		LocatrRequestCompletedAt string `json:"request_completed_at"`
+	}{
+		Alias:                    (*Alias)(l),
+		LocatrRequestInitiatedAt: l.LocatrRequestInitiatedAt.Format(time.RFC3339),
+		LocatrRequestCompletedAt: l.LocatrRequestCompletedAt.Format(time.RFC3339),
+	})
 }
 
 type cachedLocatrsDto struct {
@@ -114,7 +127,7 @@ func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocat
 
 // getLocatorStr returns the locator string for the given user request
 func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
-	if err := l.plugin.evaluateJsScript(HTML_MINIFIER_JS_CONTENTT); err != nil {
+	if err := l.plugin.evaluateJsScript(HTML_MINIFIER_JS_CONTENT); err != nil {
 		return "", ErrUnableToLoadJsScripts
 	}
 	l.initializeState()
@@ -268,7 +281,7 @@ func (l *BaseLocatr) getLocatrOutput(htmlDOM string, userReq string) (*locatrOut
 	if result.Error == "" {
 		return &locatrOutputDto{
 			llmLocatorOutputDto:      *result,
-			LocatrRequestCompletedAt: endAt.Format(time.RFC3339),
+			LocatrRequestCompletedAt: endAt,
 		}, nil
 	}
 	return nil, ErrLocatrRetrievalFailed
@@ -282,7 +295,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 		if err != nil {
 			return llmOutputs, err
 		}
-		result.LocatrRequestInitiatedAt = requestInitiatedAt.Format(time.RFC3339)
+		result.LocatrRequestInitiatedAt = requestInitiatedAt
 		llmOutputs = append(llmOutputs, *result)
 		if result.Error == "" {
 			return llmOutputs, nil
@@ -303,7 +316,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 		if err != nil {
 			return llmOutputs, err
 		}
-		result.LocatrRequestInitiatedAt = requestInitiatedAt.Format(time.RFC3339)
+		result.LocatrRequestInitiatedAt = requestInitiatedAt
 		llmOutputs = append(llmOutputs, *result)
 		if result.Error == "" {
 			return llmOutputs, nil
@@ -313,12 +326,19 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 
 	var domToProcess string
 
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := 0; attempt < MAX_RETRIES_WITH_RERANK; attempt++ {
 		switch attempt {
 		case 0:
-			domToProcess = strings.Join(chunks[0:4], "\n")
+			domToProcess = strings.Join(chunks[0:MAX_RETRIES_WITH_RERANK], "\n")
 		case 1:
-			domToProcess = strings.Join(chunks[4:], "\n")
+			endIndex := MAX_CHUNKS_EACH_RERANK_ITERATION * 2
+			if endIndex > len(chunks) {
+				endIndex = len(chunks)
+				attempt++
+				l.logger.Debug(fmt.Sprintf("Max chunks reached in attempt %d, this will be the final attempt.", attempt+1))
+			}
+			domToProcess = strings.
+				Join(chunks[MAX_CHUNKS_EACH_RERANK_ITERATION:endIndex], "\n")
 		default:
 			domToProcess = htmlDOM
 		}
@@ -334,8 +354,8 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 		llmOutputs = append(llmOutputs, locatrOutputDto{
 			llmLocatorOutputDto:      *result,
 			AttemptNo:                attempt,
-			LocatrRequestInitiatedAt: requestInitiatedAt.Format(time.RFC3339),
-			LocatrRequestCompletedAt: requestCompletedAt.Format(time.RFC3339),
+			LocatrRequestInitiatedAt: requestInitiatedAt,
+			LocatrRequestCompletedAt: requestCompletedAt,
 		})
 
 		if result.Error == "" {

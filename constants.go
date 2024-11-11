@@ -1,7 +1,5 @@
 package locatr
 
-const COHERE_RERANK_THRESHOLD = 0.9
-
 const COHERE_RERANK_MODEL = "rerank-english-v3.0"
 
 const MAX_TOKENS int = 256
@@ -82,3 +80,7 @@ const CHUNK_SIZE = 4000
 const CHUNK_OVERLAP = 200
 
 var TOP_N_CHUNKS int = 8
+
+const MAX_RETRIES_WITH_RERANK = 3
+
+const MAX_CHUNKS_EACH_RERANK_ITERATION = 4

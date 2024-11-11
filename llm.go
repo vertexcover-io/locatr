@@ -117,6 +117,9 @@ func (c *llmClient) openaiRequest(prompt string) (*chatCompletionResponse, error
 					Content: prompt,
 				},
 			},
+			ResponseFormat: &openai.ChatCompletionResponseFormat{
+				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+			},
 		},
 	)
 	if err != nil {

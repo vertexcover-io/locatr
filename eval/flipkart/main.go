@@ -1,9 +1,4 @@
-// nolint
 package main
-
-/*
-Example on how to use locatr without passing the llm client.
-*/
 
 import (
 	"fmt"
@@ -20,7 +15,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not start playwright: %v", err)
 	}
-	defer pw.Stop()
 
 	browser, err := pw.Chromium.Launch(
 		playwright.BrowserTypeLaunchOptions{
@@ -46,12 +40,11 @@ func main() {
 	options := locatr.BaseLocatrOptions{
 		ReRankClient:    rerankClient,
 		ResultsFilePath: "flipkart_locatr_results.json",
-		// UseCache:        true,
-		CachePath: "bigbasket_cache",
+		CachePath:       ".flipkart_cache",
 		LogConfig: locatr.LogConfig{
 			Level: locatr.Debug,
 		},
-	} // llm client is created by default by reading the environment variables.
+	}
 
 	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
 	playWrightLocatr.WriteResultsToFile()
@@ -90,7 +83,9 @@ func main() {
 	log.Printf("clicked on Bangalore airport option")
 	time.Sleep(2 * time.Second) // wait for suggestions to load
 
-	err = fromAndTo.Nth(1).Fill("Nepal")
+	if err := fromAndTo.Nth(1).Fill("Nepal"); err != nil {
+		log.Fatalf("Failed to fill: %v", err)
+	}
 	time.Sleep(2 * time.Second)                                                         // wait for suggestions to load
 	kathmanduAirport, err := playWrightLocatr.GetLocatr("Kathmandu, NP Airport option") // The element is not present in the minified DOM
 	if err != nil {
@@ -122,4 +117,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 	playWrightLocatr.WriteResultsToFile()
+	if err := pw.Stop(); err != nil {
+		log.Printf("Error stopping pw: %v", err)
+	}
 }
