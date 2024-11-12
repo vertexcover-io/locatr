@@ -219,6 +219,7 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
 		if value, _ := l.plugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)); value == "true" {
+			l.logger.Debug(fmt.Sprintf("Valid locator found: %s", locator))
 			return locator, nil
 		}
 	}

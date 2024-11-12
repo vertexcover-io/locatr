@@ -38,7 +38,7 @@ func main() {
 	options := locatr.BaseLocatrOptions{
 		ReRankClient:    rerankClient,
 		ResultsFilePath: "bigbasket.json",
-		CachePath:       ".bigbasket_cache",
+		CachePath:       ".bigbasket.cache",
 		LogConfig: locatr.LogConfig{
 			Level: locatr.Debug,
 		},
@@ -59,9 +59,9 @@ func main() {
 		return
 	}
 	log.Println("Clicked on shop by category button.")
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
-	fruitsAndVegetables, err := playWrightLocatr.GetLocatr("Fruits and Vegetables button.")
+	fruitsAndVegetables, err := playWrightLocatr.GetLocatr("Fruits & Vegetables option in the <nav> tag.")
 	if err != nil {
 		log.Fatalf("could not get locatr for fruits and vegetables button: %v", err)
 		return
@@ -72,7 +72,8 @@ func main() {
 		return
 	}
 	log.Println("Hovered on fruits and vegetables button.")
-	floweBouquets, err := playWrightLocatr.GetLocatr("Flower Bouquets, Bunches button.")
+	time.Sleep(3 * time.Second)
+	floweBouquets, err := playWrightLocatr.GetLocatr("Flower Bouquets, Bunches option.")
 	if err != nil {
 		log.Fatalf("could not get locatr for flower bouquets, bunches button: %v", err)
 		return
@@ -83,7 +84,7 @@ func main() {
 		return
 	}
 	log.Println("Hovered on flower bouquets, bunches button.")
-	otherFlowers, err := playWrightLocatr.GetLocatr("Other Flowers button.")
+	otherFlowers, err := playWrightLocatr.GetLocatr("Other Flowers option.")
 	if err != nil {
 		log.Fatalf("could not get locatr for other flowers button: %v", err)
 		return
@@ -98,5 +99,4 @@ func main() {
 	if err := pw.Stop(); err != nil {
 		log.Printf("Error stopping pw: %v", err)
 	}
-
 }
