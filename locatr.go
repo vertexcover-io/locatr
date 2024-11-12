@@ -131,7 +131,7 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		return "", ErrUnableToLoadJsScripts
 	}
 	l.initializeState()
-	l.logger.Info(fmt.Sprintf("Getting locator for user request: %s", userReq))
+	l.logger.Info(fmt.Sprintf("Getting locator for user request: `%s`", userReq))
 	currentUrl := l.getCurrentUrl()
 	locatr, err := l.loadLocatrsFromCache(userReq)
 	if err == nil {
@@ -175,8 +175,8 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		)...,
 	)
 	if l.options.UseCache {
-		l.logger.Info(fmt.Sprintf("Adding locatrs of %s to cache", userReq))
-		l.logger.Debug(fmt.Sprintf("Adding Locars of %s: %v to cache", userReq, locators))
+		l.logger.Info(fmt.Sprintf("Adding locatrs of `%s to cache", userReq))
+		l.logger.Debug(fmt.Sprintf("Adding Locars of `%s`: `%v` to cache", userReq, locators))
 		l.addCachedLocatrs(currentUrl, userReq, locators)
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
@@ -219,7 +219,7 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
 		if value, _ := l.plugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)); value == "true" {
-			l.logger.Debug(fmt.Sprintf("Valid locator found: %s", locator))
+			l.logger.Debug(fmt.Sprintf("Valid locator found: `%s`", locator))
 			return locator, nil
 		}
 	}
@@ -344,7 +344,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 			domToProcess = htmlDOM
 		}
 
-		l.logger.Debug(fmt.Sprintf("%d attempt to find locatr with reranking", attempt+1))
+		l.logger.Debug(fmt.Sprintf("attempt no (%d) to find locatr with reranking", attempt+1))
 		requestCompletedAt := time.Now()
 
 		result, err := l.llmGetElementId(domToProcess, userReq)
@@ -363,7 +363,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 			return llmOutputs, nil
 		}
 
-		l.logger.Error(fmt.Sprintf("Failed to get locatr in attempt(s) %d: %s", attempt+1, result.Error))
+		l.logger.Error(fmt.Sprintf("Failed to get locatr in %d attempt(s) : %s", attempt+1, result.Error))
 	}
 	return llmOutputs, ErrLocatrRetrievalAttemptsExhausted
 }
