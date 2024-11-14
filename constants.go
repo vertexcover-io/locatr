@@ -28,20 +28,30 @@ const (
 	Debug
 )
 
-const LOCATR_PROMPT = `Given an HTML DOM structure and a user's requirement, your task is to identify the element that matches the user's requirement and return its unique_id in a JSON format. If the element is not found, provide an appropriate error message in the JSON output. 
+const LOCATR_PROMPT = `Your task is to identify the HTML element that matches a user's requirement from a given HTML DOM structure and return its unique_id in a JSON format. If the element is not found, provide an appropriate error message in the JSON output.
 
-Ensure the JSON output is valid and nothing else is included.
+Each HTML element may contain an attribute called "data-supported-primitives" which indicates its supported interactions. The following attributes determine whether an element is "clickable", "hoverable", "inputable", or "selectable":
+
+1. "clickable": The element supports click interactions and will have "data-supported-primitives" set to "click".
+2. "hoverable": The element supports hover interactions and will have "data-supported-primitives" set to "hover".
+3. "inputable": The element supports text input interactions and will have "data-supported-primitives" set to "input_text". If this attribute is not present then the input is read-only.
+4. "selectable": The element supports selecting options and will have "data-supported-primitives" set to "select_option".
+
+Your output should be in valid JSON format and contain only the required fields.
 
 Output Format:
-{"locator_id": "str", "error": "str"}
+{
+  "locator_id": "str",     // The unique_id of the element that matches the user's requirement.
+  "error": "str"           // An appropriate error message if the element is not found.
+}
 
 Input Format:
 {
   "html_dom": "<!-- Your HTML DOM here -->",
   "user_req": "The user's requirement here"
 }
-
-Process the input accordingly and ensure that if the element is not found, the "error" field contains a relevant message.`
+Process the input accordingly and ensure that if the element is not found, the “error” field contains a relevant message.
+`
 
 // HTML_SEPARATORS used by html chunk splitter
 var HTML_SEPARATORS = []string{

@@ -11,19 +11,19 @@ import (
 
 func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
-		l.logger.Debug(fmt.Sprintf("Domain %s not found in cache... Creating new cachedLocatrsDto", url))
+		l.logger.Debug(fmt.Sprintf("Domain `%s` not found in cache... Creating new cachedLocatrsDto", url))
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
 	}
 	found := false
 	for i, v := range l.cachedLocatrs[url] {
 		if v.LocatrName == locatrName {
-			l.logger.Debug(fmt.Sprintf("Found locatr %s in cache... Updating locators", locatrName))
+			l.logger.Debug(fmt.Sprintf("Found locatr `%s` in cache... Updating locators", locatrName))
 			l.cachedLocatrs[url][i].Locatrs = GetUniqueStringArray(append(l.cachedLocatrs[url][i].Locatrs, locatrs...))
 			return
 		}
 	}
 	if !found {
-		l.logger.Debug(fmt.Sprintf("Locatr %s not found in cache... Creating new locatr", locatrName))
+		l.logger.Debug(fmt.Sprintf("Locatr `%s` not found in cache... Creating new locatr", locatrName))
 		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
 	}
 }
@@ -31,13 +31,13 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]strin
 	if locatrs, ok := l.cachedLocatrs[currentUrl]; ok {
 		for _, v := range locatrs {
 			if v.LocatrName == key {
-				l.logger.Debug(fmt.Sprintf("Key %s found in cache", key))
+				l.logger.Debug(fmt.Sprintf("Key `%s` found in cache", key))
 				return v.Locatrs, nil
 			}
 		}
 	}
-	l.logger.Debug(fmt.Sprintf("Key %s not found in cache", key))
-	return nil, fmt.Errorf("key %s not found in cache", key)
+	l.logger.Debug(fmt.Sprintf("Key `%s not found in cache", key))
+	return nil, fmt.Errorf("key `%s` not found in cache", key)
 }
 func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 	requestInitatedAt := time.Now()
@@ -60,7 +60,7 @@ func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 					LocatrRequestCompletedAt: time.Now(),
 				}
 				l.locatrResults = append(l.locatrResults, result)
-				l.logger.Info(fmt.Sprintf("Cache hit, key: %s, value: %s", userReq, validLocator))
+				l.logger.Info(fmt.Sprintf("Cache hit, key: `%s`, value: `%s`", userReq, validLocator))
 				return validLocator, nil
 			} else {
 				l.logger.Error(fmt.Sprintf("Failed to find valid locator in cache: %v", err))
@@ -81,11 +81,11 @@ func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	defer file.Close()
 	byteValue, err := io.ReadAll(file)
 	if err != nil {
-		return fmt.Errorf("failed to read cache file (%s): %v", cachePath, err)
+		return fmt.Errorf("failed to read cache file `(%s)`: %v", cachePath, err)
 	}
 	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal cache file (%s): %v", cachePath, err)
+		return fmt.Errorf("failed to unmarshal cache file `(%s)`: %v", cachePath, err)
 	}
 	return nil
 }

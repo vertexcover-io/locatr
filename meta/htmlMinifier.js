@@ -12,6 +12,7 @@ const RESERVED_ATTRIBUTES = [
 	"aria-role",
 	"aria-selected",
 	"checked",
+	"class",
 	"for",
 	"href",
 	"maxlength",
@@ -66,11 +67,12 @@ function isElementVisible(element) {
 		element.getAttribute("aria-hidden") === "true" ||
 		style.display === "none" ||
 		style.visibility === "hidden" ||
-		style.opacity === "0" ||
-		rect.width === 0 ||
-		rect.height === 0
+		style.opacity === "0"
 	);
-	return isVisible || Array.from(element.children).some(isElementVisible);
+	const isChildrenVisible = Array.from(element.children).some(isElementVisible);
+	const isBoxVisible = rect.width > 0 && rect.height > 0;
+
+	return isVisible && (isBoxVisible || isChildrenVisible);
 }
 
 /**
@@ -211,6 +213,141 @@ function getTrimmedAttributes(element) {
 }
 
 /**
+ * @typedef {Object} PrimitiveTypes
+ * @property {Array<string>} supportedPrimitives - An array of supported primitive actions for the element.
+ */
+
+/** @typedef {Object} PrimitivesAttribute
+ * @property string [data-supported-attributes]
+ */
+
+/**
+ * Get attributes for supported primitives.
+ * @param {Element} element - The element to add attributes to.
+ * @returns {PrimitivesAttribute} The primitives attribute object.
+ */
+function getSupportedPrimitivesAttributes(element) {
+	/** @type {PrimitiveTypes} */
+	const primitiveInfo = {
+		supportedPrimitives: []
+	};
+
+	if (isClickable(element)) {
+		primitiveInfo.supportedPrimitives.push('click');
+	}
+	if (isHoverable(element)) {
+		primitiveInfo.supportedPrimitives.push('hover');
+	}
+	if (canInputText(element)) {
+		primitiveInfo.supportedPrimitives.push('input_text');
+	}
+	if (element.tagName.toLowerCase() === 'select') {
+		primitiveInfo.supportedPrimitives.push('select_option');
+	}
+
+	return {
+		'data-supported-primitives': primitiveInfo.supportedPrimitives.join(',')
+	}
+}
+
+/**
+ * Determines if an element is clickable.
+ * 
+ * @param {HTMLElement} element - The DOM element to check.
+ * @returns {boolean} True if the element is considered clickable, false otherwise.
+ */
+function isClickable(element) {
+	if (!element) return false;
+
+	// Check if the element has dimensions and is visible
+	const rect = element.getBoundingClientRect();
+	if (rect.width === 0 || rect.height === 0) return false;
+
+	const style = window.getComputedStyle(element);
+	if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false;
+
+	// Check if the element or any of its ancestors has a click event handler
+	let currentElement = element;
+	while (currentElement && currentElement !== document.body) {
+		if (currentElement.onclick || currentElement.getAttribute('onclick')) {
+			return true;
+		}
+		// Check for cursor style indicating clickability
+		const currentStyle = window.getComputedStyle(currentElement);
+		if (['pointer', 'hand'].includes(currentStyle.cursor)) {
+			return true;
+		}
+		// Check for href attribute
+		if (currentElement.hasAttribute('href')) {
+			return true;
+		}
+		currentElement = currentElement.parentElement;
+	}
+
+	// Check if the element is not disabled
+	if (element.hasAttribute('disabled')) return false;
+
+	return false;
+
+}
+
+/**
+ * Determines if an element is hoverable.
+ * @param {Element} element - The element to inspect.
+ * @returns {boolean} True if the element is considered hoverable.
+ */
+function isHoverable(element) {
+	if (!element) return false;
+
+	// Check if the element has dimensions and is visible
+	const rect = element.getBoundingClientRect();
+	if (rect.width === 0 || rect.height === 0) return false;
+
+	const style = window.getComputedStyle(element);
+	if (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0') return false;
+
+	// Check if the element or any of its ancestors has hover-related properties
+	let currentElement = element;
+	while (currentElement && currentElement !== document.body) {
+		// Check for hover-related event handlers
+		if (currentElement.onmouseover || currentElement.onmouseenter ||
+			currentElement.getAttribute('onmouseover') || currentElement.getAttribute('onmouseenter')) {
+			return true;
+		}
+
+		// Check for CSS properties that often indicate hoverability
+		const currentStyle = window.getComputedStyle(currentElement);
+		if (['pointer', 'hand'].includes(currentStyle.cursor)) {
+			return true;
+		}
+
+		// Check for CSS hover pseudo-class
+		const hoverStyle = window.getComputedStyle(currentElement, ':hover');
+		if (hoverStyle.length > 0 && !isEquivalentStyle(currentStyle, hoverStyle)) {
+			return true;
+		}
+
+		currentElement = currentElement.parentElement;
+	}
+
+	return false;
+
+}
+
+/**
+ * Determines if an element can receive text input.
+ * @param {Element} element - The element to inspect.
+ * @returns {boolean} True if the element can receive text input, otherwise false.
+ */
+function canInputText(element) {
+	const tagName = element.tagName.toLowerCase();
+	const isInputElement = (tagName === 'input' || tagName === 'textarea');
+	const isNotReadOnly = !element.hasAttribute('readonly');
+
+	return isInputElement && isNotReadOnly;
+}
+
+/**
  * Generates multiple CSS selectors for an element.
  * @param {Element} element - The element to generate CSS selectors for.
  * @returns {string[]} Array of CSS selectors.
@@ -242,7 +379,7 @@ function generateCssSelectors(element) {
 		while (el && el.nodeType === Node.ELEMENT_NODE) {
 			let selector = el.nodeName.toLowerCase();
 			if (el.id) {
-				selector += `#${CSS.escape(String(el.id))}`;
+				selector += `#${CSS.escape(el.id)}`;
 				path.unshift(selector);
 				break;
 			}
@@ -305,26 +442,10 @@ function generateCssSelectors(element) {
 	}
 
 	return [
-		getIdSelector(element),
 		getNthOfTypeSelector(element),
+		getIdSelector(element),
 		getClassSelector(element),
 	];
-}
-/**
- * Maps each element in the document to its CSS locator and unique ID.
- * @returns {string} JSON map of CSS locators to unique IDs.
- */
-function mapElementsToJson() {
-	const elements = document.querySelectorAll("*");
-	const map = {};
-
-	elements.forEach((element) => {
-		const cssSelectors = generateCssSelectors(element);
-		const uniqueId = generateUniqueId(cssSelectors[0]);
-		map[uniqueId] = cssSelectors;
-	});
-
-	return JSON.stringify(map, null, 2);
 }
 
 /**
@@ -345,6 +466,8 @@ function createElementSpec(element) {
 	if (!isValidElement(element)) return null;
 
 	const attrs = getTrimmedAttributes(element);
+	const primitivesAttr = getSupportedPrimitivesAttributes(element)
+
 	const text = getVisibleText(element);
 
 	const cssSelectors = generateCssSelectors(element);
@@ -357,7 +480,7 @@ function createElementSpec(element) {
 	return {
 		tag_name: element.tagName.toLowerCase(),
 		id: uniqueId,
-		attributes: attrs,
+		attributes: { ...attrs, ...primitivesAttr },
 		text,
 		children,
 	};
@@ -382,6 +505,23 @@ function buildElementTree(element) {
 function minifyHTML() {
 	const root = document.documentElement || document.body;
 	return JSON.stringify(buildElementTree(root));
+}
+
+/**
+ * Maps each element in the document to its CSS locator and unique ID.
+ * @returns {string} JSON map of CSS locators to unique IDs.
+ */
+function mapElementsToJson() {
+	const elements = document.querySelectorAll("*");
+	const map = {};
+
+	elements.forEach((element) => {
+		const cssSelectors = generateCssSelectors(element);
+		const uniqueId = generateUniqueId(cssSelectors[0]);
+		map[uniqueId] = cssSelectors;
+	});
+
+	return JSON.stringify(map, null, 2);
 }
 
 /**

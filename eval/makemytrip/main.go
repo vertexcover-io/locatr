@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -29,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create page: %v", err)
 	}
+
 	if _, err := page.Goto("https://www.makemytrip.com/"); err != nil {
 		log.Fatalf("could not navigate to makemytrip.com: %v", err)
 	}
@@ -39,7 +41,7 @@ func main() {
 	options := locatr.BaseLocatrOptions{
 		ReRankClient:    rerankClient,
 		ResultsFilePath: "makemytrip.json",
-		CachePath:       ".makemytrip_cache",
+		CachePath:       ".makemytrip.cache",
 		LogConfig: locatr.LogConfig{
 			Level: locatr.Debug,
 		},
@@ -47,13 +49,18 @@ func main() {
 
 	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
 	defer playWrightLocatr.WriteResultsToFile()
+
 	popUpClose, err := playWrightLocatr.GetLocatr("Login popup close button.")
+
 	if err != nil {
 		log.Println("could not get locatr for login popup close button", err)
-	}
-	err = popUpClose.First().Click()
-	if err != nil {
-		log.Println("could not click on login popup close buttonv", err)
+
+		log.Println("Clicked on login popup close button")
+	} else {
+		err = popUpClose.First().Click()
+		if err != nil {
+			log.Println("could not click on login popup close buttonv", err)
+		}
 	}
 
 	fromCity, err := playWrightLocatr.GetLocatr("From City button.")
@@ -67,7 +74,7 @@ func main() {
 		return
 	}
 	log.Println("Clicked on from city button")
-	fromCityInput, err := playWrightLocatr.GetLocatr("Second From city input. It is the only writable input. Do not select the readonly input.")
+	fromCityInput, err := playWrightLocatr.GetLocatr("Inputable From city input field.")
 	if err != nil {
 		log.Println("could not get locatr for from city input", err)
 		return
@@ -101,7 +108,7 @@ func main() {
 		return
 	}
 	log.Println("Clicked on to city button")
-	toCityInput, err := playWrightLocatr.GetLocatr("Writable To city input. Do not select the readonly input.")
+	toCityInput, err := playWrightLocatr.GetLocatr("Inputable To city input field.")
 	if err != nil {
 		log.Println("could not get locatr for to city input: ", err)
 		return
@@ -125,6 +132,65 @@ func main() {
 	}
 	log.Println("Clicked on pune airport option")
 	time.Sleep(5 * time.Second)
+	depattureDate, err := playWrightLocatr.GetLocatr(fmt.Sprintf("Today's date: %s, pick a random departure date.", time.Now().Format("2006-01-02")))
+	if err != nil {
+		log.Println("could not get locatr for random departure date: ", err)
+		return
+	}
+	err = depattureDate.First().Click()
+	if err != nil {
+		log.Println("could not click on random departure date: ", err)
+		return
+	}
+	log.Println("Clicked on random departure date")
+	time.Sleep(3 * time.Second)
+	travelClass, err := playWrightLocatr.GetLocatr("Travel Class button.")
+	if err != nil {
+		log.Println("could not get locatr for travel class button: ", err)
+		return
+	}
+	err = travelClass.First().Click()
+	if err != nil {
+		log.Println("could not click on travel class button: ", err)
+		return
+	}
+	log.Println("Clicked on travel class button")
+	premiumEconomy, err := playWrightLocatr.GetLocatr("Premium Economy option.")
+	if err != nil {
+		log.Println("could not get locatr for premium economy option: ", err)
+		return
+	}
+	err = premiumEconomy.First().Click()
+	if err != nil {
+		log.Println("could not click on premium economy option: ", err)
+		return
+	}
+	log.Println("Clicked on premium economy option")
+	time.Sleep(3 * time.Second)
+	apply, err := playWrightLocatr.GetLocatr("Apply button for flights.")
+	if err != nil {
+		log.Println("could not get locatr for apply button: ", err)
+		return
+	}
+	err = apply.First().Click()
+	if err != nil {
+		log.Println("could not click on apply button: ", err)
+		return
+	}
+	log.Println("Clicked on apply button")
+	time.Sleep(3 * time.Second)
+	searchFlights, err := playWrightLocatr.GetLocatr("Search button for flights.")
+	if err != nil {
+		log.Println("could not get locatr for search flights button: ", err)
+		return
+	}
+	err = searchFlights.First().Click()
+	if err != nil {
+		log.Println("could not click on search flights button: ", err)
+		return
+	}
+	log.Println("Clicked on search flights button")
+	time.Sleep(10 * time.Second)
 	if err := pw.Stop(); err != nil {
 		log.Printf("Error stopping pw: %v", err)
 	}
