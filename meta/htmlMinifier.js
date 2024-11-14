@@ -472,9 +472,6 @@ function createElementSpec(element) {
 
 	const cssSelectors = generateCssSelectors(element);
 	const uniqueId = generateUniqueId(cssSelectors[0]);
-	if (element.tagName.toLowerCase() == "input") {
-		console.log(element, "here yay");
-	}
 
 	const children = Array.from(element.children || [])
 		.map(createElementSpec)
@@ -538,14 +535,6 @@ function isValidLocator(locator) {
 	} catch (error) {
 		return false;
 	}
-}
-function processChildren(children) {
-	children.forEach((child) => {
-		if (child.tag_name == "input") {
-			console.log(child);
-		}
-		processChildren(child.children);
-	})
 }
 
 
