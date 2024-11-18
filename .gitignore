@@ -17,6 +17,7 @@ coverage
 
 # Dependency directories (may be project-specific)
 vendor/
+venv/
 
 locatr_results.json
 

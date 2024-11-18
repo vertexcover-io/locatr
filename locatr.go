@@ -67,6 +67,7 @@ type BaseLocatr struct {
 	initialized   bool
 	logger        logInterface
 	locatrResults []locatrResult
+	RpccIndex     int
 }
 
 // BaseLocatrOptions is a struct that holds all the options for the locatr package
@@ -87,13 +88,16 @@ type BaseLocatrOptions struct {
 
 	// ReRankClient is the client to interact with ReRank
 	ReRankClient ReRankInterface
+
+	// ConnectionId is the index of the rpcc connection
+	ConnectionId int
 }
 
 // NewBaseLocatr creates a new instance of BaseLocatr
 // plugin: (playwright, puppeteer, etc)
 // llmClient: struct that are returned by NewLlmClient
 // options: All the options for the locatr package
-func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocatr {
+func NewBaseLocatr(options BaseLocatrOptions) (*BaseLocatr, error) {
 	if len(options.CachePath) == 0 {
 		options.CachePath = DEFAULT_CACHE_PATH
 	}
@@ -104,30 +108,98 @@ func NewBaseLocatr(plugin PluginInterface, options BaseLocatrOptions) *BaseLocat
 		options.LogConfig.Writer = DefaultLogWriter
 	}
 	locatr := &BaseLocatr{
-		plugin:        plugin,
 		options:       options,
 		cachedLocatrs: make(map[string][]cachedLocatrsDto),
 		initialized:   false,
 		logger:        NewLogger(options.LogConfig),
 		locatrResults: []locatrResult{},
 		reRankClient:  options.ReRankClient,
+		RpccIndex:     options.ConnectionId,
 	}
 	if options.LlmClient == nil {
 		client, err := createLlmClientFromEnv()
 		if err != nil {
 			locatr.logger.Error(fmt.Sprintf("Failed to create LLM client: %v", err))
-			return nil
+			return nil, err
 		}
 		locatr.llmClient = client
 	} else {
 		locatr.llmClient = options.LlmClient
 	}
-	return locatr
+	return locatr, nil
 }
 
 // getLocatorStr returns the locator string for the given user request
 func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
-	if err := l.plugin.evaluateJsScript(HTML_MINIFIER_JS_CONTENT); err != nil {
+	state := ExecuteJs(l.RpccIndex, HTML_MINIFIER_JS_CONTENT)
+	if state == "Conneciton id is invalid" {
+		return "", ErrUnableToLoadJsScripts
+	}
+	l.initializeState()
+	l.logger.Info(fmt.Sprintf("Getting locator for user request: `%s`", userReq))
+	currentUrl := l.getCurrentUrl()
+	locatr, err := l.loadLocatrsFromCache(userReq)
+	if err == nil {
+		return locatr, nil
+	}
+	l.logger.Info("Cache miss, starting dom minification")
+	minifiedDOM, locatorsMap, err := l.getMinifiedDomAndLocatorMap()
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to minify DOM and extract ID locator map: %v", err))
+		return "", ErrUnableToMinifyHtmlDom
+	}
+
+	l.logger.Info("Extracting element ID using LLM")
+	llmOutputs, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))
+		if len(llmOutputs) > 0 {
+			l.locatrResults = append(l.locatrResults,
+				createLocatrResultFromOutput(
+					userReq, "", currentUrl, llmOutputs,
+				)...,
+			)
+		}
+		return "", ErrUnableToLocateElementId
+	}
+
+	locators, ok := (*locatorsMap)[llmOutputs[len(llmOutputs)-1].LocatorID]
+	if !ok {
+		l.logger.Error("Invalid element ID generated")
+		return "", ErrInvalidElementIdGenerated
+	}
+
+	validLocator, err := l.getValidLocator(locators)
+	if err != nil {
+		l.logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
+		return "", ErrUnableToFindValidLocator
+	}
+	l.locatrResults = append(l.locatrResults,
+		createLocatrResultFromOutput(
+			userReq, validLocator, currentUrl, llmOutputs,
+		)...,
+	)
+	if l.options.UseCache {
+		l.logger.Info(fmt.Sprintf("Adding locatrs of `%s to cache", userReq))
+		l.logger.Debug(fmt.Sprintf("Adding Locars of `%s`: `%v` to cache", userReq, locators))
+		l.addCachedLocatrs(currentUrl, userReq, locators)
+		value, err := json.Marshal(l.cachedLocatrs)
+		if err != nil {
+			l.logger.Error(fmt.Sprintf("Failed to marshal cache: %v", err))
+			return "", fmt.Errorf("%w: %v", ErrFailedToMarshalJson, err)
+		}
+		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
+			l.logger.Error(fmt.Sprintf("Failed to write cache: %v", err))
+			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
+		}
+	}
+	return validLocator, nil
+
+}
+
+func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
+	state := ExecuteJs(l.RpccIndex, HTML_MINIFIER_JS_CONTENT)
+	if state == "Conneciton id is invalid" {
 		return "", ErrUnableToLoadJsScripts
 	}
 	l.initializeState()
@@ -192,27 +264,34 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 
 }
 func (l *BaseLocatr) getCurrentUrl() string {
-	if value, err := l.plugin.evaluateJsFunction("window.location.href"); err == nil {
-		return value
-	} else {
-		l.logger.Error(fmt.Sprintf("Failed to get current URL: %v", err))
-	}
-	return ""
+	// if value, err := l.plugin.evaluateJsFunction("window.location.href"); err == nil {
+	// 	return value
+	// } else {
+	// 	l.logger.Error(fmt.Sprintf("Failed to get current URL: %v", err))
+	// }
+	// return ""
+	return ExecuteJs(l.RpccIndex, "window.location.href")
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
-	result, _ := l.plugin.evaluateJsFunction("minifyHTML()")
+	result := ExecuteJs(l.RpccIndex, "minifyHTML()")
 	elementSpec := &ElementSpec{}
-	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+	var parsedString string
+	if err := json.Unmarshal([]byte(result), &parsedString); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal minified HTML result to string: %v", err)
+	}
+	if err := json.Unmarshal([]byte(parsedString), elementSpec); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec JSON: %v", err)
 	}
 
-	result, _ = l.plugin.evaluateJsFunction("mapElementsToJson()")
+	result = ExecuteJs(l.RpccIndex, "mapElementsToJson()")
+	if err := json.Unmarshal([]byte(result), &parsedString); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal mapped elements result to string: %v", err)
+	}
 	idLocatorMap := &IdToLocatorMap{}
-	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+	if err := json.Unmarshal([]byte(parsedString), idLocatorMap); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap JSON: %v", err)
 	}
-
 	return elementSpec, idLocatorMap, nil
 }
 
@@ -368,7 +447,7 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 	return llmOutputs, ErrLocatrRetrievalAttemptsExhausted
 }
 
-func (l *BaseLocatr) writeLocatrResultsToFile() {
+func (l *BaseLocatr) WriteLocatrResultsToFile() {
 	l.logger.Info(fmt.Sprintf("Writing locatr results to file: %s", l.options.ResultsFilePath))
 	file, err := os.OpenFile(l.options.ResultsFilePath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -389,6 +468,6 @@ func (l *BaseLocatr) writeLocatrResultsToFile() {
 	}
 }
 
-func (l *BaseLocatr) getLocatrResults() []locatrResult {
+func (l *BaseLocatr) GetLocatrResults() []locatrResult {
 	return l.locatrResults
 }
