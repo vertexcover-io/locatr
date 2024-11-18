@@ -38,6 +38,7 @@ type locatrResult struct {
 	AttemptNo                int       `json:"attempt_no"`
 	LocatrRequestInitiatedAt time.Time `json:"request_initiated_at"`
 	LocatrRequestCompletedAt time.Time `json:"request_completed_at"`
+	AllLocatrs               []string  `json:"all_locatrs"`
 }
 
 func (l *locatrResult) MarshalJSON() ([]byte, error) {

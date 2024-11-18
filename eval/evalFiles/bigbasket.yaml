@@ -1,0 +1,62 @@
+name: "evals for big basket.com"
+url: "https://www.bigbasket.com/"
+
+config:
+  useCache: false
+  cachePath: ".eval_bigbasket.cache"
+  resultsFilePath: "eval_bigbasket.json"
+  useReRank: true
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate shop by category button"
+    userRequest: "The second Shop by category button."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(2) > div > header:nth-of-type(2) >
+        div:nth-of-type(2) > div > div > div > button > div >
+        span:nth-of-type(2)
+      - 'button#headlessui-menu-button-\:R5bab6\: > div > span'
+
+  - name: "click on shop by category button."
+    action: "click"
+    timeout: 1
+
+  - name: "Locate fruits & vegetables option"
+    userRequest: "Fruits & Vegetables option in the <nav> tag."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(2) > div > header:nth-of-type(2) >
+        div:nth-of-type(2) > div > div > div > div > nav > ul >
+        li:nth-of-type(4) > a
+      - 'div#headlessui-menu-items-\:R9bab6\: > nav > ul > li > a'
+
+  - name: "Hover Over fruits & vegetables option"
+    action: "hover"
+    timeout: 1
+
+  - name:  "Locate Flower Bouquets, Bunches option."
+    userRequest: "Flower Bouquets, Bunches option."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(2) > div > header:nth-of-type(2) >
+        div:nth-of-type(2) > div > div > div > div > nav > ul:nth-of-type(2) >
+        li:nth-of-type(3) > a
+      - 'div#headlessui-menu-items-\:R9bab6\: > nav > ul > li > a'
+
+  - name: "Hover over Flower Bouquets, Bunches option."
+    action: "hover"
+    timeout: 1
+
+  - name: "Locate Other Flowers option."
+    userRequest: "Other Flowers option."
+    expectedLocatrs: 
+      - >-
+        html > body > div:nth-of-type(2) > div > header:nth-of-type(2) >
+        div:nth-of-type(2) > div > div > div > div > nav > ul:nth-of-type(3) >
+        li:nth-of-type(4) > a
+      - 'div#headlessui-menu-items-\:R9bab6\: > nav > ul > li > a'
+
+  - name: "Click on Other Flow options."
+    action: "click"
+    timeout: 5
