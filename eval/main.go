@@ -36,23 +36,27 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 			case "click":
 				if err := lastLocatr.First().Click(); err != nil {
 					log.Printf("Error clicking on locator: %s", err)
+					continue
 				} else {
-					log.Fatalf("Clicked on item %s", step.Name)
+					log.Printf("Clicked on item %s", step.Name)
 				}
 			case "fill":
 				if err := lastLocatr.First().Fill(step.FillText); err != nil {
 					log.Printf("Error filling text: %s", err)
+					continue
 				} else {
-					log.Fatalf("Filled text %s in locatr %s", step.FillText, step.Name)
+					log.Printf("Filled text %s in locatr %s", step.FillText, step.Name)
 				}
 			case "hover":
 				if err := lastLocatr.First().Hover(); err != nil {
 					log.Printf("Error hovering on locator: %s", err)
+					continue
 				} else {
-					log.Fatalf("Hovered on item %s", step.Name)
+					log.Printf("Hovered on item %s", step.Name)
 				}
 			default:
-				log.Fatalf("Unknown action %s", step.Action)
+				log.Printf("Unknown action %s", step.Action)
+				continue
 			}
 			log.Printf("Waiting for %d seconds after action %s", step.Timeout, step.Action)
 			time.Sleep(time.Duration(step.Timeout) * time.Second)
@@ -73,16 +77,18 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 			})
 			continue
 		}
-		currentLocatrs := playWrightLocatr.GetLocatrResults()
+		currentResults := playWrightLocatr.GetLocatrResults()
+		currentLocatrs := currentResults[len(currentResults)-1].AllLocatrs
+
 		if !compareSlices(step.ExpectedLocatrs,
-			currentLocatrs[len(currentLocatrs)-1].AllLocatrs) {
+			currentLocatrs) {
 			log.Printf("Expected locatrs %v, but got %v",
-				step.ExpectedLocatrs, currentLocatrs[len(currentLocatrs)-1].AllLocatrs)
+				step.ExpectedLocatrs, currentLocatrs)
 			results = append(results, evalResult{
 				Url:              eval.Url,
 				UserRequest:      step.UserRequest,
 				Passed:           false,
-				GeneratedLocatrs: currentLocatrs[len(currentLocatrs)-1].AllLocatrs,
+				GeneratedLocatrs: currentLocatrs,
 				ExpectedLocatrs:  step.ExpectedLocatrs,
 				Error:            "All generated locatrs do not match expected locatrs",
 			})
@@ -92,7 +98,7 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 				Url:              eval.Url,
 				UserRequest:      step.UserRequest,
 				Passed:           true,
-				GeneratedLocatrs: currentLocatrs[len(currentLocatrs)-1].AllLocatrs,
+				GeneratedLocatrs: currentLocatrs,
 				ExpectedLocatrs:  step.ExpectedLocatrs,
 				Error:            "",
 			})
@@ -127,7 +133,8 @@ func main() {
 	for _, evalFile := range evalFiles {
 		eval, err := readYamlFile(fmt.Sprintf("%s/%s", evalYamlPath, evalFile))
 		if err != nil {
-			log.Fatalf("Error reading yaml file %s", evalFile)
+			log.Printf("Error reading yaml file %s... skipping", evalFile)
+			continue
 		}
 		log.Printf("Running eval %s", eval.Name)
 		results := runEval(browser, eval)

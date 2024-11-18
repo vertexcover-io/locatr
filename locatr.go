@@ -152,7 +152,7 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		if len(llmOutputs) > 0 {
 			l.locatrResults = append(l.locatrResults,
 				createLocatrResultFromOutput(
-					userReq, "", currentUrl, llmOutputs,
+					userReq, "", currentUrl, []string{}, llmOutputs,
 				)...,
 			)
 		}
@@ -172,7 +172,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 	l.locatrResults = append(l.locatrResults,
 		createLocatrResultFromOutput(
-			userReq, validLocator, currentUrl, llmOutputs,
+			userReq,
+			validLocator,
+			currentUrl,
+			locators,
+			llmOutputs,
 		)...,
 	)
 	if l.options.UseCache {

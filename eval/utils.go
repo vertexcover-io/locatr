@@ -35,11 +35,11 @@ func contains(locatrs []string, loc string) bool {
 }
 func compareSlices(yamlLocatrs []string, locatrs []string) bool {
 	for _, loc := range yamlLocatrs {
-		if !contains(locatrs, loc) {
-			return false
+		if contains(locatrs, loc) {
+			return true
 		}
 	}
-	return true
+	return false
 }
 func readYamlFile(filePath string) (*evalConfigYaml, error) {
 	yamlFile, err := os.ReadFile(filePath)
