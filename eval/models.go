@@ -17,6 +17,7 @@ type evalConfigYaml struct {
 		Timeout         int      `yaml:"timeout"`
 		Action          string   `yaml:"action"`
 		FillText        string   `yaml:"fillText"`
+		ElementNo       int      `yaml:"elementNo"`
 	} `yaml:"steps"`
 }
 

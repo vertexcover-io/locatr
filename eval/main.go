@@ -9,7 +9,7 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-var DefaultEvalFolder = "./eval/evalFiles"
+var DefaultEvalFolder = "eval/evalFiles"
 
 func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 	var results []evalResult = make([]evalResult, 0)
@@ -34,21 +34,21 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 		if step.Action != "" {
 			switch step.Action {
 			case "click":
-				if err := lastLocatr.First().Click(); err != nil {
+				if err := lastLocatr.Nth(step.ElementNo).Click(); err != nil {
 					log.Printf("Error clicking on locator: %s", err)
 					continue
 				} else {
 					log.Printf("Clicked on item %s", step.Name)
 				}
 			case "fill":
-				if err := lastLocatr.First().Fill(step.FillText); err != nil {
+				if err := lastLocatr.Nth(step.ElementNo).Fill(step.FillText); err != nil {
 					log.Printf("Error filling text: %s", err)
 					continue
 				} else {
 					log.Printf("Filled text %s in locatr %s", step.FillText, step.Name)
 				}
 			case "hover":
-				if err := lastLocatr.First().Hover(); err != nil {
+				if err := lastLocatr.Nth(step.ElementNo).Hover(); err != nil {
 					log.Printf("Error hovering on locator: %s", err)
 					continue
 				} else {
@@ -109,14 +109,20 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 
 func main() {
 	evalFolderPath := flag.String("evalFolder", DefaultEvalFolder, "Path to folder with eval files")
+	runOnly := flag.String("runOnly", "", "Run only the specified eval file")
 	flag.Parse()
-	evalYamlPath := DefaultEvalFolder
-	if *evalFolderPath != "" {
-		evalYamlPath = *evalFolderPath
-	}
-	evalFiles := getAllYamlFiles(evalYamlPath)
-	if len(evalFiles) == 0 {
-		log.Fatal("No yaml files found in folder")
+	var evalFiles []string
+	var evalYamlPath string = DefaultEvalFolder
+	if *runOnly == "" {
+		if *evalFolderPath != "" {
+			evalYamlPath = *evalFolderPath
+		}
+		evalFiles = getAllYamlFiles(evalYamlPath)
+		if len(evalFiles) == 0 {
+			log.Fatal("No yaml files found in folder")
+		}
+	} else {
+		evalFiles = []string{*runOnly}
 	}
 	pw, err := playwright.Run()
 	if err != nil {
