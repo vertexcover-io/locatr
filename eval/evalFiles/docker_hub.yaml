@@ -1,0 +1,55 @@
+name: "evals for docker hub"
+url: "https://hub.docker.com/"
+
+config:
+  useCache: true
+  resultsFilePath: "dockerhub_locatr_results.json"
+  useReRank: true
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Search Bar"
+    userRequest: "Search Docker Hub input field"
+    expectedLocatrs:
+      - 'input#\:r3\:'
+      - >-
+        html > body > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div
+        > div > form > div > div > div > input
+
+  - name: "Fill Search Bar"
+    action: "fill"
+    fillText: "Python"
+    timeout: 5
+
+  - name: "Press Enter in Search Bar"
+    action: "press"
+    key: "Enter"
+    timeout: 5
+
+  - name: "Locate Python Link"
+    userRequest: "Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'"
+    expectedLocatrs:
+      - 'div#searchResults > div > div > a'
+      - >-
+        html > body > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div
+        > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > div > div
+        > a:nth-of-type(25)
+
+  - name: "Click Python Link"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Tags Tab"
+    userRequest: "Tags tab on the page. It is made up of anchor tag"
+    expectedLocatrs:
+     - >-
+        html > body > div > div > div > div > div > div > div > div > div > div
+        > a
+     - >-
+        html > body > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div
+        > div > div > div:nth-of-type(2) > div > div > a:nth-of-type(2)
+
+  - name: "Click Tags Locator"
+    action: "click"
+    elementNo: 2  
+    timeout: 3
