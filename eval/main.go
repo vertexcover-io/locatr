@@ -54,6 +54,13 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 				} else {
 					log.Printf("Hovered on item %s", step.Name)
 				}
+			case "key":
+				if err := lastLocatr.Nth(step.ElementNo).Press(step.Key); err != nil {
+					log.Printf("Error pressing key: %s", err)
+					continue
+				} else {
+					log.Printf("Pressed key %s on locatr %s", step.Key, step.Name)
+				}
 			default:
 				log.Printf("Unknown action %s", step.Action)
 				continue

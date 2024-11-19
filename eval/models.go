@@ -18,6 +18,7 @@ type evalConfigYaml struct {
 		Action          string   `yaml:"action"`
 		FillText        string   `yaml:"fillText"`
 		ElementNo       int      `yaml:"elementNo"`
+		Key             string   `yaml:"key"`
 	} `yaml:"steps"`
 }
 
