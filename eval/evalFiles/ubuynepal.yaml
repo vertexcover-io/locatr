@@ -1,0 +1,112 @@
+name: "Ubuy Nepal Category Navigation Automation"
+url: "https://www.nepal.ubuy.com/en/"
+
+config:
+  useCache: true
+  resultsFilePath: "ubuy_navigation_results.json"
+  useReRank: true
+  pageLoadTimeout: 10
+
+steps:
+  - name: "Locate Categories Button"
+    userRequest: "Locate the categories button on the homepage"
+    expectedLocatrs:
+      - >-
+        html > body > header > div > div:nth-of-type(2) > div > nav > div >
+        div:nth-of-type(2) > div
+      - 'div#explore-category'
+      - >-
+        html > body > header.main-header.header-sticky.late.new-v5 >
+        div.wsmenucontainer > div.wsmenucontainer > div.container-fluid >
+        nav.navbar.navbar-expand.d-flex.justify-content-between.align-self-center.p-0
+        > div.header-left.d-flex.flex-row-reverse.align-items-center >
+        div.menu-wraper.d-xl-block.d-none > div.explore-btn
+
+  - name: "Hover Over Categories Button"
+    action: "hover"
+    timeout: 1
+    
+  - name: "Locate Home & Kitchen"
+    userRequest: "Locate Home & Kitchen option in the dropdown"
+    expectedLocatrs:
+      - >-
+        html > body > header > div > div:nth-of-type(2) > div > nav > div >
+        div:nth-of-type(2) > div:nth-of-type(2) > ul > li:nth-of-type(2) > a
+      - 'div#wstabitem-loader > ul > li > a'
+      - >-
+        html > body > header.main-header.header-sticky.late.new-v5 >
+        div.wsmenucontainer > div.wsmenucontainer > div.container-fluid >
+        nav.navbar.navbar-expand.d-flex.justify-content-between.align-self-center.p-0
+        > div.header-left.d-flex.flex-row-reverse.align-items-center >
+        div.menu-wraper.d-xl-block.d-none > div.menu-content >
+        ul.main-category.desktop-mega-menu > li.has-child-menu > a
+      
+  - name: "Hover Over Home & Kitchen"
+    action: "hover"
+    timeout: 1
+    
+  - name: "Locate Home Decor"
+    userRequest: "Locate the Home Decor option in the dropdown"
+    expectedLocatrs:
+      - >-
+        html > body > header > div > div:nth-of-type(2) > div > nav > div >
+        div:nth-of-type(2) > div:nth-of-type(2) > ul > li:nth-of-type(2) > div >
+        ul > li > a
+      - 'div#wstabitem-loader > ul > li > div > ul > li > a'
+      - >-
+        html > body > header.main-header.header-sticky.late.new-v5 >
+        div.wsmenucontainer > div.wsmenucontainer > div.container-fluid >
+        nav.navbar.navbar-expand.d-flex.justify-content-between.align-self-center.p-0
+        > div.header-left.d-flex.flex-row-reverse.align-items-center >
+        div.menu-wraper.d-xl-block.d-none > div.menu-content >
+        ul.main-category.desktop-mega-menu > li.has-child-menu > div.submenu >
+        ul > li.has-child-menu > a
+      
+  - name: "Hover Over Home Decor"
+    action: "hover"
+    timeout: 1
+    
+  - name: "Locate Home Clocks"
+    userRequest: "Locate the Home Clocks option in the dropdown"
+    expectedLocatrs:
+      - >-
+        html > body > header > div > div:nth-of-type(2) > div > nav > div >
+        div:nth-of-type(2) > div:nth-of-type(2) > ul > li:nth-of-type(2) > div >
+        ul > li > div > ul > li:nth-of-type(4) > a
+      - 'div#wstabitem-loader > ul > li > div > ul > li > div > ul > li > a'
+      - >-
+        html > body > header.main-header.header-sticky.late.new-v5 >
+        div.wsmenucontainer > div.wsmenucontainer > div.container-fluid >
+        nav.navbar.navbar-expand.d-flex.justify-content-between.align-self-center.p-0
+        > div.header-left.d-flex.flex-row-reverse.align-items-center >
+        div.menu-wraper.d-xl-block.d-none > div.menu-content >
+        ul.main-category.desktop-mega-menu > li.has-child-menu > div.submenu >
+        ul > li.has-child-menu > div.submenu > ul > li.has-child-menu > a
+      
+  - name: "Hover Over Home Clocks"
+    action: "hover"
+    timeout: 1
+    
+  - name: "Locate Home Wall Clocks"
+    userRequest: "Locate the Home Wall Clocks option in the dropdown"
+    expectedLocatrs:
+      - >-
+        html > body > header > div > div:nth-of-type(2) > div > nav > div >
+        div:nth-of-type(2) > div:nth-of-type(2) > ul > li:nth-of-type(2) > div >
+        ul > li > div > ul > li:nth-of-type(4) > div > ul > li > a
+      - >-
+        div#wstabitem-loader > ul > li > div > ul > li > div > ul > li > div >
+        ul > li > a
+      - >-
+        html > body > header.main-header.header-sticky.late.new-v5 >
+        div.wsmenucontainer > div.wsmenucontainer > div.container-fluid >
+        nav.navbar.navbar-expand.d-flex.justify-content-between.align-self-center.p-0
+        > div.header-left.d-flex.flex-row-reverse.align-items-center >
+        div.menu-wraper.d-xl-block.d-none > div.menu-content >
+        ul.main-category.desktop-mega-menu > li.has-child-menu > div.submenu >
+        ul > li.has-child-menu > div.submenu > ul > li.has-child-menu >
+        div.submenu > ul > li.has-child-menu > a
+    
+  - name: "Click Home Wall Clocks"
+    action: "click"
+    timeout: 5
