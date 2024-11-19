@@ -1,0 +1,106 @@
+name: "GEICO Auto Insurance Form Automation"
+url: "https://www.geico.com/auto-insurance/"
+
+config:
+  useCache: true
+  resultsFilePath: "geico_form_results.json"
+  pageLoadTimeout: 10
+  cachePath: ".geico.cache"
+  useReRank: true
+
+steps:
+  - name: "Locate Zip Code Input"
+    userRequest: "Locate zip-code-input bar"
+    expectedLocatrs:
+      - "your_css_selector_for_zip_code_input_here"
+
+  - name: "Fill Zip Code"
+    action: "fill"
+    fillText: 22081
+    timeout: 1
+
+  - name: "Locate Review Your Quote Button"
+    userRequest: "Locate the 'Review Your Quote' button"
+    expectedLocatrs:
+      - "your_css_selector_for_review_quote_button_here"
+
+  - name: "Click Review Your Quote"
+    action: "click"
+    timeout: 10
+
+  - name: "Locate First Name Input"
+    userRequest: "Locate the first name input field"
+    expectedLocatrs:
+      - "your_css_selector_for_first_name_input_here"
+
+  - name: "Fill First Name"
+    action: "fill"
+    fillText: "First Name"  # Replace with actual first name for testing
+    timeout: 1
+
+  - name: "Locate Last Name Input"
+    userRequest: "Locate the last name input field"
+    expectedLocatrs:
+      - "your_css_selector_for_last_name_input_here"
+
+  - name: "Fill Last Name"
+    action: "fill"
+    fillText: "Last Name"  # Replace with actual last name for testing
+    timeout: 1
+
+  - name: "Locate Date of Birth Input"
+    userRequest: "Locate the date of birth input field"
+    expectedLocatrs:
+      - "your_css_selector_for_dob_input_here"
+
+  - name: "Fill Date of Birth"
+    action: "fill"
+    fillText: "01101910"  # Replace with appropriate date of birth for testing
+    timeout: 1
+
+  - name: "Locate Next Button"
+    userRequest: "Locate the next button"
+    expectedLocatrs:
+      - "your_css_selector_for_next_button_here"
+
+  - name: "Click Next"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Address Input"
+    userRequest: "Locate the address input field"
+    expectedLocatrs:
+      - "your_css_selector_for_address_input_here"
+
+  - name: "Fill Address"
+    action: "fill"
+    fillText: "Virginia"
+    timeout: 5
+
+  - name: "Locate Specific Address"
+    userRequest: "Locate '1528 Market Street' suggestion"
+    expectedLocatrs:
+      - "your_css_selector_for_market_street_suggestion_here"
+
+  - name: "Click on Address Suggestion"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate Apt# Input"
+    userRequest: "Locate the 'Apt#' input field"
+    expectedLocatrs:
+      - "your_css_selector_for_apt_input_here"
+
+  - name: "Fill Apt#"
+    action: "fill"
+    fillText: "Apt 123"  # Replace with any real or test apartment number
+    timeout: 1
+
+  - name: "Locate Next Button"
+    userRequest: "Locate the next button"
+    expectedLocatrs:
+      - "your_css_selector_for_next_button_here"
+
+  - name: "Click Next"
+    action: "click"
+    timeout: 5
