@@ -9,7 +9,6 @@ config:
   pageLoadTimeout: 5
 
 steps:
-
   - name: "Locate Flight Booking Button"
     userRequest: "Flight Bookings button"
     expectedLocatrs:
@@ -38,7 +37,7 @@ steps:
 
   - name: "Fill From Input Field"
     action: "fill"
-    value: "Bangalore"
+    fillText: "Bangalore"
     timeout: 2
 
   - name: "Locate Bangalore Airport Option"
@@ -57,7 +56,7 @@ steps:
     timeout: 2
 
   - name: "Locate From Input Field"
-    userRequest: "Flight from input field."
+    userRequest: "Flight 'To' Input Field."
     expectedLocatrs:
       - >-
         html > body > div > div > div:nth-of-type(2) > div > div >
@@ -69,9 +68,8 @@ steps:
 
   - name: "Fill To Input Field"
     action: "fill"
-    value: "Nepal"
+    fillText: "Nepal"
     timeout: 2
-    elementNo: 1
 
   - name: "Locate Kathmandu Airport Option"
     userRequest: "Kathmandu, NP Airport option"
