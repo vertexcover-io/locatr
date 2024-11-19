@@ -64,8 +64,8 @@ func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) l
 	if evalConfig.Config.CachePath != "" {
 		locatrOptions.CachePath = evalConfig.Config.CachePath
 	}
-	if evalConfig.Config.ResulstsFilePath != "" {
-		locatrOptions.ResultsFilePath = evalConfig.Config.ResulstsFilePath
+	if evalConfig.Config.ResultsFilePath != "" {
+		locatrOptions.ResultsFilePath = evalConfig.Config.ResultsFilePath
 	}
 	if evalConfig.Config.UseReRank {
 		reRankClient := locatr.NewCohereClient(os.Getenv("COHERE_API_KEY"))

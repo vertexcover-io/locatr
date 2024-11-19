@@ -4,11 +4,11 @@ type evalConfigYaml struct {
 	Name   string `yaml:"name"`
 	Url    string `yaml:"url"`
 	Config struct {
-		UseCache         bool   `yaml:"useCache"`
-		CachePath        string `yaml:"cachePath"`
-		ResulstsFilePath string `yaml:"resultsFilePath"`
-		UseReRank        bool   `yaml:"useReRank"`
-		PageLoadTimeout  int    `yaml:"pageLoadTimeout"`
+		UseCache        bool   `yaml:"useCache"`
+		CachePath       string `yaml:"cachePath"`
+		ResultsFilePath string `yaml:"resultsFilePath"`
+		UseReRank       bool   `yaml:"useReRank"`
+		PageLoadTimeout int    `yaml:"pageLoadTimeout"`
 	} `yaml:"config"`
 	Steps []struct {
 		Name            string   `yaml:"name"`
