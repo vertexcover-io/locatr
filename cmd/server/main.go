@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -31,29 +32,52 @@ type Config struct {
 	IPCLocation string
 }
 
+const (
+	ZMQClientIdx  = 0
+	ZMQMessageIdx = 1
+)
+
 type Message struct {
 	Id          string `json:"id"`
 	Url         string `json:"url"`
 	Description string `json:"description"`
+	ClientId    []byte
+}
+
+func (m *Message) Validate() error {
+	var err error
+	if m.Id == "" {
+		err = fmt.Errorf("ID field cannot be empty: %w", err)
+	}
+	if m.Url == "" {
+		err = fmt.Errorf("URL field cannot be empty: %w", err)
+	}
+	if m.Description == "" {
+		err = fmt.Errorf("Description field cannot be empty: %w", err)
+	}
+	return err
 }
 
 type MessageReply struct {
-	Id      string `json:"id"`
-	Url     string `json:"url"`
-	Locator string `json:"locator"`
+	Id       string `json:"id"`
+	Url      string `json:"url"`
+	Locator  string `json:"locator"`
+	ClientId []byte
 }
 
 func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
-	err_chan := ctx.Value(err_chan_key).(chan<- error)
+	err_chan := ctx.Value(err_chan_key).(chan error)
 
 	log.Print("[INFO] Message request received")
 
 	page, err := browser.NewPage()
 	if err != nil {
 		err_chan <- fmt.Errorf("could not create page: %w", err)
+		return
 	}
 	if _, err := page.Goto(msg.Url); err != nil {
 		err_chan <- fmt.Errorf("could not navigate to requested page: %w", err)
+		return
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 	log.Printf("[INFO] Page %s loaded", msg.Url)
@@ -67,6 +91,7 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not create llm client: %w", err)
+		return
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Info}, LlmClient: llmClient}
 
@@ -75,24 +100,27 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	element, err := playWrightLocatr.GetLocatrStr(msg.Description)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not get locator: %w", err)
+		return
 	}
 
-	rep_chan := ctx.Value(rep_chan_key).(chan<- MessageReply)
+	rep_chan := ctx.Value(rep_chan_key).(chan MessageReply)
 	reply := MessageReply{
-		Id:      msg.Id,
-		Url:     msg.Url,
-		Locator: element,
+		Id:       msg.Id,
+		Url:      msg.Url,
+		Locator:  element,
+		ClientId: msg.ClientId,
 	}
 	rep_chan <- reply
 }
 
 func run_browser(ctx context.Context) {
-	err_chan := ctx.Value(err_chan_key).(chan<- error)
-	msg_chan := ctx.Value(msg_chan_key).(<-chan Message)
+	err_chan := ctx.Value(err_chan_key).(chan error)
+	msg_chan := ctx.Value(msg_chan_key).(chan Message)
 
 	pw, err := playwright.Run()
 	if err != nil {
 		err_chan <- fmt.Errorf("could not start playwright: %w: %w", err, ErrorFatal)
+		return
 	}
 	defer func() {
 		if err = pw.Stop(); err != nil {
@@ -109,6 +137,7 @@ func run_browser(ctx context.Context) {
 	)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not launch browser: %w: %w", err, ErrorFatal)
+		return
 	}
 	defer browser.Close()
 	log.Print("[INFO] Started Browser instance")
@@ -129,27 +158,38 @@ outer:
 
 func run_zmq(ctx context.Context) {
 	cfg := ctx.Value(config_key).(Config)
-	err_chan := ctx.Value(err_chan_key).(chan<- error)
-	msg_chan := ctx.Value(msg_chan_key).(chan<- Message)
+	err_chan := ctx.Value(err_chan_key).(chan error)
+	msg_chan := ctx.Value(msg_chan_key).(chan Message)
 
 	zctx, err := zmq4.NewContext()
 	if err != nil {
 		err_chan <- fmt.Errorf("failed to start zeromq: %w: %w", err, ErrorFatal)
+		return
 	}
+	defer func() {
+		if err = zctx.Term(); err != nil {
+			// This is not needed. The only time we terminate zeromq is
+			// when terminating application.
+			err_chan <- fmt.Errorf("failed to terminate zmq contenxt: %w: %w", err, ErrorFatal)
+		}
+	}()
 
-	socket, err := zctx.NewSocket(zmq4.REP)
+	socket, err := zctx.NewSocket(zmq4.ROUTER)
 	if err != nil {
 		err_chan <- fmt.Errorf("failed to open socket: %w: %w", err, ErrorFatal)
+		return
 	}
-	location := "ipc://" + cfg.IPCLocation
+	defer socket.Close()
+	location := cfg.IPCLocation
 	if err = socket.Bind(location); err != nil {
 		err_chan <- fmt.Errorf("failed to bind to ipc: %w: %w", err, ErrorFatal)
+		return
 	}
 
 	log.Printf("[INFO] Server is now listening at %s", location)
 
 	go func() {
-		reply_chan := ctx.Value(rep_chan_key).(<-chan MessageReply)
+		reply_chan := ctx.Value(rep_chan_key).(chan MessageReply)
 
 	outer:
 		for {
@@ -160,11 +200,13 @@ func run_zmq(ctx context.Context) {
 				data, err := json.Marshal(reply)
 				if err != nil {
 					err_chan <- fmt.Errorf("failed to marshal json: %w: %w", err, ErrorFatal)
+					continue
 				}
 				log.Printf("[INFO] Sending message reply")
-				_, err = socket.SendBytes(data, 0)
+				_, err = socket.SendMessage(reply.ClientId, data, 0)
 				if err != nil {
 					err_chan <- fmt.Errorf("failed to send message: %w", err)
+					continue
 				}
 				log.Printf("[INFO] Message Reply sent")
 			}
@@ -173,20 +215,29 @@ func run_zmq(ctx context.Context) {
 
 	// TODO: Figure out how to properly close out connection, while not missing any messages passed
 	for {
-		data, err := socket.RecvBytes(0)
+		// with Dealer Router config we need to receive twice
+		data, err := socket.RecvMessageBytes(0)
 		if err != nil {
-			err_chan <- fmt.Errorf("failed to receive message: %w", err)
-
-			var msg Message
-			if err = json.Unmarshal(data, &msg); err != nil {
-				err_chan <- fmt.Errorf("invalid message received, dropping: %w", err)
-				continue
-			}
-
-			msg_chan <- msg
-
-			log.Print("[INFO] Message received")
+			rcv := bytes.Join(data, []byte(","))
+			err_chan <- fmt.Errorf("failed to receive message: %w, received: %s", err, string(rcv))
+			continue
 		}
+
+		var msg Message
+		if err = json.Unmarshal(data[ZMQMessageIdx], &msg); err != nil {
+			err_chan <- fmt.Errorf("invalid message received, dropping: %w", err)
+			continue
+		}
+		if err = msg.Validate(); err != nil {
+			err_chan <- fmt.Errorf("invalid message received, dropping: %w", err)
+			continue
+		}
+		msg.ClientId = data[ZMQClientIdx]
+
+		msg_chan <- msg
+
+		log.Print("[INFO] Message received")
+
 	}
 }
 
@@ -204,7 +255,7 @@ func main() {
 	var cfg Config
 	flag.StringVar(&cfg.ModelName, "model", "", "pass in OpenAI model name")
 	flag.StringVar(&cfg.ApiKey, "api_key", "", "pass in OpenAI API key")
-	flag.StringVar(&cfg.IPCLocation, "ipc", "/tmp/locator-ipc", "pass in where to create IPC file")
+	flag.StringVar(&cfg.IPCLocation, "ipc", "ipc:///tmp/locator-ipc", "pass in where to create IPC file")
 
 	flag.Parse()
 
