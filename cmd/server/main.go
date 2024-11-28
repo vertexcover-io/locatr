@@ -67,16 +67,26 @@ type MessageReply struct {
 
 func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	err_chan := ctx.Value(err_chan_key).(chan error)
+	rep_chan := ctx.Value(rep_chan_key).(chan MessageReply)
+
+	reply := MessageReply{
+		Id:       msg.Id,
+		Url:      msg.Url,
+		Locator:  "N/A",
+		ClientId: msg.ClientId,
+	}
 
 	log.Print("[INFO] Message request received")
 
 	page, err := browser.NewPage()
 	if err != nil {
 		err_chan <- fmt.Errorf("could not create page: %w", err)
+		rep_chan <- reply
 		return
 	}
 	if _, err := page.Goto(msg.Url); err != nil {
 		err_chan <- fmt.Errorf("could not navigate to requested page: %w", err)
+		rep_chan <- reply
 		return
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
@@ -91,6 +101,7 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not create llm client: %w", err)
+		rep_chan <- reply
 		return
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Info}, LlmClient: llmClient}
@@ -100,16 +111,11 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	element, err := playWrightLocatr.GetLocatrStr(msg.Description)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not get locator: %w", err)
+		rep_chan <- reply
 		return
 	}
 
-	rep_chan := ctx.Value(rep_chan_key).(chan MessageReply)
-	reply := MessageReply{
-		Id:       msg.Id,
-		Url:      msg.Url,
-		Locator:  element,
-		ClientId: msg.ClientId,
-	}
+	reply.Locator = element
 	rep_chan <- reply
 }
 
