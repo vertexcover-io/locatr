@@ -56,6 +56,19 @@ func (pl *playwrightPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
+// GetLocatrStr returns a locator string for the given user request.
+func (pl *playwrightLocator) GetLocatrStr(userReq string) (string, error) {
+	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
+		return "", fmt.Errorf("error waiting for load state: %v", err)
+	}
+
+	locatorStr, err := pl.locatr.getLocatorStr(userReq)
+	if err != nil {
+		return "", fmt.Errorf("error getting locator string: %v", err)
+	}
+	return locatorStr, nil
+}
+
 // GetLocatr returns a playwright locator object for the given user request.
 func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {

@@ -27,6 +27,7 @@ func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []s
 		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
 	}
 }
+
 func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]string, error) {
 	if locatrs, ok := l.cachedLocatrs[currentUrl]; ok {
 		for _, v := range locatrs {
@@ -39,6 +40,7 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentUrl string) ([]strin
 	l.logger.Debug(fmt.Sprintf("Key `%s not found in cache", key))
 	return nil, fmt.Errorf("key `%s` not found in cache", key)
 }
+
 func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 	requestInitatedAt := time.Now()
 	currentUrl := l.getCurrentUrl()
@@ -67,7 +69,6 @@ func (l *BaseLocatr) loadLocatrsFromCache(userReq string) (string, error) {
 			}
 			l.logger.Info("All cached locators are outdated.")
 		}
-
 	}
 	return "", ErrLocatrCacheMiss
 }
@@ -89,6 +90,7 @@ func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	}
 	return nil
 }
+
 func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 	err := os.MkdirAll(filepath.Dir(cachePath), 0755)
 	if err != nil {
@@ -106,6 +108,7 @@ func writeLocatorsToCache(cachePath string, cacheString []byte) error {
 
 	return nil
 }
+
 func (l *BaseLocatr) initializeState() {
 	if l.initialized || !l.options.UseCache {
 		l.logger.Debug("Cache disabled or already initialized")

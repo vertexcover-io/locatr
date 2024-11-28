@@ -24,6 +24,8 @@ github.com/liushuangls/go-anthropic/v2 v2.4.1 h1:NrqITJX+zQ2kBYx6jPU+wqEK2GPDu4t
 github.com/liushuangls/go-anthropic/v2 v2.4.1/go.mod h1:8BKv/fkeTaL5R9R9bGkaknYBueyw2WxY20o7bImbOek=
 github.com/mitchellh/go-ps v1.0.0 h1:i6ampVEEF4wQFF+bkYfwYgY+F/uYJDktmvLPf7qIgjc=
 github.com/mitchellh/go-ps v1.0.0/go.mod h1:J4lOc8z8yJs6vUwklHw2XEIiT4z4C40KtWVN3nvg8Pg=
+github.com/pebbe/zmq4 v1.2.11 h1:Ua5mgIaZeabUGnH7tqswkUcjkL7JYGai5e8v4hpEU9Q=
+github.com/pebbe/zmq4 v1.2.11/go.mod h1:nqnPueOapVhE2wItZ0uOErngczsJdLOGkebMxaO8r48=
 github.com/playwright-community/playwright-go v0.4501.1 h1:kz8SIfR6nEI8blk77nTVD0K5/i37QP5rY/o8a1fG+4c=
 github.com/playwright-community/playwright-go v0.4501.1/go.mod h1:bpArn5TqNzmP0jroCgw4poSOG9gSeQg490iLqWAaa7w=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
