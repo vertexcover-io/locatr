@@ -26,6 +26,33 @@ func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *playw
 	}
 }
 
+func NewPlaywrightCDPLocatr(cdpUrl string, options BaseLocatrOptions) (*playwrightLocator, error) {
+	pw, err := playwright.Run()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start playwright instance: %w", err)
+	}
+	browser, err := pw.Chromium.ConnectOverCDP(cdpUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to chromium over CDP: %w", err)
+	}
+
+	if len(browser.Contexts()) == 0 {
+		return nil, fmt.Errorf("no browser context to connect to: %w", err)
+	}
+	browserContext := browser.Contexts()[0]
+
+	if len(browserContext.Pages()) == 0 {
+		return nil, fmt.Errorf("no pages found :%w", err)
+	}
+	page := browserContext.Pages()[0]
+
+	pwPlugin := playwrightPlugin{page: page}
+
+	resp := playwrightLocator{page: page, locatr: NewBaseLocatr(&pwPlugin, options)}
+
+	return &resp, err
+}
+
 // evaluateJsFunction runs the given javascript function in the browser and returns the result as a string.
 func (pl *playwrightPlugin) evaluateJsFunction(function string) (string, error) {
 	result, err := pl.page.Evaluate(function)

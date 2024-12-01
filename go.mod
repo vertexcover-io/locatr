@@ -16,6 +16,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
 	github.com/aws/smithy-go v1.20.3 // indirect
+	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
@@ -23,6 +24,7 @@ require (
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/pebbe/zmq4 v1.2.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/tebeka/selenium v0.9.9 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
