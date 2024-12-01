@@ -8,10 +8,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/pebbe/zmq4"
-	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr"
 )
 
@@ -65,7 +63,7 @@ type MessageReply struct {
 	ClientId []byte
 }
 
-func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
+func run_model(ctx context.Context, msg Message) {
 	err_chan := ctx.Value(err_chan_key).(chan error)
 	rep_chan := ctx.Value(rep_chan_key).(chan MessageReply)
 
@@ -78,19 +76,18 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 
 	log.Print("[INFO] Message request received")
 
-	page, err := browser.NewPage()
-	if err != nil {
-		err_chan <- fmt.Errorf("could not create page: %w", err)
-		rep_chan <- reply
-		return
-	}
-	if _, err := page.Goto(msg.Url); err != nil {
-		err_chan <- fmt.Errorf("could not navigate to requested page: %w", err)
-		rep_chan <- reply
-		return
-	}
-	time.Sleep(5 * time.Second) // wait for page to load
-	log.Printf("[INFO] Page %s loaded", msg.Url)
+	// if err != nil {
+	// 	err_chan <- fmt.Errorf("could not create page: %w", err)
+	// 	rep_chan <- reply
+	// 	return
+	// }
+	// if _, err := page.Goto(msg.Url); err != nil {
+	// 	err_chan <- fmt.Errorf("could not navigate to requested page: %w", err)
+	// 	rep_chan <- reply
+	// 	return
+	// }
+	// time.Sleep(5 * time.Second) // wait for page to load
+	// log.Printf("[INFO] Page %s loaded", msg.Url)
 
 	cfg := ctx.Value(config_key).(Config)
 
@@ -106,9 +103,14 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Info}, LlmClient: llmClient}
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
+	locatr, err := locatr.NewRemoteSeleniumLocatr(msg.Url, options)
+	if err != nil {
+		err_chan <- fmt.Errorf("failed to run model: %w", err)
+		rep_chan <- reply
+		return
+	}
 
-	element, err := playWrightLocatr.GetLocatrStr(msg.Description)
+	element, err := locatr.GetLocatrStr(msg.Description)
 	if err != nil {
 		err_chan <- fmt.Errorf("could not get locator: %w", err)
 		rep_chan <- reply
@@ -120,33 +122,33 @@ func run_model(ctx context.Context, msg Message, browser playwright.Browser) {
 }
 
 func run_browser(ctx context.Context) {
-	err_chan := ctx.Value(err_chan_key).(chan error)
+	// err_chan := ctx.Value(err_chan_key).(chan error)
 	msg_chan := ctx.Value(msg_chan_key).(chan Message)
 
-	pw, err := playwright.Run()
-	if err != nil {
-		err_chan <- fmt.Errorf("could not start playwright: %w: %w", err, ErrorFatal)
-		return
-	}
-	defer func() {
-		if err = pw.Stop(); err != nil {
-			// This is not needed. The only time we terminate playwright is
-			// when terminating application.
-			err_chan <- fmt.Errorf("failed to terminate playwright instance: %w: %w", err, ErrorFatal)
-		}
-	}()
-
-	browser, err := pw.Chromium.Launch(
-		playwright.BrowserTypeLaunchOptions{
-			Headless: playwright.Bool(true),
-		},
-	)
-	if err != nil {
-		err_chan <- fmt.Errorf("could not launch browser: %w: %w", err, ErrorFatal)
-		return
-	}
-	defer browser.Close()
-	log.Print("[INFO] Started Browser instance")
+	// pw, err := playwright.Run()
+	// if err != nil {
+	// 	err_chan <- fmt.Errorf("could not start playwright: %w: %w", err, ErrorFatal)
+	// 	return
+	// }
+	// defer func() {
+	// 	if err = pw.Stop(); err != nil {
+	// 		// This is not needed. The only time we terminate playwright is
+	// 		// when terminating application.
+	// 		err_chan <- fmt.Errorf("failed to terminate playwright instance: %w: %w", err, ErrorFatal)
+	// 	}
+	// }()
+	//
+	// browser, err := pw.Chromium.Launch(
+	// 	playwright.BrowserTypeLaunchOptions{
+	// 		Headless: playwright.Bool(true),
+	// 	},
+	// )
+	// if err != nil {
+	// 	err_chan <- fmt.Errorf("could not launch browser: %w: %w", err, ErrorFatal)
+	// 	return
+	// }
+	// defer browser.Close()
+	// log.Print("[INFO] Started Browser instance")
 
 	log.Print("[INFO] Waiting for messages")
 outer:
@@ -155,7 +157,7 @@ outer:
 		case <-ctx.Done():
 			break outer
 		case msg := <-msg_chan:
-			go run_model(ctx, msg, browser)
+			go run_model(ctx, msg)
 		}
 	}
 
