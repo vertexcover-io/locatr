@@ -1,0 +1,74 @@
+name: "evals for Steam Store"
+url: "https://store.steampowered.com/"
+
+config:
+  useCache: false
+  resultsFilePath: "steam_locatr_results.json"
+  useReRank: true
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Search Bar"
+    userRequest: "Search input bar on the steam store"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) >
+        div:nth-of-type(3) > div:nth-of-type(2) > div:nth-of-type(2) > div > div
+        > div > div:nth-of-type(2) > div:nth-of-type(2) > div >
+        div:nth-of-type(9) > div > form > div > input
+      - 'input#store_nav_search_term'
+      - >-
+        html.responsive > body.v6.infinite_scrolling.responsive_page >
+        div.responsive_page_frame.with_header > div.responsive_page_content >
+        div.responsive_page_template_content > div.home_page_col_wrapper >
+        div.home_page_body_ctn > div.home_page_content >
+        div.responsive_store_nav_ctn_spacer > div > div.content > div >
+        div.store_nav_bg > div.store_nav > div.search_area > div > form >
+        div.searchbox > input.default
+
+  - name: "Fill Search Bar"
+    action: "fill"
+    fillText: "Counter Strike 2"
+    timeout: 5
+
+  - name: "Press Enter in Search Bar"
+    action: "press"
+    key: "Enter"
+    timeout: 5
+
+  - name: "Locate Counter Strike 2"
+    userRequest: "Counter Strike 2 game on the list"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div
+        > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a >
+        div:nth-of-type(2) > div > span
+      - 'div#search_resultsRows > a > div > div > span'
+      - >-
+        html.responsive > body.v6.search_page.responsive_page >
+        div.responsive_page_frame.with_header > div.responsive_page_content >
+        div.responsive_page_template_content > form > div.page_content_ctn >
+        div.page_content > div.leftcol.large > div.search_results > div > div >
+        a.search_result_row.ds_collapse_flag.app_impression_tracked >
+        div.responsive_search_name_combined > div.col.search_name.ellipsis >
+        span.title
+
+  - name: "Click Counter Strike 2 Game Link"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate System Requirements Section"
+    userRequest: "System Requirements section on the game page"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) >
+        div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) >
+        div:nth-of-type(2) > div:nth-of-type(8) > div
+      - 'div#tabletGrid > div > div > div > div > div'
+      - >-
+        html.responsive > body.v6.app.game_bg.application.responsive_page >
+        div.responsive_page_frame.with_header > div.responsive_page_content >
+        div.responsive_page_template_content > div.game_page_background.game >
+        div.tablet_grid > div.page_content_ctn > div.page_content >
+        div.leftcol.game_description_column > div.game_page_autocollapse_ctn >
+        div.game_page_autocollapse.sys_req

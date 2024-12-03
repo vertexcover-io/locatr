@@ -22,7 +22,10 @@ func sortRerankChunks(chunks []string, reRankResults []reRankResult) []string {
 	return finalChunks
 }
 
-func createLocatrResultFromOutput(userReq string, validLocatr string, currentUrl string, output []locatrOutputDto) []locatrResult {
+func createLocatrResultFromOutput(
+	userReq string, validLocatr string,
+	currentUrl string, allLocatrs []string,
+	output []locatrOutputDto) []locatrResult {
 	results := []locatrResult{}
 	for _, outputDto := range output {
 		r := locatrResult{
@@ -38,6 +41,7 @@ func createLocatrResultFromOutput(userReq string, validLocatr string, currentUrl
 			LocatrRequestCompletedAt: outputDto.LocatrRequestCompletedAt,
 			AttemptNo:                outputDto.AttemptNo,
 			LlmErrorMessage:          outputDto.Error,
+			AllLocatrs:               allLocatrs,
 		}
 		results = append(results, r)
 

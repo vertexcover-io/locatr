@@ -11,16 +11,16 @@ type playwrightPlugin struct {
 	PluginInterface
 }
 
-type playwrightLocator struct {
+type PlaywrightLocator struct {
 	page   playwright.Page
 	locatr *BaseLocatr
 }
 
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
-func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *playwrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *PlaywrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
-	return &playwrightLocator{
+	return &PlaywrightLocator{
 		page:   page,
 		locatr: NewBaseLocatr(pwPlugin, options),
 	}
@@ -57,7 +57,7 @@ func (pl *playwrightPlugin) evaluateJsScript(scriptContent string) error {
 }
 
 // GetLocatr returns a playwright locator object for the given user request.
-func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
+func (pl *PlaywrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
 		return nil, fmt.Errorf("error waiting for load state: %v", err)
 	}
@@ -70,11 +70,11 @@ func (pl *playwrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 }
 
 // WriteResultsToFile writes the locatr results to path specified in BaseLocatrOptions.ResultsFilePath.
-func (pl *playwrightLocator) WriteResultsToFile() {
+func (pl *PlaywrightLocator) WriteResultsToFile() {
 	pl.locatr.writeLocatrResultsToFile()
 }
 
 // GetLocatrResults returns the locatr results.
-func (pl *playwrightLocator) GetLocatrResults() []locatrResult {
+func (pl *PlaywrightLocator) GetLocatrResults() []locatrResult {
 	return pl.locatr.getLocatrResults()
 }
