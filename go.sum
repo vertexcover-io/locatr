@@ -158,6 +158,8 @@ github.com/vertexcover-io/selenium v0.0.0-20241202174559-529bb9e8150b h1:TggwH8d
 github.com/vertexcover-io/selenium v0.0.0-20241202174559-529bb9e8150b/go.mod h1:J6Tr1OgFawo8L6mQaP0n2b37ElzNaGa3a4j0gPGPOKY=
 github.com/vertexcover-io/selenium v0.0.0-20241202175236-085622723f52 h1:r6hGBODKr1jWqeuOj/su91GgcAwDEH1Z0RnovX82db0=
 github.com/vertexcover-io/selenium v0.0.0-20241202175236-085622723f52/go.mod h1:J6Tr1OgFawo8L6mQaP0n2b37ElzNaGa3a4j0gPGPOKY=
+github.com/vertexcover-io/selenium v0.0.0-20241204163435-6f7f74f598ec h1:oy3rFn2X5+8Qv5nt3ciCNqqX39Bnm0aI1CZbVDBsnL0=
+github.com/vertexcover-io/selenium v0.0.0-20241204163435-6f7f74f598ec/go.mod h1:J6Tr1OgFawo8L6mQaP0n2b37ElzNaGa3a4j0gPGPOKY=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
