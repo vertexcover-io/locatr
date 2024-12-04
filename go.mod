@@ -21,11 +21,14 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/mediabuyerbot/go-crx3 v1.5.1 // indirect
 	github.com/pebbe/zmq4 v1.2.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/tebeka/selenium v0.9.9 // indirect
+	github.com/vertexcover-io/selenium v0.0.0-20241202175236-085622723f52 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -36,19 +36,19 @@ const (
 )
 
 type Message struct {
-	Id          string `json:"id"`
-	Url         string `json:"url"`
+	SessionId   string `json:"session_id"`
+	ServerUrl   string `json:"server_url"`
 	Description string `json:"description"`
 	ClientId    []byte
 }
 
 func (m *Message) Validate() error {
 	var err error
-	if m.Id == "" {
-		err = fmt.Errorf("ID field cannot be empty: %w", err)
+	if m.SessionId == "" {
+		err = fmt.Errorf("Session ID field cannot be empty: %w", err)
 	}
-	if m.Url == "" {
-		err = fmt.Errorf("URL field cannot be empty: %w", err)
+	if m.ServerUrl == "" {
+		err = fmt.Errorf("Server Url field cannot be empty: %w", err)
 	}
 	if m.Description == "" {
 		err = fmt.Errorf("Description field cannot be empty: %w", err)
@@ -57,10 +57,10 @@ func (m *Message) Validate() error {
 }
 
 type MessageReply struct {
-	Id       string `json:"id"`
-	Url      string `json:"url"`
-	Locator  string `json:"locator"`
-	ClientId []byte
+	SessionId string `json:"session_id"`
+	ServerUrl string `json:"server_url"`
+	Locator   string `json:"locator"`
+	ClientId  []byte
 }
 
 func run_model(ctx context.Context, msg Message) {
@@ -68,26 +68,13 @@ func run_model(ctx context.Context, msg Message) {
 	rep_chan := ctx.Value(rep_chan_key).(chan MessageReply)
 
 	reply := MessageReply{
-		Id:       msg.Id,
-		Url:      msg.Url,
-		Locator:  "N/A",
-		ClientId: msg.ClientId,
+		SessionId: msg.SessionId,
+		ServerUrl: msg.ServerUrl,
+		Locator:   "",
+		ClientId:  msg.ClientId,
 	}
 
 	log.Print("[INFO] Message request received")
-
-	// if err != nil {
-	// 	err_chan <- fmt.Errorf("could not create page: %w", err)
-	// 	rep_chan <- reply
-	// 	return
-	// }
-	// if _, err := page.Goto(msg.Url); err != nil {
-	// 	err_chan <- fmt.Errorf("could not navigate to requested page: %w", err)
-	// 	rep_chan <- reply
-	// 	return
-	// }
-	// time.Sleep(5 * time.Second) // wait for page to load
-	// log.Printf("[INFO] Page %s loaded", msg.Url)
 
 	cfg := ctx.Value(config_key).(Config)
 
@@ -103,7 +90,7 @@ func run_model(ctx context.Context, msg Message) {
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Info}, LlmClient: llmClient}
 
-	locatr, err := locatr.NewRemoteSeleniumLocatr(msg.Url, options)
+	locatr, err := locatr.NewRemoteConnSeleniumLocatr(msg.ServerUrl, msg.SessionId, options)
 	if err != nil {
 		err_chan <- fmt.Errorf("failed to run model: %w", err)
 		rep_chan <- reply
@@ -122,33 +109,7 @@ func run_model(ctx context.Context, msg Message) {
 }
 
 func run_browser(ctx context.Context) {
-	// err_chan := ctx.Value(err_chan_key).(chan error)
 	msg_chan := ctx.Value(msg_chan_key).(chan Message)
-
-	// pw, err := playwright.Run()
-	// if err != nil {
-	// 	err_chan <- fmt.Errorf("could not start playwright: %w: %w", err, ErrorFatal)
-	// 	return
-	// }
-	// defer func() {
-	// 	if err = pw.Stop(); err != nil {
-	// 		// This is not needed. The only time we terminate playwright is
-	// 		// when terminating application.
-	// 		err_chan <- fmt.Errorf("failed to terminate playwright instance: %w: %w", err, ErrorFatal)
-	// 	}
-	// }()
-	//
-	// browser, err := pw.Chromium.Launch(
-	// 	playwright.BrowserTypeLaunchOptions{
-	// 		Headless: playwright.Bool(true),
-	// 	},
-	// )
-	// if err != nil {
-	// 	err_chan <- fmt.Errorf("could not launch browser: %w: %w", err, ErrorFatal)
-	// 	return
-	// }
-	// defer browser.Close()
-	// log.Print("[INFO] Started Browser instance")
 
 	log.Print("[INFO] Waiting for messages")
 outer:
@@ -161,7 +122,7 @@ outer:
 		}
 	}
 
-	log.Print("[INFO] Terminating Playwright instance")
+	log.Print("[INFO] Terminating Session connections")
 }
 
 func run_zmq(ctx context.Context) {

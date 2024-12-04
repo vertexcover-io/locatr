@@ -41,3 +41,4 @@ node_modules/
 # Environment files (optional, if used)
 .env
 locatr-server
+locatr_server
