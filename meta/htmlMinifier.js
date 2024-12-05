@@ -540,3 +540,4 @@ function isValidLocator(locator) {
 
 window.minifyHTML = minifyHTML;
 window.mapElementsToJson = mapElementsToJson;
+window.isValidLocator = isValidLocator;
