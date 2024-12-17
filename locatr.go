@@ -38,6 +38,7 @@ type locatrResult struct {
 	AttemptNo                int       `json:"attempt_no"`
 	LocatrRequestInitiatedAt time.Time `json:"request_initiated_at"`
 	LocatrRequestCompletedAt time.Time `json:"request_completed_at"`
+	AllLocatrs               []string  `json:"all_locatrs"`
 }
 
 func (l *locatrResult) MarshalJSON() ([]byte, error) {
@@ -151,7 +152,7 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		if len(llmOutputs) > 0 {
 			l.locatrResults = append(l.locatrResults,
 				createLocatrResultFromOutput(
-					userReq, "", currentUrl, llmOutputs,
+					userReq, "", currentUrl, []string{}, llmOutputs,
 				)...,
 			)
 		}
@@ -171,7 +172,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 	}
 	l.locatrResults = append(l.locatrResults,
 		createLocatrResultFromOutput(
-			userReq, validLocator, currentUrl, llmOutputs,
+			userReq,
+			validLocator,
+			currentUrl,
+			locators,
+			llmOutputs,
 		)...,
 	)
 	if l.options.UseCache {

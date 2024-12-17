@@ -275,6 +275,7 @@ Locatr provides a feature to get all the information about each locatr request m
 - **AttemptNo** (`int`): An integer field to indicate the attempt number with re rank.
 - **LocatrRequestInitiatedAt** (`time.Time`): The timestamp when the request was initiated.
 - **LocatrRequestCompletedAt** (`time.Time`): The timestamp when the request was completed.
+- **AllLocatrs** (`[]string`): All the locatrs of each located elements.
 
 **Saving Results**
 
@@ -297,7 +298,8 @@ Schema of the json file:
     "llm_locatr_generation_time_taken": 1,
     "attempt_no": 0,
     "request_initiated_at": "",
-    "request_completed_at": ""
+    "request_completed_at": "",
+	"all_locatrs": []
 }
 ```
 - **To retrieve results as a slice**: Use the `playwrightLocatr.GetLocatrResults` function.
