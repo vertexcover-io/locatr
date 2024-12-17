@@ -201,7 +201,10 @@ func (l *BaseLocatr) getCurrentUrl() string {
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
-	result, _ := l.plugin.evaluateJsFunction("minifyHTML()")
+	result, err := l.plugin.evaluateJsFunction("minifyHTML()")
+	if err != nil {
+		return nil, nil, err
+	}
 	elementSpec := &ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)

@@ -24,6 +24,8 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/mafredri/cdp v0.35.0 // indirect
 	github.com/mediabuyerbot/go-crx3 v1.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

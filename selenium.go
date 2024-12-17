@@ -7,6 +7,7 @@ import (
 
 type seleniumPlugin struct {
 	driver selenium.WebDriver
+	PluginInterface
 }
 
 type seleniumLocatr struct {
