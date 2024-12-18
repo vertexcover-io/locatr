@@ -31,6 +31,18 @@ func NewRemoteConnSeleniumLocatr(serverUrl string, sessionId string, opt BaseLoc
 	return &locatr, nil
 }
 
+func NewSeleniumLocatr(driver selenium.WebDriver, options BaseLocatrOptions) (*seleniumLocatr, error) {
+	plugin := &seleniumPlugin{
+		driver: driver,
+	}
+	baseLocatr := NewBaseLocatr(plugin, options)
+	return &seleniumLocatr{
+		driver: driver,
+		locatr: baseLocatr,
+	}, nil
+
+}
+
 // Close close the selenium session.
 func (sl *seleniumLocatr) Close() error {
 	return sl.driver.Quit()
