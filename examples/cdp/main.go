@@ -29,13 +29,13 @@ func main() {
 	// close the cdp connection
 	defer connection.Close()
 
-	playWrightLocatr, err := locatr.NewCdpLocatr(connection, options)
+	cdpLocatr, err := locatr.NewCdpLocatr(connection, options)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	newsItem, err := playWrightLocatr.GetLocatr("First news link")
+	newsItem, err := cdpLocatr.GetLocatr("First news link")
 	fmt.Println(newsItem)
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
