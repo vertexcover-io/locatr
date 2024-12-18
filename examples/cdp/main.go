@@ -1,11 +1,9 @@
-// nolint
 package main
 
 import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/vertexcover-io/locatr"
 )
@@ -17,18 +15,23 @@ func main() {
 		UseCache:     false,
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
+
+	// connect to the remote cdp server.
 	connectionOpts := locatr.CdpConnectionOptions{
 		Port:   9222,
-		PageId: "177AE4272FC8BBE48190C697A27942DA",
+		PageId: "177AE4272FC8BBE48190C697A27942DA", // page id can be found by hitting route: http://localhost:9222/json.
 	}
 	connection, err := locatr.CreateCdpConnection(connectionOpts)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	// close the cdp connection
+	defer connection.Close()
+
 	playWrightLocatr, err := locatr.NewCdpLocatr(connection, options)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 
@@ -36,6 +39,6 @@ func main() {
 	fmt.Println(newsItem)
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
+		return
 	}
-	time.Sleep(5 * time.Second)
 }
