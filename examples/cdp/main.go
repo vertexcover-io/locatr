@@ -16,7 +16,7 @@ func main() {
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
 
-	// connect to the remote cdp server.
+	// connect to the remote cdp server. CDP server can be started by passing `--remote-debugging-port` arg while starting the browser.
 	connectionOpts := locatr.CdpConnectionOptions{
 		Port:   9222,
 		PageId: "177AE4272FC8BBE48190C697A27942DA", // page id can be found by hitting route: http://localhost:9222/json.
