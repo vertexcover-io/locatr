@@ -50,10 +50,6 @@ func NewCdpLocatr(connection *rpcc.Conn, locatrOptions BaseLocatrOptions) (*cdpL
 	}, nil
 }
 
-func (cdpLocatr *cdpLocatr) CloseCdpConnection() {
-	cdpLocatr.connection.Close()
-}
-
 func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) {
 	pageRuntime := cdpPlugin.client.Runtime
 	result, err := pageRuntime.Evaluate(context.Background(), &runtime.EvaluateArgs{
