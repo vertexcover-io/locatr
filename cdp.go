@@ -8,6 +8,7 @@ import (
 	"github.com/mafredri/cdp"
 	"github.com/mafredri/cdp/protocol/runtime"
 	"github.com/mafredri/cdp/rpcc"
+	"gopkg.in/validator.v2"
 )
 
 type cdpPlugin struct {
@@ -30,6 +31,10 @@ type CdpConnectionOptions struct {
 func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	if len(options.Host) == 0 {
 		options.Host = "localhost"
+	}
+	validator := validator.NewValidator()
+	if err := validator.Validate(options); err != nil {
+		return nil, err
 	}
 	ctx := context.Background()
 	wsUrl := fmt.Sprintf("ws://%s:%d/devtools/page/%s", options.Host, options.Port, (options.PageId))
