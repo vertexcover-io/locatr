@@ -186,11 +186,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to marshal cache: %v", err))
-			return "", fmt.Errorf("%w: %v", ErrFailedToMarshalJson, err)
+			return "", fmt.Errorf("%w: %w", ErrFailedToMarshalJson, err)
 		}
 		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to write cache: %v", err))
-			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
+			return "", fmt.Errorf("%w: %w", ErrFailedToWriteCache, err)
 		}
 	}
 	return validLocator, nil

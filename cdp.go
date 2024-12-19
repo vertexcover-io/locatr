@@ -35,7 +35,7 @@ func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	wsUrl := fmt.Sprintf("ws://%s:%d/devtools/page/%s", options.Host, options.Port, (options.PageId))
 	conn, err := rpcc.DialContext(ctx, wsUrl, rpcc.WithWriteBufferSize(1048576))
 	if err != nil {
-		return nil, fmt.Errorf("Could not connect to cdp server: %s, err: %v", wsUrl, err)
+		return nil, fmt.Errorf("Could not connect to cdp server: %s, err: %w", wsUrl, err)
 	}
 	return conn, nil
 }
@@ -56,7 +56,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) 
 		Expression: function,
 	})
 	if err != nil {
-		return "", fmt.Errorf("Error evaluating js function with cdp: %v", err)
+		return "", fmt.Errorf("Error evaluating js function with cdp: %w", err)
 	}
 	// remove quotation, escape chracters from the string to unmarshal the json later.
 	resultString := string(result.Result.Value)
@@ -74,7 +74,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 		Expression: scriptContent,
 	})
 	if err != nil {
-		return fmt.Errorf("Error evaluating js script with cdp: %v", err)
+		return fmt.Errorf("Error evaluating js script with cdp: %w", err)
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 func (cdpLocatr *cdpLocatr) GetLocatr(userReq string) (string, error) {
 	locatrStr, err := cdpLocatr.locatr.getLocatorStr(userReq)
 	if err != nil {
-		return "", fmt.Errorf("error getting locator string: %v", err)
+		return "", fmt.Errorf("error getting locator string: %w", err)
 	}
 	return locatrStr, nil
 
