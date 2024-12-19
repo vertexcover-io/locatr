@@ -536,8 +536,23 @@ function isValidLocator(locator) {
 		return false;
 	}
 }
+/**
+ * Helper function to check if two styles are equivalent
+ * @param {CSSStyleDeclaration} style1
+ * @param {CSSStyleDeclaration} style2
+ * @returns {boolean}
+ */
+function isEquivalentStyle(style1, style2) {
+	for (let prop of style1) {
+		if (style1[prop] !== style2[prop]) {
+			return false;
+		}
+	}
+	return true;
+}
 
 
 window.minifyHTML = minifyHTML;
 window.mapElementsToJson = mapElementsToJson;
 window.isValidLocator = isValidLocator;
+window.isEquivalentStyle = isEquivalentStyle;
