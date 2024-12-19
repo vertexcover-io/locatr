@@ -186,11 +186,11 @@ func (l *BaseLocatr) getLocatorStr(userReq string) (string, error) {
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to marshal cache: %v", err))
-			return "", fmt.Errorf("%w: %v", ErrFailedToMarshalJson, err)
+			return "", fmt.Errorf("%w: %w", ErrFailedToMarshalJson, err)
 		}
 		if err = writeLocatorsToCache(l.options.CachePath, value); err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to write cache: %v", err))
-			return "", fmt.Errorf("%w: %v", ErrFailedToWriteCache, err)
+			return "", fmt.Errorf("%w: %w", ErrFailedToWriteCache, err)
 		}
 	}
 	return validLocator, nil
@@ -206,7 +206,10 @@ func (l *BaseLocatr) getCurrentUrl() string {
 }
 
 func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMap, error) {
-	result, _ := l.plugin.evaluateJsFunction("minifyHTML()")
+	result, err := l.plugin.evaluateJsFunction("minifyHTML()")
+	if err != nil {
+		return nil, nil, err
+	}
 	elementSpec := &ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
@@ -223,9 +226,12 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
-		if value, _ := l.plugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator)); value == "true" {
+		value, err := l.plugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locator))
+		if value == "true" && err == nil {
 			l.logger.Debug(fmt.Sprintf("Valid locator found: `%s`", locator))
 			return locator, nil
+		} else {
+			l.logger.Debug(fmt.Sprintf("error while evaluating js function %v", err))
 		}
 	}
 	return "", ErrUnableToFindValidLocator

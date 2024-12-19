@@ -7,7 +7,7 @@ Locatr package helps you to find HTML locators on a webpage using prompts and ll
 ## Overview 
 - LLM based HTML locator finder.
 - Re-rank support for improved accuracy.
-- Supports playwright and there will be addon in the future for other web automation engines.  
+- Supports playwright, selenium, cdp.  
 - Uses cache to reduce calls to llm apis.
 - Results/Statistics generation of api calls.
 
@@ -30,6 +30,7 @@ go get github.com/vertexcover-io/locatr
 - [ LLM Client ](#llm-client)
 - [ Re-ranking Client ](#re-ranking-client)
 - [ Locatr Settings ](#locatr-options)
+- [ Locatrs ](#locatrs)
 - [ Cache Schema & Management ](#cache)
 - [ Logging ](#logging)
 - [ Generate Statistics ](#locatr-results)
@@ -202,14 +203,92 @@ options := locatr.BaseLocatrOptions{
 
 ### Locatrs
 
-Locatrs are a wrapper around the main plugin (playwright, selenium). Currently only playwright is supported.
+Locatrs are a wrapper around the main plugin (playwright, selenium, cdp).
 
 #### PlaywrightLocatr
-Create an instance of `PlayWrightLocatr` using 
+Create an instance of `PlayWrightLocatr` using :
 
 ```go
 playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
 ```
+
+#### CdpLocatr
+To use Locatr through CDP, we first need to start the browser with a CDP server. This can be achieved by running:
+```
+google-chrome --remote-debugging-port=9222
+```
+We can pass the same arguments when using Selenium or Playwright:
+
+- Selenium:
+```
+chrome_options = Options()
+chrome_options.add_argument("--remote-debugging-port=9222")
+```
+
+- Playwright:
+```
+browser = playwright.chromium.launch(headless=False, args=["--remote-debugging-port=9222"])
+```
+
+After starting the browser with CDP, we need the page ID. The page ID is essential to run Locatr scripts on the correct page. This can be achieved in two ways:
+
+1. **Directly getting it from the CDP server**
+	- Send a GET request to http://localhost:9222/json.
+	- You will receive the following response:
+	```
+	[ {
+   "description": "",
+   "devtoolsFrontendUrl": "/devtools/inspector.html?ws=localhost:9222/devtools/page/215947B924E9C4D232ADE7331FDBEBA6",
+   "faviconUrl": "https://www.youtube.com/s/desktop/e718aa11/img/logos/favicon_32x32.png",
+   "id": "215947B924E9C4D232ADE7331FDBEBA6",
+   "title": "YouTube",
+   "type": "page",
+   "url": "https://www.youtube.com/",
+   "webSocketDebuggerUrl": "ws://localhost:9222/devtools/page/215947B924E9C4D232ADE7331FDBEBA6"
+	}]
+	```
+	- The `id` field contains the page id. 
+2. **Get it through playwright:**
+```
+  const browser = await chromium.launch({ headless: false });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const cdpSession = await context.newCDPSession(page);
+  const response = await cdpSession.send('Page.getFrameTree');
+  const pageId = response.frameTree.frame.id; 
+```
+Once we have the page ID, we can establish a connection with CDP:
+
+```
+	connectionOpts := locatr.CdpConnectionOptions{
+		Port:   9222,
+		PageId: "177AE4272FC8BBE48190C697A27942DA",
+	}
+	connection, err := locatr.CreateCdpConnection(connectionOpts)
+	defer connection.Close()
+```
+
+Now we can create the CDP Locatr with:
+
+```
+	cdpLocatr, err := locatr.NewCdpLocatr(connection, options)
+```
+
+#### Selenium Locatr
+
+Selenium Locatr can be created through two ways:
+
+1. Through selenium server url:
+```
+	seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr("http://localhost:4444/wd/hub", driver.SessionID(), options) 
+```
+**note: the path must always be `/wd/hub`**
+
+2. Directly passing the selenium driver:
+```
+	seleniumLocatr, err := locatr.NewSeleniumLocatr(driver, options)
+```
+
 
 ### Methods
 
