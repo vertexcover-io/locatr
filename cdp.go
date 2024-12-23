@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mafredri/cdp"
+	"github.com/mafredri/cdp/devtool"
 	"github.com/mafredri/cdp/protocol/runtime"
 	"github.com/mafredri/cdp/rpcc"
 	"gopkg.in/validator.v2"
@@ -20,24 +21,36 @@ type cdpLocatr struct {
 	client     *cdp.Client
 	connection *rpcc.Conn
 	locatr     *BaseLocatr
+	LocatrInterface
 }
 
 type CdpConnectionOptions struct {
-	Host   string
-	Port   int    `validate:"required"`
-	PageId string `validate:"required"`
+	Host string
+	Port int `validate:"required"`
+	// PageId   string `validate:"required"`
+	TabIndex int
+}
+
+func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string, error) {
+	devt := devtool.New(url)
+	pages, err := devt.List(ctx)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println(pages)
+	return "", nil
 }
 
 func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
+	ctx := context.Background()
 	if len(options.Host) == 0 {
 		options.Host = "localhost"
 	}
-	validator := validator.NewValidator()
-	if err := validator.Validate(options); err != nil {
+	optionValidator := validator.NewValidator()
+	if err := optionValidator.Validate(options); err != nil {
 		return nil, err
 	}
-	ctx := context.Background()
-	wsUrl := fmt.Sprintf("ws://%s:%d/devtools/page/%s", options.Host, options.Port, (options.PageId))
+	wsUrl, _ := getWebsocketDebugUrl(fmt.Sprintf("http://%s:%d", options.Host, options.Port), 0, ctx)
 	conn, err := rpcc.DialContext(ctx, wsUrl, rpcc.WithWriteBufferSize(1048576))
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to cdp server: %s, err: %w", wsUrl, err)
@@ -84,7 +97,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatr(userReq string) (string, error) {
+func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (string, error) {
 	locatrStr, err := cdpLocatr.locatr.getLocatorStr(userReq)
 	if err != nil {
 		return "", fmt.Errorf("error getting locator string: %w", err)

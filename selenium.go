@@ -13,6 +13,7 @@ type seleniumPlugin struct {
 type seleniumLocatr struct {
 	driver selenium.WebDriver
 	locatr *BaseLocatr
+	LocatrInterface
 }
 
 // NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium seesion.

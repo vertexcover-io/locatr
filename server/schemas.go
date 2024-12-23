@@ -20,11 +20,11 @@ type locatrSettings struct {
 }
 
 type incomingMessage struct {
-	Type     string         `json:"type" binding:"required,oneof=initial_handshake locatr_request change_tab"`
-	Input    string         `json:"input"`
-	ClientId string         `json:"id" binding:"required"`
-	TabNo    string         `json:"tab_no"`
-	Settings locatrSettings `json:"locatr_settings"`
+	Type        string         `json:"type" binding:"required,oneof=initial_handshake locatr_request change_tab"`
+	UserRequest string         `json:"user_request"`
+	ClientId    string         `json:"id" binding:"required"`
+	TabNo       string         `json:"tab_no"`
+	Settings    locatrSettings `json:"locatr_settings"`
 }
 
 type outgoingMessage struct {

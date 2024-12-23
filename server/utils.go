@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 
@@ -34,7 +36,7 @@ func validateIncomingMessage(message incomingMessage) error {
 			return fmt.Errorf("invalid 'plugin_type' provided: '%s'. Expected 'selenium' or 'cdp'", message.Settings.PluginType)
 		}
 	} else if message.Type == "locatr_request" {
-		if message.Input == "" {
+		if message.UserRequest == "" {
 			return fmt.Errorf("empty 'Input' field provided")
 		}
 	}
@@ -42,6 +44,16 @@ func validateIncomingMessage(message incomingMessage) error {
 }
 
 func dumpJson(inputStruct interface{}) []byte {
-	errString, _ := json.Marshal(inputStruct)
-	return errString
+	bytesString, _ := json.Marshal(inputStruct)
+	return bytesString
+}
+
+func generateBytesMessage(outputMessage outgoingMessage) []byte {
+	buf := new(bytes.Buffer)
+	bytesString := dumpJson(outputMessage)
+	length := len(bytesString)
+	binary.Write(buf, binary.BigEndian, int32(length))
+	buf.Write(bytesString)
+	fmt.Println("bytes generated for message", outputMessage)
+	return buf.Bytes()
 }
