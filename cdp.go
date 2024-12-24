@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/mafredri/cdp"
-	"github.com/mafredri/cdp/devtool"
 	"github.com/mafredri/cdp/protocol/runtime"
 	"github.com/mafredri/cdp/rpcc"
 	"gopkg.in/validator.v2"
@@ -25,32 +24,23 @@ type cdpLocatr struct {
 }
 
 type CdpConnectionOptions struct {
-	Host string
-	Port int `validate:"required"`
-	// PageId   string `validate:"required"`
-	TabIndex int
-}
-
-func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string, error) {
-	devt := devtool.New(url)
-	pages, err := devt.List(ctx)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println(pages)
-	return "", nil
+	HostName string
+	Port     int `binding:"required"`
 }
 
 func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	ctx := context.Background()
-	if len(options.Host) == 0 {
-		options.Host = "localhost"
+	if len(options.HostName) == 0 {
+		options.HostName = "localhost"
 	}
 	optionValidator := validator.NewValidator()
 	if err := optionValidator.Validate(options); err != nil {
 		return nil, err
 	}
-	wsUrl, _ := getWebsocketDebugUrl(fmt.Sprintf("http://%s:%d", options.Host, options.Port), 0, ctx)
+	wsUrl, err := getWebsocketDebugUrl(fmt.Sprintf("http://%s:%d", options.HostName, options.Port), 0, ctx)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := rpcc.DialContext(ctx, wsUrl, rpcc.WithWriteBufferSize(1048576))
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to cdp server: %s, err: %w", wsUrl, err)
@@ -80,7 +70,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) 
 	resultString := string(result.Result.Value)
 	str, err := strconv.Unquote(resultString)
 	if err != nil {
-		return resultString, err
+		return resultString, nil
 	}
 	return str, err
 

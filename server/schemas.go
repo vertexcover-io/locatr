@@ -12,7 +12,6 @@ type locatrSettings struct {
 	CdpURl            string      `json:"cdp_url"`
 	SeleniumUrl       string      `json:"selenium_url"`
 	SeleniumSessionId string      `json:"selenium_session_id"`
-	TabNo             int         `json:"tab_no"`
 	CachePath         string      `json:"cache_path"`
 	UseCache          bool        `json:"use_cache"`
 	LlmSettings       llmSettings `json:"llm_settings"`
@@ -23,7 +22,6 @@ type incomingMessage struct {
 	Type        string         `json:"type" binding:"required,oneof=initial_handshake locatr_request change_tab"`
 	UserRequest string         `json:"user_request"`
 	ClientId    string         `json:"id" binding:"required"`
-	TabNo       string         `json:"tab_no"`
 	Settings    locatrSettings `json:"locatr_settings"`
 }
 

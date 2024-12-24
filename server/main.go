@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/vertexcover-io/locatr"
 	"log"
 	"net"
 	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/vertexcover-io/locatr"
 )
 
 var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
@@ -60,8 +61,8 @@ func handleInitialHandshake(message incomingMessage) error {
 		parsedUrl, _ := url.Parse(message.Settings.CdpURl)
 		port, _ := strconv.Atoi(parsedUrl.Port())
 		connectionOpts := locatr.CdpConnectionOptions{
-			Port: port,
-			Host: parsedUrl.Host,
+			Port:     port,
+			HostName: parsedUrl.Hostname(),
 		}
 		connection, err := locatr.CreateCdpConnection(connectionOpts)
 		if err != nil {
@@ -72,7 +73,6 @@ func handleInitialHandshake(message incomingMessage) error {
 			return fmt.Errorf("Error while creating cdp locatr: %w", err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
-		break
 	case "selenium":
 		settings := message.Settings
 		seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
@@ -91,78 +91,95 @@ func acceptConnection(fd net.Conn) {
 		_, err := fd.Read(lengthBuff)
 		msgLength := binary.BigEndian.Uint32(lengthBuff)
 		if err != nil {
-			log.Fatalf("Failed to read message length %d: %v", msgLength, err)
-			continue
+			handleReadError(err)
+			return
 		}
 		message := make([]byte, msgLength)
 		_, err = fd.Read(message)
 		if err != nil {
-			log.Println("Error reading actual message", err)
-			continue
+			handleReadError(err)
+			return
 		}
 
 		var clientMessage incomingMessage
 		if err := json.Unmarshal(message, &clientMessage); err != nil {
-			log.Printf("Error parsing json: %v", err)
-			fd.Write(generateBytesMessage(
-				outgoingMessage{
-					Type:     clientMessage.Type,
-					Status:   "error",
-					ClientId: clientMessage.ClientId,
-					Error:    err.Error(),
-				}))
+			log.Printf("Error parsing JSON: %v", err)
+			msg := outgoingMessage{
+				Type:     clientMessage.Type,
+				Status:   "error",
+				ClientId: clientMessage.ClientId,
+				Error:    err.Error(),
+			}
+			if err := writeResponse(fd, msg); err != nil {
+				log.Printf("Failed to send error response to client: %v", err)
+				return
+			}
 			continue
 		}
 		err = validateIncomingMessage(clientMessage)
 		if err != nil {
-			fd.Write(generateBytesMessage(
-				outgoingMessage{
-					Type:     clientMessage.Type,
-					Status:   "error",
-					ClientId: clientMessage.ClientId,
-					Error:    err.Error(),
-				}))
+			errResp := outgoingMessage{
+				Type:     clientMessage.Type,
+				Status:   "error",
+				ClientId: clientMessage.ClientId,
+				Error:    err.Error(),
+			}
+			if err := writeResponse(fd, errResp); err != nil {
+				log.Printf("Failed to send validation error response to client: %v", err)
+				return
+			}
 			continue
 		}
 		switch clientMessage.Type {
 		case "initial_handshake":
 			err := handleInitialHandshake(clientMessage)
 			if err != nil {
-				fd.Write(generateBytesMessage(outgoingMessage{
+				errResp := outgoingMessage{
 					Type:     clientMessage.Type,
 					Status:   "error",
 					Error:    err.Error(),
 					ClientId: clientMessage.ClientId,
-				}))
+				}
+				if err := writeResponse(fd, errResp); err != nil {
+					log.Printf("Failed to send error response to client during handshake: %v", err)
+					return
+				}
 				continue
 			}
-			msg := generateBytesMessage(
-				outgoingMessage{
-					Type:     clientMessage.Type,
-					Status:   "ok",
-					ClientId: clientMessage.ClientId,
-				})
-			fd.Write(msg)
+			successResp := outgoingMessage{
+				Type:     clientMessage.Type,
+				Status:   "ok",
+				ClientId: clientMessage.ClientId,
+			}
+			if err := writeResponse(fd, successResp); err != nil {
+				log.Printf("Failed to send success response to client during handshake: %v", err)
+				return
+			}
 		case "locatr_request":
 			locatrString, err := handleLocatrRequest(clientMessage)
 			if err != nil {
-				fd.Write(generateBytesMessage(outgoingMessage{
+				errResp := outgoingMessage{
 					Type:     clientMessage.Type,
 					Status:   "error",
 					Error:    err.Error(),
 					ClientId: clientMessage.ClientId,
-				}))
+				}
+				if err := writeResponse(fd, errResp); err != nil {
+					log.Printf("Failed to send error response to client during locatr request: %v", err)
+					return
+				}
 				continue
 			}
-			fd.Write(generateBytesMessage(
-				outgoingMessage{
-					Type:     clientMessage.Type,
-					Status:   "ok",
-					ClientId: clientMessage.ClientId,
-					Output:   locatrString,
-				}))
-			continue
-
+			successResp := outgoingMessage{
+				Type:     clientMessage.Type,
+				Status:   "ok",
+				ClientId: clientMessage.ClientId,
+				Output:   locatrString,
+			}
+			if err := writeResponse(fd, successResp); err != nil {
+				log.Printf("Failed to send success response to client during locatr request: %v", err)
+				return
+			}
 		}
 	}
 }

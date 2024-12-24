@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net"
 
 	"gopkg.in/validator.v2"
 )
@@ -52,8 +55,25 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 	buf := new(bytes.Buffer)
 	bytesString := dumpJson(outputMessage)
 	length := len(bytesString)
-	binary.Write(buf, binary.BigEndian, int32(length))
+	_ = binary.Write(buf, binary.BigEndian, int32(length))
 	buf.Write(bytesString)
-	fmt.Println("bytes generated for message", outputMessage)
 	return buf.Bytes()
+}
+
+func handleReadError(err error) {
+	if err == io.EOF {
+		log.Println("Connection closed by client")
+	} else {
+		log.Printf("Failed to read message: %v", err)
+	}
+}
+
+func writeResponse(fd net.Conn, msg outgoingMessage) error {
+	data := generateBytesMessage(msg)
+	_, err := fd.Write(data)
+	if err != nil {
+		log.Printf("Error writing response: %v", err)
+		return err
+	}
+	return nil
 }
