@@ -19,7 +19,7 @@ type locatrSettings struct {
 }
 
 type incomingMessage struct {
-	Type        string         `json:"type" binding:"required,oneof=initial_handshake locatr_request change_tab"`
+	Type        string         `json:"type" binding:"required,oneof=initial_handshake locatr_request"`
 	UserRequest string         `json:"user_request"`
 	ClientId    string         `json:"id" binding:"required"`
 	Settings    locatrSettings `json:"locatr_settings"`

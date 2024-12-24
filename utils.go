@@ -79,13 +79,9 @@ func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string
 	if err != nil {
 		return "", err
 	}
-	for _, p := range targets {
-		fmt.Println(p.Title)
-	}
 	targetsFiltered := filterTargets(targets)
 	for indx, target := range targetsFiltered {
 		if indx == tabIndex {
-			fmt.Println(target.Title)
 			return target.WebSocketDebuggerURL, nil
 		}
 	}
