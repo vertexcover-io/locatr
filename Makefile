@@ -12,6 +12,8 @@ build:
 	echo "Build and move successful."
 
 run:
-	cd server && go run . -socketFilePath=$(SOCKET_FILE)
-	rm -rf $(SOCKET_FILE)
+	cd server && \
+	trap 'rm -rf $(SOCKET_FILE); exit' INT TERM EXIT && \
+	go run . -socketFilePath=$(SOCKET_FILE)
+
 
