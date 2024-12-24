@@ -39,7 +39,7 @@ func main() {
 	time.Sleep(3 * time.Second)
 
 	seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr(
-		"http://localhost:4444/wd/hub", driver.SessionID(), options) // the path must end with /wd/hub
+		"http://localhost:41211", "64085bf58571396f6728868549e24036", options) // the path must end with /wd/hub
 
 	/*
 		or: directly pass the driver
