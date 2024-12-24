@@ -155,6 +155,7 @@ func acceptConnection(fd net.Conn) {
 				log.Printf("Failed to send success response to client during handshake: %v", err)
 				return
 			}
+			log.Printf("Intial handshake successfull with client: %s", clientMessage.ClientId)
 		case "locatr_request":
 			locatrString, err := handleLocatrRequest(clientMessage)
 			if err != nil {
