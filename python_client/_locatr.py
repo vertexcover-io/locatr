@@ -48,7 +48,7 @@ class Locatr:
         self._settings = locatr_settings
         self._id = uuid.uuid4()
         self._debug: bool = debug
-        self._initilize_process()
+        self._socket = None
 
     def _initlize_process_and_socket(self):
         self._initilize_process()

@@ -7,8 +7,6 @@ import subprocess
 import time
 from subprocess import CalledProcessError, Popen
 
-from pydantic_core import Url
-
 from python_client._constants import (
     SOCKET_RETRY_DELAY,
     SOCKET_SEND_DATA_MAX_RETRIES,
@@ -140,7 +138,3 @@ def read_data_over_socket(sock: socket.socket) -> bytes:
         raise LocatrSocketError(
             f"Unexpected error occured while receving data: {e}"
         )
-
-
-def is_valid_url(url: str) -> str:
-    return str(Url(url))

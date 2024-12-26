@@ -1,10 +1,8 @@
 import uuid
 from enum import Enum
-from typing import Annotated, Optional, Union
+from typing import Optional, Union
 
-from pydantic import BaseModel, Field
-
-from python_client._utils import is_valid_url
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class MessageType(str, Enum):
@@ -54,13 +52,13 @@ class LocatrSettings(BaseModel):
 
 
 class LocatrSeleniumSettings(LocatrSettings):
-    selenium_url: Annotated[str, is_valid_url]
+    selenium_url: HttpUrl
     selenium_session_id: str
     plugin_type: PluginType = PluginType.SELENIUM
 
 
 class LocatrCdpSettings(LocatrSettings):
-    cdp_url: Annotated[str, is_valid_url]
+    cdp_url: HttpUrl
     plugin_type: PluginType = Field(default=PluginType.CDP)
 
 
