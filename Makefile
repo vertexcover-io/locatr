@@ -1,6 +1,6 @@
 SOCKET_FILE=/tmp/locatr.sock
 BINARY_PATH=server/locatr.bin
-PYTHON_CLIENT_BIN=python_client/bin
+PYTHON_CLIENT_BIN=python_client/locatr/bin/
 
 .PHONY: all build run clean
 
