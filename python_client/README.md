@@ -5,7 +5,7 @@
 Locatr package helps you to find HTML locators on a webpage using prompts and llms.
 
 ## Overview 
-- HTML LLM based HTML element path finder.
+- LLM based HTML element css path finder.
 - Re-rank support for improved accuracy.
 - Supports playwright, selenium, cdp.  
 - Uses cache to reduce calls to llm apis.
