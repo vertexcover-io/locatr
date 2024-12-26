@@ -16,31 +16,31 @@ func validateIncomingMessage(message incomingMessage) error {
 	inputMessageValidator := validator.NewValidator()
 
 	if err := inputMessageValidator.Validate(message); err != nil {
-		return fmt.Errorf("validation failed: %w", err)
+		return fmt.Errorf("%v: %w", ErrInputMessageValidationFailed, err)
 	}
 
 	if message.Type == "initial_handshake" {
 		if (message.Settings == locatrSettings{}) {
-			return fmt.Errorf("missing locatrSettings for 'initial_handshake' type")
+			return ErrMissingLocatrSettings
 		}
 
 		if message.Settings.PluginType == "selenium" {
 			if message.Settings.SeleniumUrl == "" {
-				return fmt.Errorf("selenium plugin type selected but 'selenium_url' is missing or empty")
+				return ErrMissingSeleniumUrl
 			}
 			if message.Settings.SeleniumSessionId == "" {
-				return fmt.Errorf("selenium plugin type selected but 'selenium_session_id' is missing or empty")
+				return ErrMissingSeleniumSessionId
 			}
 		} else if message.Settings.PluginType == "cdp" {
 			if message.Settings.CdpURl == "" {
-				return fmt.Errorf("cdp plugin type selected but 'cdp_url' is missing or empty")
+				return ErrMissingCdpUrl
 			}
 		} else {
-			return fmt.Errorf("invalid 'plugin_type' provided: '%s'. Expected 'selenium' or 'cdp'", message.Settings.PluginType)
+			return fmt.Errorf("%v: '%s'. Expected 'selenium' or 'cdp'", ErrInvalidPluginType, message.Settings.PluginType)
 		}
 	} else if message.Type == "locatr_request" {
 		if message.UserRequest == "" {
-			return fmt.Errorf("empty 'Input' field provided")
+			return ErrEmptyUserRequest
 		}
 	}
 	return nil
@@ -55,7 +55,10 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 	buf := new(bytes.Buffer)
 	bytesString := dumpJson(outputMessage)
 	length := len(bytesString)
-	_ = binary.Write(buf, binary.BigEndian, int32(length))
+	err := binary.Write(buf, binary.BigEndian, int32(length))
+	if err != nil {
+		log.Fatalf("Error writing to buffer: %v", err)
+	}
 	buf.Write(bytesString)
 	return buf.Bytes()
 }
