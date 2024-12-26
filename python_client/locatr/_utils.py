@@ -89,7 +89,7 @@ def wait_for_socket(sock: socket.socket):
     while index <= WAIT_FOR_SOCKET_MAXIMUM_RETRIES:
         try:
             sock.connect(SocketFilePath.path)
-            break
+            return
         except socket.error:
             index += 1
             time.sleep(1)
