@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "test_locatr"
+version = "0.15.0"
+description = "Get HTML elements locators using natural language."
+authors = ["Neeraj319 <neeraj@vertexcover.io>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+    { include = "locatr", from = "python_client" },
+]
+include = [
+    "README.md",
+    "LICENSE",
+    "python_client/locatr/bin/locatr.bin"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+pydantic = "^2.10.4"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+pre-commit = "^4.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 80
