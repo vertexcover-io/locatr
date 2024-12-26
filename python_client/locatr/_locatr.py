@@ -50,13 +50,13 @@ class Locatr:
         self._debug: bool = debug
         self._socket = None
 
-    def _initlize_process_and_socket(self):
-        self._initilize_process()
+    def _initialize_process_and_socket(self):
+        self._initialize_process()
         if not self._socket:
             self._initilize_socket()
             self._perform_initial_handshake()
 
-    def _initilize_process(self):
+    def _initialize_process(self):
         if not Locatr._process:
             if check_socket_in_use(SocketFilePath.path):
                 SocketFilePath.path = change_socket_file()
@@ -70,12 +70,12 @@ class Locatr:
         thread = threading.Thread(target=log_output, args=(self._process,))
         thread.start()
 
-    def _initilize_socket(self):
+    def _initialize_socket(self):
         try:
             self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self._wait_for_server()
         except Exception as e:
-            raise SocketInitializationError(f"Failed to initilize socket {e}")
+            raise SocketInitializationError(f"Failed to initialize socket {e}")
 
     def _wait_for_server(self):
         if not self._socket:
@@ -119,7 +119,7 @@ class Locatr:
             raise e
 
     def get_locatr(self, user_req: str):
-        self._initlize_process_and_socket()
+        self._initialize_process_and_socket()
         message = UserRequestMessage(
             user_request=user_req, id=self._id, type=MessageType.LOCATR_REQUEST
         )

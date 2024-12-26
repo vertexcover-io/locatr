@@ -160,7 +160,7 @@ func acceptConnection(fd net.Conn) {
 				log.Printf("Failed to send success response to client during handshake: %v", err)
 				return
 			}
-			log.Printf("Intial handshake successfull with client: %s", clientMessage.ClientId)
+			log.Printf("Initial handshake successful with client: %s", clientMessage.ClientId)
 		case "locatr_request":
 			locatrString, err := handleLocatrRequest(clientMessage)
 			if err != nil {
@@ -192,7 +192,7 @@ func acceptConnection(fd net.Conn) {
 
 func main() {
 	var socketFilePath string
-	flag.StringVar(&socketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socketfile to listen at.")
+	flag.StringVar(&socketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socket file to listen at.")
 	flag.Parse()
 	log.SetOutput(os.Stderr)
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
