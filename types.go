@@ -8,6 +8,12 @@ type PluginInterface interface {
 	evaluateJsFunction(function string) (string, error)
 }
 
+type LocatrInterface interface {
+	WriteResultsToFile()
+	GetLocatrResults() []locatrResult
+	GetLocatrStr(userReq string) (string, error)
+}
+
 type LlmProvider string
 
 type LogLevel int

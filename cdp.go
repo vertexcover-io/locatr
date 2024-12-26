@@ -23,21 +23,23 @@ type cdpLocatr struct {
 }
 
 type CdpConnectionOptions struct {
-	Host   string
-	Port   int    `validate:"required"`
-	PageId string `validate:"required"`
+	HostName string
+	Port     int `binding:"required"`
 }
 
 func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
-	if len(options.Host) == 0 {
-		options.Host = "localhost"
+	ctx := context.Background()
+	if len(options.HostName) == 0 {
+		options.HostName = "localhost"
 	}
-	validator := validator.NewValidator()
-	if err := validator.Validate(options); err != nil {
+	optionValidator := validator.NewValidator()
+	if err := optionValidator.Validate(options); err != nil {
 		return nil, err
 	}
-	ctx := context.Background()
-	wsUrl := fmt.Sprintf("ws://%s:%d/devtools/page/%s", options.Host, options.Port, (options.PageId))
+	wsUrl, err := getWebsocketDebugUrl(fmt.Sprintf("http://%s:%d", options.HostName, options.Port), 0, ctx)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := rpcc.DialContext(ctx, wsUrl, rpcc.WithWriteBufferSize(1048576))
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to cdp server: %s, err: %w", wsUrl, err)
@@ -67,7 +69,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) 
 	resultString := string(result.Result.Value)
 	str, err := strconv.Unquote(resultString)
 	if err != nil {
-		return resultString, err
+		return resultString, nil
 	}
 	return str, err
 
@@ -84,7 +86,7 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatr(userReq string) (string, error) {
+func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (string, error) {
 	locatrStr, err := cdpLocatr.locatr.getLocatorStr(userReq)
 	if err != nil {
 		return "", fmt.Errorf("error getting locator string: %w", err)

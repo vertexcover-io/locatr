@@ -1,6 +1,12 @@
 package locatr
 
-import "strings"
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/mafredri/cdp/devtool"
+)
 
 func GetUniqueStringArray(input []string) []string {
 	keys := make(map[string]bool)
@@ -55,4 +61,29 @@ func fixLLmJson(json string) string {
 	json = strings.TrimSuffix(json, "```")
 
 	return json
+}
+
+func filterTargets(pages []*devtool.Target) []*devtool.Target {
+	newTargets := []*devtool.Target{}
+	for _, target := range pages {
+		if target.Type == "page" && !strings.HasPrefix("DevTools", target.Title) {
+			newTargets = append(newTargets, target)
+		}
+	}
+	return newTargets
+}
+
+func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string, error) {
+	devt := devtool.New(url)
+	targets, err := devt.List(ctx)
+	if err != nil {
+		return "", err
+	}
+	targetsFiltered := filterTargets(targets)
+	for indx, target := range targetsFiltered {
+		if indx == tabIndex {
+			return target.WebSocketDebuggerURL, nil
+		}
+	}
+	return "", fmt.Errorf("Tab with index %d not present in the browser", tabIndex)
 }
