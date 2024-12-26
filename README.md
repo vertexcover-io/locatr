@@ -2,7 +2,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
 ![Test](https://github.com/vertexcover-io/locatr/actions/workflows/test.yaml/badge.svg)
 
-Locatr package helps you to find HTML locators on a webpage using prompts and llms.
+Locatr package helps you to find HTML locators on a webpage using prompts and llms. 
 
 ## Overview 
 - LLM based HTML locator finder.
@@ -73,17 +73,20 @@ llm_settings = LlmSettings(
 locatr_settings_selenium = LocatrSeleniumSettings(
     plugin_type=PluginType.SELENIUM,
     llm_settings=llm_settings,
-    selenium_url=os.environ.get("SELENIUM_URL"),
+    selenium_url=os.environ.get("SELENIUM_URL"), # url must end with `/wd/hub`
     selenium_session_id="e4c543363b9000a66073db7a39152719",
 )
 
-l = Locatr(locatr_settings_selenium, debug=True)
+selenium_locatr = Locatr(locatr_settings_selenium, debug=True)
 
-print(lib.get_locatr("H1 element with text Example Domain"))
+print(selenium_locatr.get_locatr("H1 element with text Example Domain"))
 
 ```
+For more examples check the `examples/python` folder.
 
-Here's a quick example on how to use the project:
+Find the python documentation [here](python_client/README.md).
+
+#### Go example
 
 ```go
 package main
