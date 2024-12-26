@@ -9,7 +9,6 @@ Locatr package helps you to find HTML locators on a webpage using prompts and ll
 - Re-rank support for improved accuracy.
 - Supports playwright, selenium, cdp.  
 - Uses cache to reduce calls to llm apis.
-- Results/Statistics generation of api calls.
 
 Example: 
 
