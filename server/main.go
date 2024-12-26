@@ -158,6 +158,9 @@ func acceptConnection(fd net.Conn) {
 			}
 			continue
 		}
+
+		defer delete(clientAndLocatrs, clientMessage.ClientId)
+
 		switch clientMessage.Type {
 		case "initial_handshake":
 			err := handleInitialHandshake(clientMessage)
@@ -211,6 +214,7 @@ func acceptConnection(fd net.Conn) {
 			}
 		}
 	}
+
 }
 
 func main() {
