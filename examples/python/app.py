@@ -1,6 +1,6 @@
 import os
 
-from python_client import (
+from locatr import (
     LlmProvider,
     LlmSettings,
     Locatr,
