@@ -12,12 +12,14 @@ from pydantic_core import Url
 from python_client._constants import (
     SOCKET_RETRY_DELAY,
     SOCKET_SEND_DATA_MAX_RETRIES,
+    WAIT_FOR_SOCKET_MAXIMUM_RETRIES,
     SocketFilePath,
 )
 from python_client.exceptions import (
     LocatrBinaryNotFound,
     LocatrExecutionError,
     LocatrSocketError,
+    LocatrSocketNotAvialable,
 )
 
 
@@ -85,12 +87,18 @@ def create_packed_message(message_str: str) -> bytes:
 
 
 def wait_for_socket(sock: socket.socket):
-    while True:
+    index = 0
+    while index < WAIT_FOR_SOCKET_MAXIMUM_RETRIES:
         try:
             sock.connect(SocketFilePath.path)
             break
         except socket.error:
+            index += 1
             time.sleep(1)
+    raise LocatrSocketNotAvialable(
+        f"Locatr socket not avialable after "
+        f"{WAIT_FOR_SOCKET_MAXIMUM_RETRIES} retries"
+    )
 
 
 def send_data_over_socket(sock: socket.socket, packed_data: bytes):
