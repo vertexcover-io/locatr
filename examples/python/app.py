@@ -18,7 +18,7 @@ llm_settings = LlmSettings(
 locatr_settings_selenium = LocatrSeleniumSettings(
     plugin_type=PluginType.SELENIUM,
     llm_settings=llm_settings,
-    selenium_url="http://localhost:4444/wd/hub",
+    selenium_url=os.environ.get("SELENIUM_URL"),
     selenium_session_id="e4c543363b9000a66073db7a39152719",
 )
 
