@@ -21,7 +21,6 @@ from locatr._utils import (
 from locatr.exceptions import (
     FailedToRetrieveLocatr,
     LocatrInitialHandshakeFailed,
-    LocatrOutputMessageValidationFailed,
     LocatrSocketIsNone,
     SocketInitializationError,
 )
@@ -132,8 +131,8 @@ class Locatr:
             if not output.status == OutputStatus.OK:
                 raise FailedToRetrieveLocatr(output.error)
             return output.output
-        except ValidationError as e:
-            raise LocatrOutputMessageValidationFailed(str(e))
+        except ValidationError:
+            raise FailedToRetrieveLocatr("Internal message validation failed.")
 
     async def get_locatr_async(self, user_req: str) -> str:
         return await asyncio.to_thread(self.get_locatr, user_req)

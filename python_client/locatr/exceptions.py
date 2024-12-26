@@ -27,11 +27,6 @@ class FailedToRetrieveLocatr(Exception):
         super().__init__(msg)
 
 
-class LocatrOutputMessageValidationFailed(Exception):
-    def __init__(self, msg: str) -> None:
-        super().__init__(f"Failed to validate message locatr output: {msg}")
-
-
 class LocatrSocketError(Exception):
     def __init__(self, msg: str) -> None:
         super().__init__(msg)
