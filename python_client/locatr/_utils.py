@@ -4,6 +4,7 @@ import random
 import socket
 import struct
 import subprocess
+import sys
 import time
 from subprocess import CalledProcessError, Popen
 
@@ -73,7 +74,7 @@ def log_output(process: Popen[bytes]):
                 print(stderr_line)
 
     except Exception as e:
-        print("exception while reading process output", e)
+        print("exception while reading process output", e, file=sys.stderr)
 
 
 def create_packed_message(message_str: str) -> bytes:
