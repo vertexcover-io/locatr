@@ -55,9 +55,16 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 	buf := new(bytes.Buffer)
 	bytesString := dumpJson(outputMessage)
 	length := len(bytesString)
+	for _, val := range VERSION {
+		err := binary.Write(buf, binary.BigEndian, val)
+		if err != nil {
+			log.Fatalf("Error writing version to buffer %v", err)
+			break
+		}
+	}
 	err := binary.Write(buf, binary.BigEndian, int32(length))
 	if err != nil {
-		log.Fatalf("Error writing to buffer: %v", err)
+		log.Fatalf("Error writing length to buffer: %v", err)
 	}
 	buf.Write(bytesString)
 	return buf.Bytes()
@@ -79,4 +86,32 @@ func writeResponse(fd net.Conn, msg outgoingMessage) error {
 		return err
 	}
 	return nil
+}
+
+func compareVersion(version []byte) bool {
+	for i, ver := range version {
+		if uint8(ver) != VERSION[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func convertVersionToUint8(versionBytes []byte) []uint8 {
+	versionIntArray := make([]uint8, 3)
+	for i, ver := range versionBytes {
+		versionIntArray[i] = uint8(ver)
+	}
+	return versionIntArray
+}
+func getVersionString(versionInt []uint8) string {
+	versionString := ""
+	for i, ver := range versionInt {
+		if i > 0 {
+			versionString = fmt.Sprintf("%s.%d", versionString, ver)
+		} else {
+			versionString = fmt.Sprintf("%d", uint8(ver))
+		}
+	}
+	return versionString
 }

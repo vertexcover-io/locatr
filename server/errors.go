@@ -4,12 +4,13 @@ import "errors"
 
 var (
 	// locatr creation errors
-	FailedToCreateLlmClient   = errors.New("failed to create LLM client")
-	ErrClientNotInstantiated  = errors.New("client not instantiated")
-	ErrFailedToRetrieveLocatr = errors.New("failed to retrieve locatr")
-	ErrCdpConnectionCreation  = errors.New("error while creating CDP connection")
-	ErrCdpLocatrCreation      = errors.New("error while creating CDP locatr")
-	ErrSeleniumLocatrCreation = errors.New("error while creating Selenium locatr")
+	ClientAndServerVersionMisMatch = errors.New("client and server version mismatch")
+	FailedToCreateLlmClient        = errors.New("failed to create LLM client")
+	ErrClientNotInstantiated       = errors.New("client not instantiated")
+	ErrFailedToRetrieveLocatr      = errors.New("failed to retrieve locatr")
+	ErrCdpConnectionCreation       = errors.New("error while creating CDP connection")
+	ErrCdpLocatrCreation           = errors.New("error while creating CDP locatr")
+	ErrSeleniumLocatrCreation      = errors.New("error while creating Selenium locatr")
 
 	// validation errors
 	ErrInputMessageValidationFailed = errors.New("input message validation failed")

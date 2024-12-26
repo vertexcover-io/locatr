@@ -14,6 +14,8 @@ import (
 	"github.com/vertexcover-io/locatr"
 )
 
+var VERSION = []uint8{0, 0, 1}
+
 var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
 
 func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
@@ -91,10 +93,31 @@ func handleInitialHandshake(message incomingMessage) error {
 }
 
 func acceptConnection(fd net.Conn) {
-	lengthBuff := make([]byte, 4)
+	lengthBuf := make([]byte, 4)
+	versionBuf := make([]byte, 3)
 	for {
-		_, err := fd.Read(lengthBuff)
-		msgLength := binary.BigEndian.Uint32(lengthBuff)
+		_, err := fd.Read(versionBuf)
+		if err != nil {
+			handleReadError(err)
+			return
+		}
+		if !(compareVersion(versionBuf)) {
+			msg := outgoingMessage{
+				Status: "error",
+				Error: fmt.Sprintf(
+					"%v client version: %s, server version: %s",
+					ClientAndServerVersionMisMatch,
+					getVersionString(convertVersionToUint8(versionBuf)),
+					getVersionString(VERSION),
+				),
+			}
+			if err := writeResponse(fd, msg); err != nil {
+				log.Printf("Failed to send error response to client: %v", err)
+			}
+			return
+		}
+		_, err = fd.Read(lengthBuf)
+		msgLength := binary.BigEndian.Uint32(lengthBuf)
 		if err != nil {
 			handleReadError(err)
 			return
