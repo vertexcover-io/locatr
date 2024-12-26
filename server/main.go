@@ -16,7 +16,7 @@ import (
 
 var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
 
-func createLocatrOptions(message incomingMessage) locatr.BaseLocatrOptions {
+func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
 	opts := locatr.BaseLocatrOptions{}
 	llmConfig := message.Settings.LlmSettings
 
@@ -31,31 +31,37 @@ func createLocatrOptions(message incomingMessage) locatr.BaseLocatrOptions {
 
 	opts.ResultsFilePath = message.Settings.ResultsFilePath
 
-	llmClient, _ := locatr.NewLlmClient(
+	llmClient, err := locatr.NewLlmClient(
 		locatr.LlmProvider(llmConfig.LlmProvider),
 		llmConfig.ModelName,
 		llmConfig.LlmApiKey,
 	)
+	if err != nil {
+		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
+	}
 	opts.LlmClient = llmClient
 
-	return opts
+	return opts, nil
 }
 
 func handleLocatrRequest(message incomingMessage) (string, error) {
 	baseLocatr, ok := clientAndLocatrs[message.ClientId]
 	if !ok {
-		return "", fmt.Errorf("Client not instianciated of id: %s", message.ClientId)
+		return "", fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
 	}
 	locatr, err := baseLocatr.GetLocatrStr(message.UserRequest)
 	if err != nil {
-		return "", fmt.Errorf("Failed to retrieve locatr: %w", err)
+		return "", fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
 	}
 	return locatr, nil
 
 }
 
 func handleInitialHandshake(message incomingMessage) error {
-	baseLocatrOpts := createLocatrOptions(message)
+	baseLocatrOpts, err := createLocatrOptions(message)
+	if err != nil {
+		return err
+	}
 	switch message.Settings.PluginType {
 	case "cdp":
 		parsedUrl, _ := url.Parse(message.Settings.CdpURl)
@@ -66,18 +72,18 @@ func handleInitialHandshake(message incomingMessage) error {
 		}
 		connection, err := locatr.CreateCdpConnection(connectionOpts)
 		if err != nil {
-			return fmt.Errorf("Error while creating cdp connection: %w", err)
+			return fmt.Errorf("%v: %w", ErrCdpConnectionCreation, err)
 		}
 		cdpLocatr, err := locatr.NewCdpLocatr(connection, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("Error while creating cdp locatr: %w", err)
+			return fmt.Errorf("%v: %w", ErrCdpLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
 	case "selenium":
 		settings := message.Settings
 		seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("Error while creating selenium locatr: %w", err)
+			return fmt.Errorf("%v: %w", ErrSeleniumLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = seleniumLocatr
 	}
@@ -85,7 +91,6 @@ func handleInitialHandshake(message incomingMessage) error {
 }
 
 func acceptConnection(fd net.Conn) {
-	defer fd.Close()
 	lengthBuff := make([]byte, 4)
 	for {
 		_, err := fd.Read(lengthBuff)
@@ -203,6 +208,9 @@ func main() {
 		if err != nil {
 			log.Fatal("Failed accepting socket %w", err)
 		}
-		go acceptConnection(fd)
+		go func() {
+			acceptConnection(fd)
+			fd.Close()
+		}()
 	}
 }
