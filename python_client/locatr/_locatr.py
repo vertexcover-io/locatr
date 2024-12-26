@@ -135,7 +135,7 @@ class Locatr:
         except ValidationError as e:
             raise LocatrOutputMessageValidationFailed(str(e))
 
-    async def async_get_locatr(self, user_req: str) -> str:
+    async def get_locatr_async(self, user_req: str) -> str:
         return await asyncio.to_thread(self.get_locatr, user_req)
 
     def __del__(self):
