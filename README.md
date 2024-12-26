@@ -20,8 +20,15 @@ starButtonLocator.click()
 
 ### Install Locatr with
 
+#### Golang
+
 ```
 go get github.com/vertexcover-io/locatr
+```
+
+#### Python
+```
+pip install locatr
 ```
 
 ## Table of Contents
@@ -37,6 +44,44 @@ go get github.com/vertexcover-io/locatr
 - [ Contributing ](#contributing)
 
 ### Quick Example
+
+#### With python
+
+
+#### Python example
+
+```
+# example assumes that there is already a page opened in the selenium session.
+import os
+
+from locatr import (
+    LlmProvider,
+    LlmSettings,
+    Locatr,
+    LocatrCdpSettings,
+    LocatrSeleniumSettings,
+    PluginType,
+)
+
+llm_settings = LlmSettings(
+    llm_provider=LlmProvider.OPENAI,
+    llm_api_key=os.environ.get("LLM_API_KEY"),
+    model_name=os.environ.get("LLM_MODEL_NAME"),
+    reranker_api_key=os.environ.get("RERANKER_API_KEY"),
+)
+
+locatr_settings_selenium = LocatrSeleniumSettings(
+    plugin_type=PluginType.SELENIUM,
+    llm_settings=llm_settings,
+    selenium_url=os.environ.get("SELENIUM_URL"),
+    selenium_session_id="e4c543363b9000a66073db7a39152719",
+)
+
+l = Locatr(locatr_settings_selenium, debug=True)
+
+print(lib.get_locatr("H1 element with text Example Domain"))
+
+```
 
 Here's a quick example on how to use the project:
 
