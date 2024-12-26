@@ -225,15 +225,16 @@ func main() {
 		log.Fatalf("failed connecting to socket: %v", err)
 		return
 	}
+	defer socket.Close()
 	log.Printf("Ready to accept connections on file: %s", socketFilePath)
 	for {
-		fd, err := socket.Accept()
+		client, err := socket.Accept()
 		if err != nil {
 			log.Fatal("Failed accepting socket %w", err)
 		}
 		go func() {
-			acceptConnection(fd)
-			fd.Close()
+			acceptConnection(client)
+			client.Close()
 		}()
 	}
 }
