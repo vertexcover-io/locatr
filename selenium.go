@@ -2,6 +2,7 @@ package locatr
 
 import (
 	"fmt"
+
 	"github.com/vertexcover-io/selenium"
 )
 
@@ -13,7 +14,6 @@ type seleniumPlugin struct {
 type seleniumLocatr struct {
 	driver selenium.WebDriver
 	locatr *BaseLocatr
-	LocatrInterface
 }
 
 // NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium seesion.
@@ -81,4 +81,12 @@ func (sl *seleniumLocatr) GetLocatrStr(userReq string) (string, error) {
 		return "", fmt.Errorf("error getting locator string: %w", err)
 	}
 	return locatorStr, nil
+}
+
+func (pl *seleniumLocatr) WriteResultsToFile() {
+	pl.locatr.writeLocatrResultsToFile()
+}
+
+func (pl *seleniumLocatr) GetLocatrResults() []locatrResult {
+	return pl.locatr.getLocatrResults()
 }

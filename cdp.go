@@ -20,7 +20,6 @@ type cdpLocatr struct {
 	client     *cdp.Client
 	connection *rpcc.Conn
 	locatr     *BaseLocatr
-	LocatrInterface
 }
 
 type CdpConnectionOptions struct {
