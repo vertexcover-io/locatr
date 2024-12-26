@@ -7,13 +7,13 @@ import subprocess
 import time
 from subprocess import CalledProcessError, Popen
 
-from python_client._constants import (
+from locatr._constants import (
     SOCKET_RETRY_DELAY,
     SOCKET_SEND_DATA_MAX_RETRIES,
     WAIT_FOR_SOCKET_MAXIMUM_RETRIES,
     SocketFilePath,
 )
-from python_client.exceptions import (
+from locatr.exceptions import (
     LocatrBinaryNotFound,
     LocatrExecutionError,
     LocatrSocketError,
@@ -86,7 +86,7 @@ def create_packed_message(message_str: str) -> bytes:
 
 def wait_for_socket(sock: socket.socket):
     index = 0
-    while index < WAIT_FOR_SOCKET_MAXIMUM_RETRIES:
+    while index <= WAIT_FOR_SOCKET_MAXIMUM_RETRIES:
         try:
             sock.connect(SocketFilePath.path)
             break

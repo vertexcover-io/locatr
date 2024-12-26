@@ -1,7 +1,7 @@
 # flake8: noqa
-from python_client._locatr import Locatr
-from python_client.exceptions import *
-from python_client.schema import (
+from locatr._locatr import Locatr
+from locatr.exceptions import *
+from locatr.schema import (
     LlmProvider,
     LlmSettings,
     LocatrCdpSettings,

@@ -1,17 +1,17 @@
 [tool.poetry]
 name = "test_locatr"
-version = "0.1.0"
+version = "0.15.0"
 description = "Get HTML elements locators using natural language."
 authors = ["Neeraj319 <neeraj@vertexcover.io>"]
 license = "MIT"
 readme = "README.md"
 packages = [
-    { include = "python_client" }
+    { include = "locatr", from = "python_client" },
 ]
 include = [
     "README.md",
     "LICENSE",
-    "python_client/bin/locatr.bin"
+    "python_client/locatr/bin/locatr.bin"
 ]
 
 [tool.poetry.dependencies]

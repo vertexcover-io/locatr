@@ -7,8 +7,8 @@ from typing import Optional, Union
 
 from pydantic import ValidationError
 
-from python_client._constants import SocketFilePath
-from python_client._utils import (
+from locatr._constants import SocketFilePath
+from locatr._utils import (
     change_socket_file,
     check_socket_in_use,
     create_packed_message,
@@ -18,14 +18,14 @@ from python_client._utils import (
     spawn_locatr_process,
     wait_for_socket,
 )
-from python_client.exceptions import (
+from locatr.exceptions import (
     FailedToRetrieveLocatr,
     LocatrInitialHandshakeFailed,
     LocatrOutputMessageValidationFailed,
     LocatrSocketIsNone,
     SocketInitializationError,
 )
-from python_client.schema import (
+from locatr.schema import (
     InitialHandshakeMessage,
     LocatrCdpSettings,
     LocatrSeleniumSettings,
