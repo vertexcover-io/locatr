@@ -49,8 +49,12 @@ class Locatr:
         self._id = uuid.uuid4()
         self._debug: bool = debug
         self._initilize_process()
-        self._initilize_socket()
-        self._perform_initial_handshake()
+
+    def _initlize_process_and_socket(self):
+        self._initilize_process()
+        if not self._socket:
+            self._initilize_socket()
+            self._perform_initial_handshake()
 
     def _initilize_process(self):
         if not Locatr._process:
@@ -115,6 +119,7 @@ class Locatr:
             raise e
 
     def get_locatr(self, user_req: str):
+        self._initlize_process_and_socket()
         message = UserRequestMessage(
             user_request=user_req, id=self._id, type=MessageType.LOCATR_REQUEST
         )
