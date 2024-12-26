@@ -7,15 +7,18 @@ import subprocess
 import sys
 import time
 from subprocess import CalledProcessError, Popen
+from typing import List
 
 from locatr._constants import (
     SOCKET_RETRY_DELAY,
     SOCKET_SEND_DATA_MAX_RETRIES,
+    VERSION,
     WAIT_FOR_SOCKET_MAXIMUM_RETRIES,
     SocketFilePath,
 )
 from locatr.exceptions import (
     LocatrBinaryNotFound,
+    LocatrClientServerVersionMisMatch,
     LocatrExecutionError,
     LocatrSocketError,
     LocatrSocketNotAvialable,
@@ -44,7 +47,7 @@ def locatr_go_cleanup(process: Popen[bytes]):
         os.remove(SocketFilePath.path)
 
 
-def spawn_locatr_process(args: list[str]) -> Popen[bytes]:
+def spawn_locatr_process(args: List[str]) -> Popen[bytes]:
     locatr_path = os.path.join(os.path.dirname(__file__), "bin/locatr.bin")
     args = [locatr_path, *args]
     if not os.path.isfile(locatr_path):
@@ -79,7 +82,8 @@ def log_output(process: Popen[bytes]):
 
 def create_packed_message(message_str: str) -> bytes:
     message_length = len(message_str)
-    packed_data = struct.pack(
+    version_bytes = bytes(VERSION)
+    packed_data = struct.pack(">3B", *version_bytes) + struct.pack(
         f">I{message_length}s", message_length, message_str.encode()
     )
     return packed_data
@@ -127,14 +131,36 @@ def send_data_over_socket(sock: socket.socket, packed_data: bytes):
     )
 
 
+def compare_version(server_version: bytes) -> bool:
+    return list(server_version) == VERSION
+
+
+def convert_version(version: List[int]) -> str:
+    version_string = ""
+    for index, ver in enumerate(version):
+        if index > 0:
+            version_string = f"{version_string}.{ver}"
+        else:
+            version_string = f"{version_string}{ver}"
+
+    return version_string
+
+
 def read_data_over_socket(sock: socket.socket) -> bytes:
     try:
+        version = sock.recv(3)
+        if not compare_version(version):
+            raise LocatrClientServerVersionMisMatch(
+                convert_version(VERSION), convert_version(list(version))
+            )
         length_data = sock.recv(4)
         actual_length = int.from_bytes(length_data, byteorder="big")
         output_data = sock.recv(actual_length)
         return output_data
     except socket.timeout:
         raise LocatrSocketError("Socket connection timed out while reading")
+    except LocatrClientServerVersionMisMatch as e:
+        raise e
     except Exception as e:
         raise LocatrSocketError(
             f"Unexpected error occured while receving data: {e}"

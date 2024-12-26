@@ -40,3 +40,11 @@ class LocatrSocketError(Exception):
 class LocatrSocketNotAvialable(Exception):
     def __init__(self, msg: str) -> None:
         super().__init__(msg)
+
+
+class LocatrClientServerVersionMisMatch(Exception):
+    def __init__(self, client_version: str, server_version: str) -> None:
+        super().__init__(
+            f"Client version: {client_version}, "
+            f"server version: {server_version}"
+        )

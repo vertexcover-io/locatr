@@ -53,7 +53,7 @@ class Locatr:
     def _initialize_process_and_socket(self):
         self._initialize_process()
         if not self._socket:
-            self._initilize_socket()
+            self._initialize_socket()
             self._perform_initial_handshake()
 
     def _initialize_process(self):
