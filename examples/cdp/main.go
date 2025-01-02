@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 func main() {

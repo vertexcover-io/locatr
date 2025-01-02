@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/selenium"
 	"github.com/vertexcover-io/selenium/chrome"
 )

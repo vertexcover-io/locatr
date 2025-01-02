@@ -2,6 +2,7 @@ package locatr
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -55,6 +56,33 @@ func NewCdpLocatr(connection *rpcc.Conn, locatrOptions BaseLocatrOptions) (*cdpL
 		locatr:     NewBaseLocatr(cdpPlugin, locatrOptions),
 		connection: connection,
 	}, nil
+}
+func (cPlugin *cdpPlugin) minifyHtml() (*ElementSpec, error) {
+	result, err := cPlugin.evaluateJsFunction("minifyHTML()")
+	if err != nil {
+		return nil, err
+	}
+	elementSpec := &ElementSpec{}
+	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+	}
+	return elementSpec, nil
+}
+
+func (cPlugin *cdpPlugin) getIdToLocatrMap() (*IdToLocatorMap, error) {
+	result, _ := cPlugin.evaluateJsFunction("mapElementsToJson()")
+	idLocatorMap := &IdToLocatorMap{}
+	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+	}
+	return idLocatorMap, nil
+}
+
+func (cPlugin *cdpPlugin) initlizeScript() error {
+	if err := cPlugin.evaluateJsScript(HTML_MINIFIER_JS_CONTENT); err != nil {
+		return fmt.Errorf("%v : %v", ErrUnableToLoadJsScripts, err)
+	}
+	return nil
 }
 
 func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) {

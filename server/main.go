@@ -11,7 +11,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 var VERSION = []uint8{0, 0, 1}

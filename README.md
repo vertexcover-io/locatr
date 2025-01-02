@@ -23,7 +23,7 @@ starButtonLocator.click()
 #### Golang
 
 ```
-go get github.com/vertexcover-io/locatr
+go get github.com/vertexcover-io/locatr/golang
 ```
 
 #### Python
@@ -98,7 +98,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 func main() {
@@ -161,7 +161,7 @@ To create a new llm client call the `locatr.NewLlmClient` function.
 
 ```go
 import (
-	"github.com/vertexcover-io/locatr.
+	locatr "github.com/vertexcover-io/locatr/golang.
 	"os"
 )
 
@@ -199,7 +199,7 @@ options := locatr.BaseLocatrOptions{
 
 ```go
 import (
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"os"
 )
 

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 func main() {

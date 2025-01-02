@@ -15,6 +15,9 @@ const DEFAULT_CACHE_PATH = ".locatr.cache"
 // Default file to write locatr results
 const DEFAULT_LOCATR_RESULTS_PATH = "locatr_results.json"
 
+//go:embed meta/htmlMinifier.js
+var HTML_MINIFIER_JS_CONTENT string
+
 const (
 	// Silent will not log anything
 	Silent LogLevel = iota + 1

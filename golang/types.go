@@ -6,6 +6,11 @@ type IdToLocatorMap map[string][]string
 type PluginInterface interface {
 	evaluateJsScript(scriptContent string) error
 	evaluateJsFunction(function string) (string, error)
+	initlizeScript()
+	getPageSource() (string, error)
+	minifyHtml() (*ElementSpec, error)
+	getIdToLocatrMap() (*IdToLocatorMap, error)
+	isValidLocatr(locatr string) (bool, error)
 }
 
 type LocatrInterface interface {

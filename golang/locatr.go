@@ -9,9 +9,6 @@ import (
 	"time"
 )
 
-//go:embed meta/htmlMinifier.js
-var HTML_MINIFIER_JS_CONTENT string
-
 type llmLocatorOutputDto struct {
 	LocatorID          string `json:"locator_id"`
 	completionResponse chatCompletionResponse
@@ -220,7 +217,6 @@ func (l *BaseLocatr) getMinifiedDomAndLocatorMap() (*ElementSpec, *IdToLocatorMa
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-
 	return elementSpec, idLocatorMap, nil
 }
 
