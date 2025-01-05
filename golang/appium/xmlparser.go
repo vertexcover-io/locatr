@@ -1,4 +1,4 @@
-package locatr
+package appiumLocatr
 
 import (
 	"crypto/md5"

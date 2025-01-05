@@ -1,11 +1,20 @@
-package locatr
+package reranker
 
 import (
 	"context"
+	"os"
 
 	cohere "github.com/cohere-ai/cohere-go/v2"
 	cohereclient "github.com/cohere-ai/cohere-go/v2/client"
 )
+
+var TOP_N_CHUNKS int = 8
+
+const COHERE_RERANK_MODEL = "rerank-english-v3.0"
+
+type ReRankInterface interface {
+	ReRank(request ReRankRequest) (*[]ReRankResult, error)
+}
 
 type cohereClient struct {
 	Token  string
@@ -13,17 +22,17 @@ type cohereClient struct {
 	client *cohereclient.Client
 }
 
-type reRankResult struct {
+type ReRankResult struct {
 	Index int
 	Score float64
 }
 
-type reRankRequest struct {
+type ReRankRequest struct {
 	Query     string
 	Documents []string
 }
 
-func (c *cohereClient) reRank(request reRankRequest) (*[]reRankResult, error) {
+func (c *cohereClient) ReRank(request ReRankRequest) (*[]ReRankResult, error) {
 	rerankDocs := []*cohere.RerankRequestDocumentsItem{}
 	for _, doc := range request.Documents {
 		rerankDocs = append(rerankDocs, &cohere.RerankRequestDocumentsItem{
@@ -42,9 +51,9 @@ func (c *cohereClient) reRank(request reRankRequest) (*[]reRankResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	results := []reRankResult{}
+	results := []ReRankResult{}
 	for _, doc := range response.Results {
-		results = append(results, reRankResult{
+		results = append(results, ReRankResult{
 			Index: doc.Index,
 			Score: doc.RelevanceScore,
 		})
@@ -60,4 +69,12 @@ func NewCohereClient(token string) ReRankInterface {
 		model:  COHERE_RERANK_MODEL,
 		client: client,
 	}
+}
+
+func CreateCohereClientFromEnv() ReRankInterface {
+	apiKey := os.Getenv("COHERE_API_KEY")
+	if apiKey == "" {
+		return nil
+	}
+	return NewCohereClient(os.Getenv("COHERE_API_KEY"))
 }

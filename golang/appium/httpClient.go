@@ -1,8 +1,9 @@
-package locatr
+package appiumLocatr
 
 import (
-	"github.com/go-resty/resty/v2"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 func CreateNewHttpClient(baseUrl string) *resty.Client {

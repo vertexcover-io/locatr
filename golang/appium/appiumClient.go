@@ -1,10 +1,10 @@
-package locatr
+package appiumLocatr
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 
-	"errors"
 	"github.com/go-resty/resty/v2"
 )
 

@@ -1,4 +1,4 @@
-package locatr
+package logger
 
 import (
 	"log"
@@ -12,6 +12,21 @@ var (
 	debugStr = "DEBUG: %s"
 )
 
+type LogLevel int
+
+const (
+	// Silent will not log anything
+	Silent LogLevel = iota + 1
+	// Error will log only errors
+	Error
+	// Warn will log errors and warnings
+	Warn
+	// Info will log errors, warnings and info
+	Info
+	// Debug will log everything
+	Debug
+)
+
 type Writer interface {
 	Printf(string, ...interface{})
 }
@@ -23,8 +38,8 @@ type LogConfig struct {
 	Writer Writer
 }
 
-type logInterface interface {
-	LogMode(LogLevel) logInterface
+type LogInterface interface {
+	LogMode(LogLevel) LogInterface
 	Info(string)
 	Warn(string)
 	Error(string)
@@ -36,7 +51,7 @@ type logger struct {
 	Writer
 }
 
-func (l *logger) LogMode(level LogLevel) logInterface {
+func (l *logger) LogMode(level LogLevel) LogInterface {
 	l.config.Level = level
 	return l
 }
@@ -65,7 +80,7 @@ func (l *logger) Debug(message string) {
 
 var DefaultLogWriter = log.New(os.Stdout, "\n", log.LstdFlags)
 
-func NewLogger(config LogConfig) logInterface {
+func NewLogger(config LogConfig) LogInterface {
 	if config.Level == 0 {
 		config.Level = Error
 	}

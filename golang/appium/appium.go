@@ -1,4 +1,4 @@
-package locatr
+package appiumLocatr
 
 type appiumPlugin struct {
 	client *appiumClinet

@@ -1,4 +1,4 @@
-package locatr
+package elementSpec
 
 import (
 	"fmt"
@@ -14,6 +14,8 @@ type ElementSpec struct {
 	Attributes map[string]string `json:"attributes"`
 	Children   []ElementSpec     `json:"children"`
 }
+
+type IdToLocatorMap map[string][]string
 
 // nolint:unused
 func (e *ElementSpec) decapitalizeTagName() {
@@ -54,6 +56,5 @@ func (e *ElementSpec) ContentStr() string {
 	for _, child := range e.Children {
 		childrenHTML += child.ContentStr()
 	}
-
 	return fmt.Sprintf("%s%s%s%s", openingTag, e.Text, childrenHTML, closingTag)
 }

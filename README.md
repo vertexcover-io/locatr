@@ -179,7 +179,7 @@ Run without creating the llm client..
 
 ```go
 import (
-	"github.com/vertexcover-io/locatr.
+	locatr "github.com/vertexcover-io/locatr/golang.
 	"os"
 )
 

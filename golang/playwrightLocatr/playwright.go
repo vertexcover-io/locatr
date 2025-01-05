@@ -1,58 +1,60 @@
-package locatr
+package playwrightLocatr
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/playwright-community/playwright-go"
+	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"github.com/vertexcover-io/locatr/golang/elementSpec"
 )
 
 type playwrightPlugin struct {
 	page playwright.Page
-	PluginInterface
 }
 
 type PlaywrightLocator struct {
 	page   playwright.Page
-	locatr *BaseLocatr
+	locatr *baseLocatr.BaseLocatr
 }
 
+var ErrUnableToLoadJsScriptsThroughPlaywright = errors.New("unable to load js script through playwright")
+
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
-func NewPlaywrightLocatr(page playwright.Page, options BaseLocatrOptions) *PlaywrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, options baseLocatr.BaseLocatrOptions) *PlaywrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
 	return &PlaywrightLocator{
 		page:   page,
-		locatr: NewBaseLocatr(pwPlugin, options),
+		locatr: baseLocatr.NewBaseLocatr(pwPlugin, options),
 	}
 }
 
-func (pl *playwrightPlugin) minifyHtml() (*ElementSpec, error) {
+func (pl *playwrightPlugin) GetMinifiedDomAndLocatorMap() (
+	*elementSpec.ElementSpec,
+	*elementSpec.IdToLocatorMap,
+	error,
+) {
+	if err := pl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+		return nil, nil, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughPlaywright, err)
+	}
 	result, err := pl.evaluateJsFunction("minifyHTML()")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	elementSpec := &ElementSpec{}
-	if err := json.Unmarshal([]byte(result), elementSpec); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+	elementsSpec := &elementSpec.ElementSpec{}
+	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
-	return elementSpec, nil
-}
 
-func (pl *playwrightPlugin) getIdToLocatrMap() (*IdToLocatorMap, error) {
-	result, _ := pl.evaluateJsFunction("mapElementsToJson()")
-	idLocatorMap := &IdToLocatorMap{}
+	result, _ = pl.evaluateJsFunction("mapElementsToJson()")
+	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return idLocatorMap, nil
-}
-
-func (pl *playwrightPlugin) initlizeScript() error {
-	if err := pl.evaluateJsScript(HTML_MINIFIER_JS_CONTENT); err != nil {
-		return fmt.Errorf("%v : %v", ErrUnableToLoadJsScripts, err)
-	}
-	return nil
+	return elementsSpec, idLocatorMap, nil
 }
 
 // evaluateJsFunction runs the given javascript function in the browser and returns the result as a string.
@@ -91,7 +93,7 @@ func (pl *PlaywrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 		return nil, fmt.Errorf("error waiting for load state: %v", err)
 	}
 
-	locatorStr, err := pl.locatr.getLocatorStr(userReq)
+	locatorStr, err := pl.locatr.GetLocatorStr(userReq)
 	if err != nil {
 		return nil, fmt.Errorf("error getting locator string: %v", err)
 	}
@@ -100,10 +102,25 @@ func (pl *PlaywrightLocator) GetLocatr(userReq string) (playwright.Locator, erro
 
 // WriteResultsToFile writes the locatr results to path specified in BaseLocatrOptions.ResultsFilePath.
 func (pl *PlaywrightLocator) WriteResultsToFile() {
-	pl.locatr.writeLocatrResultsToFile()
+	pl.locatr.WriteLocatrResultsToFile()
 }
 
 // GetLocatrResults returns the locatr results.
-func (pl *PlaywrightLocator) GetLocatrResults() []locatrResult {
-	return pl.locatr.getLocatrResults()
+func (pl *PlaywrightLocator) GetLocatrResults() []baseLocatr.LocatrResult {
+	return pl.locatr.GetLocatrResults()
+}
+func (pl *playwrightPlugin) GetCurrentContext() string {
+	if value, err := pl.evaluateJsFunction("window.location.href"); err == nil {
+		return value
+	} else {
+		return ""
+	}
+}
+func (pl *playwrightPlugin) IsValidLocator(locatr string) (string, error) {
+	value, err := pl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
+	if value == "true" && err == nil {
+		return locatr, nil
+	} else {
+		return "", err
+	}
 }
