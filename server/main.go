@@ -11,35 +11,42 @@ import (
 	"os"
 	"strconv"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
+	"github.com/vertexcover-io/locatr/golang/llm"
+	"github.com/vertexcover-io/locatr/golang/logger"
+	"github.com/vertexcover-io/locatr/golang/reranker"
+	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
 )
 
 var VERSION = []uint8{0, 0, 1}
 
-var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
+var clientAndLocatrs = make(map[string]baseLocatr.LocatrInterface)
 
-func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
-	opts := locatr.BaseLocatrOptions{}
+func createLocatrOptions(message incomingMessage) (baseLocatr.BaseLocatrOptions, error) {
+	opts := baseLocatr.BaseLocatrOptions{}
 	llmConfig := message.Settings.LlmSettings
 
 	if llmConfig.ReRankerApiKey != "" {
-		opts.ReRankClient = locatr.NewCohereClient(llmConfig.ReRankerApiKey)
+		opts.ReRankClient = reranker.NewCohereClient(llmConfig.ReRankerApiKey)
+	} else {
+		opts.ReRankClient = reranker.CreateCohereClientFromEnv()
 	}
 
-	opts.LogConfig = locatr.LogConfig{Level: locatr.Debug}
+	opts.LogConfig = logger.LogConfig{Level: logger.Debug}
 
 	opts.CachePath = message.Settings.CachePath
 	opts.UseCache = message.Settings.UseCache
 
 	opts.ResultsFilePath = message.Settings.ResultsFilePath
 
-	llmClient, err := locatr.NewLlmClient(
-		locatr.LlmProvider(llmConfig.LlmProvider),
+	llmClient, err := llm.NewLlmClient(
+		llm.LlmProvider(llmConfig.LlmProvider),
 		llmConfig.ModelName,
 		llmConfig.LlmApiKey,
 	)
 	if err != nil {
-		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
+		return baseLocatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
 	}
 	opts.LlmClient = llmClient
 
@@ -68,22 +75,22 @@ func handleInitialHandshake(message incomingMessage) error {
 	case "cdp":
 		parsedUrl, _ := url.Parse(message.Settings.CdpURl)
 		port, _ := strconv.Atoi(parsedUrl.Port())
-		connectionOpts := locatr.CdpConnectionOptions{
+		connectionOpts := cdpLocatr.CdpConnectionOptions{
 			Port:     port,
 			HostName: parsedUrl.Hostname(),
 		}
-		connection, err := locatr.CreateCdpConnection(connectionOpts)
+		connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
 		if err != nil {
 			return fmt.Errorf("%v: %w", ErrCdpConnectionCreation, err)
 		}
-		cdpLocatr, err := locatr.NewCdpLocatr(connection, baseLocatrOpts)
+		cdpLocatr, err := cdpLocatr.NewCdpLocatr(connection, baseLocatrOpts)
 		if err != nil {
 			return fmt.Errorf("%v: %w", ErrCdpLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
 	case "selenium":
 		settings := message.Settings
-		seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
+		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
 		if err != nil {
 			return fmt.Errorf("%v: %w", ErrSeleniumLocatrCreation, err)
 		}
