@@ -1,6 +1,4 @@
 # Locatr 
-[![Go Reference](https://pkg.go.dev/badge/github.com/vertexcover-io/locatr.svg)](https://pkg.go.dev/github.com/vertexcover-io/locatr)
-![Test](https://github.com/vertexcover-io/locatr/actions/workflows/test.yaml/badge.svg)
 
 Locatr package helps you to find HTML locators on a webpage using prompts and llms.
 
@@ -49,11 +47,10 @@ llm_settings = LlmSettings(
     llm_provider=LlmProvider.OPENAI,
     llm_api_key=os.environ.get("LLM_API_KEY"),
     model_name=os.environ.get("LLM_MODEL_NAME"),
-    reranker_api_key=os.environ.get("RERANKER_API_KEY"),
+    reranker_api_key=os.environ.get("COHERE_API_KEY"),
 )
 
 locatr_settings_selenium = LocatrSeleniumSettings(
-    plugin_type=PluginType.SELENIUM,
     llm_settings=llm_settings,
     selenium_url=os.environ.get("SELENIUM_URL"), # url must end with `/wd/hub`
     selenium_session_id="e4c543363b9000a66073db7a39152719",
@@ -97,13 +94,14 @@ llm_settings = LlmSettings(
     llm_provider=LlmProvider.OPENAI,
     llm_api_key=os.environ.get("LLM_API_KEY"),
     model_name=os.environ.get("LLM_MODEL_NAME"),
-    reranker_api_key=os.environ.get("RERANKER_API_KEY"),
+    reranker_api_key=os.environ.get("COHERE_API_KEY"),
 )
 ```
-**Note: Except for `reranker_api_key` if values are not provided in the settings then they will be read from the following env variables.**
+**Note: If values are not provided in the settings then they will be read from the following env variables.**
 - `LLM_PROVIDER`
 - `LLM_MODEL`
 - `LLM_API_KEY`
+- `COHERE_API_KEY`
 
 Locatr settings is bound with the type of plugin you want to use (cdp/selenium).
 

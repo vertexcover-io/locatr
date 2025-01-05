@@ -45,9 +45,6 @@ pip install locatr
 
 ### Quick Example
 
-#### With python
-
-
 #### Python example
 
 ```
@@ -71,7 +68,6 @@ llm_settings = LlmSettings(
 )
 
 locatr_settings_selenium = LocatrSeleniumSettings(
-    plugin_type=PluginType.SELENIUM,
     llm_settings=llm_settings,
     selenium_url=os.environ.get("SELENIUM_URL"), # url must end with `/wd/hub`
     selenium_session_id="e4c543363b9000a66073db7a39152719",
@@ -93,58 +89,58 @@ package main
 
 import (
 	"fmt"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"github.com/vertexcover-io/locatr/golang/reranker"
+	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
+	"github.com/vertexcover-io/selenium"
+	"github.com/vertexcover-io/selenium/chrome"
 	"log"
 	"os"
 	"time"
-
-	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 func main() {
-	pw, err := playwright.Run()
+	service, err := selenium.NewChromeDriverService("./chromedriver-linux64/chromedriver", 4444)
 	if err != nil {
-		log.Fatalf("could not start playwright: %v", err)
+		log.Fatal(err)
+		return
 	}
-	defer pw.Stop()
+	caps := selenium.Capabilities{}
+	caps.AddChrome(chrome.Capabilities{Args: []string{}})
 
-	browser, err := pw.Chromium.Launch(
-		playwright.BrowserTypeLaunchOptions{
-			Headless: playwright.Bool(false),
-		},
-	)
+	defer service.Stop()
+	driver, err := selenium.NewRemote(caps, "")
 	if err != nil {
-		log.Fatalf("could not launch browser: %v", err)
+		log.Fatal(err)
+		return
 	}
-	defer browser.Close()
+	driver.Get("https://news.ycombinator.com/")
 
-	page, err := browser.NewPage()
+	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
+
+	options := baseLocatr.BaseLocatrOptions{
+		UseCache:     true,
+		ReRankClient: reRankClient,
+	} 
+
+	// wait for page to load
+	time.Sleep(3 * time.Second)
+
+	seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(
+		"http://localhost:4444/wd/hub", "ca0d56a6a3dcfc51eb0110750f0abab7", options) // the path must end with /wd/hub
+
 	if err != nil {
-		log.Fatalf("could not create page: %v", err)
+		log.Fatal(err)
+		return
 	}
-	if _, err := page.Goto("https://hub.docker.com/"); err != nil {
-		log.Fatalf("could not navigate to docker hub: %v", err)
-	}
-	time.Sleep(5 * time.Second) // wait for page to load
-
-	llmClient, err := locatr.NewLlmClient(
-		locatr.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL_NAME"),
-		os.Getenv("LLM_API_KEY"),
-	)
+	newsLocatr, err := seleniumLocatr.GetLocatrStr("First news link in the site..")
 	if err != nil {
-		log.Fatalf("could not create llm client: %v", err)
+		log.Fatal(err)
+		return
 	}
-    options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Silent}, LlmClient: llmClient}
-
-	playWrightlocatr := locatr.NewPlaywrightLocatr(page, options)
-
-	searchBarLocator, err := playWrightlocatr.GetLocatr("Search Docker Hub input field")
-	if err != nil {
-		log.Fatalf("could not get locator: %v", err)
-	}
-	fmt.Println(searchBarLocator.InnerHTML())
+	fmt.Println(newsLocatr)
 }
+
 ```
 
 **Please check the examples directory for more examples.**
@@ -161,16 +157,17 @@ To create a new llm client call the `locatr.NewLlmClient` function.
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang.
+	"github.com/vertexcover-io/locatr/golang/llm"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"os"
 )
 
-llmClient, err := locatr.NewLlmClient(
-	locatr.OpenAI, // Supported providers: "openai" | "anthropic"
+llmClient, err := llm.NewLlmClient(
+	llm.OpenAI, // Supported providers: "openai" | "anthropic"
 	os.Getenv("LLM_MODEL_NAME"),
 	os.Getenv("LLM_API_KEY"),
 )
-options := locatr.BaseLocatrOptions{
+options := baseLocatr.BaseLocatrOptions{
 	LlmClient: llmClient,
 }
 ```
@@ -179,11 +176,11 @@ Run without creating the llm client..
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang.
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"os"
 )
 
-options := locatr.BaseLocatrOptions{
+options := baseLocatr.BaseLocatrOptions{
 	UseCache: true,
 }
 ```
@@ -193,20 +190,19 @@ options := locatr.BaseLocatrOptions{
 
 `ReRankClient` is a wrapper around the ranking provider you want to use. Currently, we only support the `cohere` re-ranker. To create a `cohere` re-ranker, use the following code:
 
-**note: There is no support to create a re-ranking client by default if not provided in `BaseLocatrOptions`**
-- Only re-ranked HTML chunks with a score greater than `0.9` are sent to the LLM.
 - The default `cohere` re-ranking model is `rerank-english-v3.0`.
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/reranker"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"os"
 )
 
-reRankClient, err := locatr.NewCohereClient(
+reRankClient, err := reranker.NewCohereClient(
 	os.Getenv("COHERE_API_KEY"),
 )
-options := locatr.BaseLocatrOptions{
+options := baseLocatr.BaseLocatrOptions{
 	ReRankClient: reRankClient,
 }
 ```
@@ -218,7 +214,7 @@ options := locatr.BaseLocatrOptions{
 - Sending less input context to the LLM reduces response time and lowers the cost per LLM call.
 
 ### Locatr Options
-`locatr.BaseLocatrOptions` is a struct with multiple fields used to configure caching, logging, and output file paths in `locatr`.
+`baseLocatr.BaseLocatrOptions` is a struct with multiple fields used to configure caching, logging, and output file paths in `locatr`.
 
 **Fields**
 
@@ -257,7 +253,7 @@ Locatrs are a wrapper around the main plugin (playwright, selenium, cdp).
 Create an instance of `PlayWrightLocatr` using :
 
 ```go
-playWrightLocatr := locatr.NewPlaywrightLocatr(page, llmClient, options)
+playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, llmClient, options)
 ```
 
 #### CdpLocatr
@@ -278,48 +274,20 @@ chrome_options.add_argument("--remote-debugging-port=9222")
 browser = playwright.chromium.launch(headless=False, args=["--remote-debugging-port=9222"])
 ```
 
-After starting the browser with CDP, we need the page ID. The page ID is essential to run Locatr scripts on the correct page. This can be achieved in two ways:
-
-1. **Directly getting it from the CDP server**
-	- Send a GET request to http://localhost:9222/json.
-	- You will receive the following response:
-	```
-	[ {
-   "description": "",
-   "devtoolsFrontendUrl": "/devtools/inspector.html?ws=localhost:9222/devtools/page/215947B924E9C4D232ADE7331FDBEBA6",
-   "faviconUrl": "https://www.youtube.com/s/desktop/e718aa11/img/logos/favicon_32x32.png",
-   "id": "215947B924E9C4D232ADE7331FDBEBA6",
-   "title": "YouTube",
-   "type": "page",
-   "url": "https://www.youtube.com/",
-   "webSocketDebuggerUrl": "ws://localhost:9222/devtools/page/215947B924E9C4D232ADE7331FDBEBA6"
-	}]
-	```
-	- The `id` field contains the page id. 
-2. **Get it through playwright:**
-```
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  const cdpSession = await context.newCDPSession(page);
-  const response = await cdpSession.send('Page.getFrameTree');
-  const pageId = response.frameTree.frame.id; 
-```
-Once we have the page ID, we can establish a connection with CDP:
+Then we create cdp connection.
 
 ```
-	connectionOpts := locatr.CdpConnectionOptions{
-		Port:   9222,
-		PageId: "177AE4272FC8BBE48190C697A27942DA",
-	}
-	connection, err := locatr.CreateCdpConnection(connectionOpts)
-	defer connection.Close()
+connectionOpts := cdpLocatr.CdpConnectionOptions{
+	Port:   9222,
+}
+connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
+defer connection.Close()
 ```
 
 Now we can create the CDP Locatr with:
 
 ```
-	cdpLocatr, err := locatr.NewCdpLocatr(connection, options)
+cdpLocatr, err := cdpLocatr.NewCdpLocatr(connection, options)
 ```
 
 #### Selenium Locatr
@@ -328,13 +296,13 @@ Selenium Locatr can be created through two ways:
 
 1. Through selenium server url:
 ```
-	seleniumLocatr, err := locatr.NewRemoteConnSeleniumLocatr("http://localhost:4444/wd/hub", driver.SessionID(), options) 
+seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr("http://localhost:4444/wd/hub", driver.SessionID(), options) 
 ```
 **note: the path must always be `/wd/hub`**
 
 2. Directly passing the selenium driver:
 ```
-	seleniumLocatr, err := locatr.NewSeleniumLocatr(driver, options)
+seleniumLocatr, err := seleniumLocatr.NewSeleniumLocatr(driver, options)
 ```
 
 
@@ -342,9 +310,9 @@ Selenium Locatr can be created through two ways:
 
 - **GetLocatr**: Locates an element using a descriptive string and returns a `Locator` object.
   
-  ```go
-  searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
-  ```
+```go
+searchBarLocator, err := cdpLocatr.GetLocatr("Search Docker Hub input field")
+```
 
 ### Cache
 
@@ -374,7 +342,7 @@ To remove the cache, delete the file at the path specified in `BaseLocatrOptions
 Logging is enabled by default in locatr and it's set to `Error` log level. Pass the `LogConfig` value in the `BaseLocatrOptions` struct.
 
 ```
-	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
+options := baseLocatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}}
 ```
 
 #### Available Log Levels
@@ -406,7 +374,7 @@ Locatr provides a feature to get all the information about each locatr request m
 
 **Saving Results**
 
-Results can be saved to a file specified by `locatr.BaseLocatrOptions.ResultsFilePath` (`locatr_results.json`). If no file path is specified, results are written to `locatr.DEFAULT_LOCATR_RESULTS_PATH`.
+Results can be saved to a file specified by `baseLocatr.BaseLocatrOptions.ResultsFilePath`. If no file path is specified, results are written to `locatr_results.json`.
 
 - **To write results to a file**: Use the `playwrightLocatr.WriteResultsToFile` function.
 
@@ -429,7 +397,7 @@ Schema of the json file:
 	"all_locatrs": []
 }
 ```
-- **To retrieve results as a slice**: Use the `playwrightLocatr.GetLocatrResults` function.
+- **To retrieve results as a slice**: Use the `GetLocatrResults` function on the locatr struct.
 
 
 ### Contributing
