@@ -8,17 +8,25 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/llm"
 )
 
 type MockPlugin struct{}
 
-func (m *MockPlugin) evaluateJsFunction(js string) (string, error) {
+func (m *MockPlugin) GetCurrentContext() string {
+	return ""
+}
+func (m *MockPlugin) IsValidLocator(locatr string) (string, error) {
 	return "", nil
 }
 
-func (m *MockPlugin) evaluateJsScript(js string) error {
-	return nil
+func (sl *MockPlugin) GetMinifiedDomAndLocatorMap() (
+	*elementSpec.ElementSpec,
+	*elementSpec.IdToLocatorMap,
+	error,
+) {
+	return nil, nil, nil
 }
 
 type MockLlmClient struct{}
@@ -26,11 +34,11 @@ type MockLlmClient struct{}
 func (m *MockLlmClient) ChatCompletion(prompt string) (*llm.ChatCompletionResponse, error) {
 	return nil, nil
 }
-func (m *MockLlmClient) getProvider() llm.LlmProvider {
+func (m *MockLlmClient) GetProvider() llm.LlmProvider {
 	return "test_provider"
 }
 
-func (m *MockLlmClient) getModel() string {
+func (m *MockLlmClient) GetModel() string {
 	return "test_model"
 }
 
@@ -280,8 +288,8 @@ func TestNewBaseLocatrNoLLmClient(t *testing.T) {
 	if baseLocatr.llmClient == nil {
 		t.Errorf("Expected llmClient, got %v", baseLocatr.llmClient)
 	}
-	assert.Equal(t, baseLocatr.llmClient.getProvider(), OpenAI)
-	assert.Equal(t, baseLocatr.llmClient.getModel(), "test_model")
+	assert.Equal(t, baseLocatr.llmClient.GetProvider(), llm.OpenAI)
+	assert.Equal(t, baseLocatr.llmClient.GetModel(), "test_model")
 }
 
 func TestFixLLmJson(t *testing.T) {

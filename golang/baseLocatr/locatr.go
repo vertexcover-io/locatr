@@ -100,24 +100,19 @@ type BaseLocatrOptions struct {
 }
 
 var (
-	ErrUnableToMinifyHtmlDom       = errors.New("unable to minify HTML DOM")
-	ErrUnableToExtractIdLocatorMap = errors.New("unable to extract ID locator map")
-	ErrUnableToLocateElementId     = errors.New("unable to locate element ID")
-	ErrInvalidElementIdGenerated   = errors.New("invalid element ID generated")
-	ErrUnableToFindValidLocator    = errors.New("unable to find valid locator")
-	ErrFailedToWriteCache          = errors.New("failed to write cache")
-	ErrFailedToMarshalJson         = errors.New("failed to marshal json")
+	ErrUnableToMinifyHtmlDom            = errors.New("unable to minify HTML DOM")
+	ErrUnableToExtractIdLocatorMap      = errors.New("unable to extract ID locator map")
+	ErrUnableToLocateElementId          = errors.New("unable to locate element ID")
+	ErrInvalidElementIdGenerated        = errors.New("invalid element ID generated")
+	ErrUnableToFindValidLocator         = errors.New("unable to find valid locator")
+	ErrFailedToWriteCache               = errors.New("failed to write cache")
+	ErrFailedToMarshalJson              = errors.New("failed to marshal json")
+	ErrLocatrCacheMiss                  = errors.New("cache miss")
+	ErrLocatrRetrievalAttemptsExhausted = errors.New("failed to retrieve locatr after 3 attempts")
+	ErrLocatrRetrievalFailed            = errors.New("failed to retieve locatr")
+	ErrNoChunksToProcess                = errors.New("got no chunks to process after reranking")
+	ErrFailedToRepariJson               = errors.New("failed to repair json")
 )
-
-var ErrLocatrCacheMiss = errors.New("cache miss")
-
-var ErrLocatrRetrievalAttemptsExhausted = errors.New("failed to retrieve locatr after 3 attempts")
-
-var ErrLocatrRetrievalFailed = errors.New("failed to retieve locatr")
-
-var ErrNoChunksToProcess = errors.New("got no chunks to process after reranking")
-
-var ErrFailedToRepariJson = errors.New("failed to repair json")
 
 // Default cache path
 const DEFAULT_CACHE_PATH = ".locatr.cache"

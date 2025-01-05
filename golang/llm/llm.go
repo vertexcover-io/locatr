@@ -28,8 +28,8 @@ type llmClient struct {
 
 type LlmClientInterface interface {
 	ChatCompletion(prompt string) (*ChatCompletionResponse, error)
-	getProvider() LlmProvider
-	getModel() string
+	GetProvider() LlmProvider
+	GetModel() string
 }
 
 type ChatCompletionResponse struct {
@@ -161,10 +161,10 @@ func CreateLlmClientFromEnv() (*llmClient, error) {
 	return NewLlmClient(provider, os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"))
 }
 
-func (c *llmClient) getProvider() LlmProvider {
+func (c *llmClient) GetProvider() LlmProvider {
 	return c.provider
 }
 
-func (c *llmClient) getModel() string {
+func (c *llmClient) GetModel() string {
 	return c.model
 }
