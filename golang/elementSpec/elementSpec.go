@@ -2,7 +2,6 @@ package elementSpec
 
 import (
 	"fmt"
-	"strings"
 
 	"gopkg.in/validator.v2"
 )
@@ -16,24 +15,6 @@ type ElementSpec struct {
 }
 
 type IdToLocatorMap map[string][]string
-
-// nolint:unused
-func (e *ElementSpec) decapitalizeTagName() {
-	e.TagName = strings.ToLower(strings.TrimSpace(e.TagName))
-}
-
-// nolint:unused
-func (e *ElementSpec) trimAttributes() {
-	trimmedAttributes := make(map[string]string)
-	for k, v := range e.Attributes {
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-		if k != "" || v != "" {
-			trimmedAttributes[k] = v
-		}
-	}
-	e.Attributes = trimmedAttributes
-}
 
 func (e *ElementSpec) Validate() error {
 	if errs := validator.Validate(e); errs != nil {
