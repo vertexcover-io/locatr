@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 )
 
 func main() {
@@ -39,11 +40,11 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	options := locatr.BaseLocatrOptions{
+	options := baseLocatr.BaseLocatrOptions{
 		UseCache: true,
 	} // llm client is created by default by reading the environment variables.
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
 	_, err = playWrightLocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {

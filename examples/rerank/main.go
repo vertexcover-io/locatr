@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
+	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
 func main() {
@@ -39,14 +41,14 @@ func main() {
 		log.Fatalf("could not navigate to new.ycombinator: %v", err)
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
-	reRankClient := locatr.NewCohereClient(os.Getenv("COHERE_API_KEY"))
+	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
-	options := locatr.BaseLocatrOptions{
+	options := baseLocatr.BaseLocatrOptions{
 		UseCache:     true,
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
 	newsItem, err := playWrightLocatr.GetLocatr("First news link")
 	if err != nil {

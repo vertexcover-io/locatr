@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"github.com/vertexcover-io/locatr/golang/llm"
+	"github.com/vertexcover-io/locatr/golang/logger"
+	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 )
 
 func main() {
@@ -40,17 +43,17 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := locatr.NewLlmClient(
-		locatr.OpenAI, // (openai | anthropic),
+	llmClient, err := llm.NewLlmClient(
+		llm.OpenAI, // (openai | anthropic),
 		os.Getenv("LLM_MODEL_NAME"),
 		os.Getenv("LLM_API_KEY"),
 	)
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: locatr.LogConfig{Level: locatr.Debug}, LlmClient: llmClient}
+	options := baseLocatr.BaseLocatrOptions{UseCache: true, LogConfig: logger.LogConfig{Level: logger.Debug}, LlmClient: llmClient}
 
-	playWrightLocatr := locatr.NewPlaywrightLocatr(page, options)
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
 	searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
