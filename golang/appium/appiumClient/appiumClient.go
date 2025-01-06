@@ -149,10 +149,8 @@ func (ac *AppiumClient) GetCurrentActivity() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
-	fmt.Println(response.Request.URL)
 	r := response.Result().(*getActivityResponse)
 	if response.StatusCode() != 200 {
-		fmt.Println(string(response.Body()))
 		return "", fmt.Errorf("%s : %s", ErrSessionNotActive, ac.sessionId)
 	}
 	return r.Value, nil
