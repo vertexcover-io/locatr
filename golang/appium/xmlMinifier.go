@@ -4,10 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/antchfx/xmlquery"
-	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"strconv"
 	"strings"
+
+	"github.com/antchfx/xmlquery"
+	"github.com/vertexcover-io/locatr/golang/elementSpec"
 )
 
 var MAYBE_UNIQUE_XPATH_ATTRIBUTES = []string{
@@ -323,7 +324,6 @@ func mapElementsToJson(source string) (*elementSpec.IdToLocatorMap, error) {
 			processElement(child)
 		}
 	}
-
 	processElement(root)
 	return &elementMap, nil
 }

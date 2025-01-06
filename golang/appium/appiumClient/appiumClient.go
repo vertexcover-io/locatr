@@ -1,6 +1,7 @@
 package appiumClient
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,26 +10,25 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-var ErrSessionNotActive = errors.New("session not active")
-
-var ErrFailedConnectingToAppiumServer = errors.New("failed connecting to appium server")
+type AppiumClient struct {
+	httpClient *resty.Client
+	sessionId  string
+}
 
 type appiumPageSourceResponse struct {
 	SessionId string `json:"sessionId"`
 	Value     string `json:"value"`
 }
+
 type appiumGetElementResponse struct {
 	Value struct {
-		Error   string `json:"error,omitempty"`
-		Message string `json:"message,omitempty"`
+		Error      string `json:"error"`
+		Message    string `json:"message"`
+		Stacktrace string `json:"stacktrace"`
 	} `json:"value"`
 }
 
-type AppiumClient struct {
-	httpClient *resty.Client
-	sessionId  string
-}
-type capabilities struct {
+type Capabilities struct {
 	PlatformName   string      `json:"platformName"`
 	AutomationName string      `json:"automationName"`
 	DeviceName     string      `json:"deviceName"`
@@ -38,12 +38,13 @@ type capabilities struct {
 	Locale         string      `json:"locale"`
 	LastScrollData interface{} `json:"lastScrollData"`
 }
+
 type sessionResponse struct {
 	Value struct {
-		Capabilities *capabilities `json:"capabilities,omitempty"`
-		Error        string        `json:"error,omitempty"`
-		Message      string        `json:"message,omitempty"`
-		Stacktrace   string        `json:"stacktrace,omitempty"`
+		Capabilities
+		Error      string `json:"error"`
+		Message    string `json:"message"`
+		Stacktrace string `json:"stacktrace"`
 	} `json:"value"`
 }
 
@@ -55,6 +56,12 @@ type findElementRequest struct {
 type getActivityResponse struct {
 	Value string `json:"value"`
 }
+
+var ErrSessionNotActive = errors.New("session not active")
+
+var ErrFailedConnectingToAppiumServer = errors.New("failed connecting to appium server")
+
+// TODO: remove json.Unmarshal
 
 func CreateNewHttpClient(baseUrl string) *resty.Client {
 	client := resty.New()
@@ -110,30 +117,42 @@ func (ac *AppiumClient) FindElement(xpath string) error {
 		return fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	if response.StatusCode() != 200 {
-		r := response.Result().(*appiumGetElementResponse)
-		return fmt.Errorf("%s : %s", r.Value.Error, r.Value.Message)
+		var result appiumGetElementResponse
+		err = json.Unmarshal(response.Body(), &result)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		return fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
 	return nil
+
 }
 
-func (ac *AppiumClient) GetCapabilites() (*capabilities, error) {
-	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Post("element")
+func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
+	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Get("")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
-	r := response.Result().(*sessionResponse)
+	var result sessionResponse
+	err = json.Unmarshal(response.Body(), &result)
 	if response.StatusCode() != 200 {
-		return nil, fmt.Errorf("%s : %s", r.Value.Error, r.Value.Message)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
-	return r.Value.Capabilities, nil
+	return &result, nil
 }
+
 func (ac *AppiumClient) GetCurrentActivity() (string, error) {
-	response, err := ac.httpClient.R().SetResult(&getActivityResponse{}).Post("appium/device/current_activity")
+	response, err := ac.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
+	fmt.Println(response.Request.URL)
 	r := response.Result().(*getActivityResponse)
 	if response.StatusCode() != 200 {
+		fmt.Println(string(response.Body()))
 		return "", fmt.Errorf("%s : %s", ErrSessionNotActive, ac.sessionId)
 	}
 	return r.Value, nil

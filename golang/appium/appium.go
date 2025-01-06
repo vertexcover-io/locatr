@@ -1,10 +1,11 @@
 package appiumLocatr
 
 import (
+	"strings"
+
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
 	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
-	"strings"
 )
 
 type appiumPlugin struct {
@@ -38,11 +39,11 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	if err != nil {
 		return nil, nil, err
 	}
-	capabilites, err := apPlugin.client.GetCapabilites()
+	capabilites, err := apPlugin.client.GetCapabilities()
 	if err != nil {
 		return nil, nil, err
 	}
-	elementSpec, err := minifySource(pageSource, strings.ToLower(capabilites.PlatformName))
+	elementSpec, err := minifySource(pageSource, strings.ToLower(capabilites.Value.PlatformName))
 	if err != nil {
 		return nil, nil, err
 	}
