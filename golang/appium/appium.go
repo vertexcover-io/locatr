@@ -43,11 +43,12 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	if err != nil {
 		return nil, nil, err
 	}
-	eSpec, err := minifySource(pageSource, strings.ToLower(capabilities.Value.PlatformName))
+	platform := strings.ToLower(capabilities.Value.PlatformName)
+	eSpec, err := minifySource(pageSource, platform)
 	if err != nil {
 		return nil, nil, err
 	}
-	locatrMap, err := mapElementsToJson(pageSource)
+	locatrMap, err := mapElementsToJson(pageSource, platform)
 	if err != nil {
 		return nil, nil, err
 	}

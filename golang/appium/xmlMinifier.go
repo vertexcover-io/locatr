@@ -299,7 +299,7 @@ func minifySource(source string, platform string) (*elementSpec.ElementSpec, err
 	return spec, nil
 }
 
-func mapElementsToJson(source string) (*elementSpec.IdToLocatorMap, error) {
+func mapElementsToJson(source string, platform string) (*elementSpec.IdToLocatorMap, error) {
 	root, err := xmlquery.Parse(strings.NewReader(source))
 	if err != nil {
 		return nil, err
@@ -313,7 +313,7 @@ func mapElementsToJson(source string) (*elementSpec.IdToLocatorMap, error) {
 			elementMap[uniqueId] = locatrs
 		}
 		for child := element.FirstChild; child != nil; child = child.NextSibling {
-			if isValidElement(child, "android") {
+			if isValidElement(child, platform) {
 				processElement(child)
 			}
 		}
