@@ -1,11 +1,10 @@
 package appiumLocatr
 
 import (
-	"strings"
-
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
 	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"strings"
 )
 
 type appiumPlugin struct {
@@ -17,17 +16,18 @@ type appiumLocatr struct {
 }
 
 func NewAppiumLocatr(serverUrl string, sessionId string, opts baseLocatr.BaseLocatrOptions) (*appiumLocatr, error) {
-	appiumClinet, err := appiumClient.NewAppiumClient(serverUrl, sessionId)
+	apC, err := appiumClient.NewAppiumClient(serverUrl, sessionId)
 	if err != nil {
 		return nil, err
 	}
 	plugin := &appiumPlugin{
-		client: appiumClinet,
+		client: apC,
 	}
 	baseLocatr := baseLocatr.NewBaseLocatr(plugin, opts)
-	return &appiumLocatr{
+	locatr := &appiumLocatr{
 		locatr: baseLocatr,
-	}, nil
+	}
+	return locatr, nil
 }
 
 func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
@@ -39,19 +39,19 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	if err != nil {
 		return nil, nil, err
 	}
-	capabilites, err := apPlugin.client.GetCapabilities()
+	capabilities, err := apPlugin.client.GetCapabilities()
 	if err != nil {
 		return nil, nil, err
 	}
-	elementSpec, err := minifySource(pageSource, strings.ToLower(capabilites.Value.PlatformName))
+	eSpec, err := minifySource(pageSource, strings.ToLower(capabilities.Value.PlatformName))
 	if err != nil {
 		return nil, nil, err
 	}
-	idToLocatrMap, err := mapElementsToJson(pageSource)
+	locatrMap, err := mapElementsToJson(pageSource)
 	if err != nil {
 		return nil, nil, err
 	}
-	return elementSpec, idToLocatrMap, nil
+	return eSpec, locatrMap, nil
 }
 
 func (apPlugin *appiumPlugin) GetCurrentContext() string {

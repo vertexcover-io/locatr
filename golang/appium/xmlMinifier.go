@@ -2,6 +2,7 @@ package appiumLocatr
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -197,7 +198,6 @@ func isValidElement(
 	if element.Type == xmlquery.TextNode && strings.TrimSpace(element.Data) == "" {
 		return false
 	}
-
 	if element.Data == "hierarchy" {
 		return true
 	}
@@ -233,7 +233,7 @@ func isXpathUnique(xPath string, element *xmlquery.Node) (bool, int) {
 
 func generateUniqueId(id string) string {
 	md5Hash := md5.Sum([]byte(id))
-	return string(md5Hash[:8])
+	return hex.EncodeToString(md5Hash[:])
 }
 func attrsToMap(attrs []xmlquery.Attr) map[string]string {
 	attrMap := make(map[string]string)
@@ -264,7 +264,6 @@ func createElementSpec(
 	}
 	text := getVisibleText(element, platform)
 	locatrs := getElementLocatrs(element)
-	printLocatrs(locatrs)
 	uniqueId := ""
 	if len(locatrs) > 0 {
 		uniqueId = generateUniqueId(locatrs[0])
@@ -272,10 +271,9 @@ func createElementSpec(
 	children := []elementSpec.ElementSpec{}
 	for child := element.FirstChild; child != nil; child = child.NextSibling {
 		c, err := createElementSpec(child, root, platform)
-		if err != nil && c != nil {
+		if err == nil && c != nil {
 			children = append(children, *c)
 		}
-
 	}
 	return &elementSpec.ElementSpec{
 		TagName:    element.Data,
@@ -286,20 +284,15 @@ func createElementSpec(
 	}, nil
 }
 
-func buildElementTree(root *xmlquery.Node, paltform string) (*elementSpec.ElementSpec, error) {
-	elementSpec, err := createElementSpec(root, root, paltform)
-	if err != nil {
-		return nil, err
-	}
-	return elementSpec, nil
-}
-
 func minifySource(source string, platform string) (*elementSpec.ElementSpec, error) {
 	root, err := xmlquery.Parse(strings.NewReader(source))
 	if err != nil {
 		return nil, err
 	}
-	spec, err := buildElementTree(root.FirstChild.NextSibling.NextSibling, platform)
+	spec, err := createElementSpec(
+		root.FirstChild.NextSibling.NextSibling,
+		root.FirstChild.NextSibling.NextSibling,
+		platform)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +305,6 @@ func mapElementsToJson(source string) (*elementSpec.IdToLocatorMap, error) {
 		return nil, err
 	}
 	elementMap := make(elementSpec.IdToLocatorMap)
-
 	var processElement func(*xmlquery.Node)
 	processElement = func(element *xmlquery.Node) {
 		locatrs := getElementLocatrs(element)
@@ -321,9 +313,11 @@ func mapElementsToJson(source string) (*elementSpec.IdToLocatorMap, error) {
 			elementMap[uniqueId] = locatrs
 		}
 		for child := element.FirstChild; child != nil; child = child.NextSibling {
-			processElement(child)
+			if isValidElement(child, "android") {
+				processElement(child)
+			}
 		}
 	}
-	processElement(root)
+	processElement(root.FirstChild.NextSibling.NextSibling)
 	return &elementMap, nil
 }
