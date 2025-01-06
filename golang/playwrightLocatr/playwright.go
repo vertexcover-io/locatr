@@ -116,11 +116,11 @@ func (pl *playwrightPlugin) GetCurrentContext() string {
 		return ""
 	}
 }
-func (pl *playwrightPlugin) IsValidLocator(locatr string) (string, error) {
+func (pl *playwrightPlugin) IsValidLocator(locatr string) (bool, error) {
 	value, err := pl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
 	if value == "true" && err == nil {
-		return locatr, nil
+		return true, nil
 	} else {
-		return "", err
+		return false, err
 	}
 }

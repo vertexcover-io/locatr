@@ -25,7 +25,7 @@ type PluginInterface interface {
 		error,
 	)
 	GetCurrentContext() string
-	IsValidLocator(locatr string) (string, error)
+	IsValidLocator(locatr string) (bool, error)
 }
 
 type LocatrInterface interface {
@@ -249,13 +249,13 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 
 func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	for _, locator := range locators {
-		value, err := l.plugin.IsValidLocator(locator)
-		if value != "" {
+		ok, err := l.plugin.IsValidLocator(locator)
+		if ok {
 			l.logger.Debug(fmt.Sprintf("Valid locator found: `%s`", locator))
 			return locator, nil
 		} else {
-			l.logger.Debug(fmt.Sprintf("error while evaluating js function %v", err))
-			return "", fmt.Errorf("%w %w", ErrUnableToFindValidLocator, err)
+			l.logger.Debug(fmt.Sprintf("error while checking for valid locatr %v", err))
+			return "", ErrUnableToFindValidLocator
 		}
 	}
 	return "", fmt.Errorf("%v %v", ErrUnableToFindValidLocator, errors.New("all locatrs exhausted"))

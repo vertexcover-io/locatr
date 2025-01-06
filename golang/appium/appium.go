@@ -1,10 +1,11 @@
 package appiumLocatr
 
 import (
+	"strings"
+
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
 	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
-	"strings"
 )
 
 type appiumPlugin struct {
@@ -62,11 +63,11 @@ func (apPlugin *appiumPlugin) GetCurrentContext() string {
 	return ""
 }
 
-func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (string, error) {
-	if err := apPlugin.client.FindElement(locatr); err != nil {
-		return "true", nil
+func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (bool, error) {
+	if err := apPlugin.client.FindElement(locatr); err == nil {
+		return true, nil
 	} else {
-		return "", err
+		return false, err
 	}
 }
 

@@ -17,8 +17,8 @@ type MockPlugin struct{}
 func (m *MockPlugin) GetCurrentContext() string {
 	return ""
 }
-func (m *MockPlugin) IsValidLocator(locatr string) (string, error) {
-	return "", nil
+func (m *MockPlugin) IsValidLocator(locatr string) (bool, error) {
+	return true, nil
 }
 
 func (sl *MockPlugin) GetMinifiedDomAndLocatorMap() (

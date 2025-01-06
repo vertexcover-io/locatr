@@ -133,11 +133,11 @@ func (sl *seleniumPlugin) GetCurrentContext() string {
 	}
 }
 
-func (sl *seleniumPlugin) IsValidLocator(locatr string) (string, error) {
+func (sl *seleniumPlugin) IsValidLocator(locatr string) (bool, error) {
 	value, err := sl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
 	if value == "true" && err == nil {
-		return locatr, nil
+		return true, nil
 	} else {
-		return "", err
+		return false, err
 	}
 }

@@ -77,7 +77,7 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 		return nil, err
 	}
 	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
-	client := CreateNewHttpClient(fmt.Sprintf("%s", joinedUrl))
+	client := CreateNewHttpClient(joinedUrl.String())
 	resp, err := client.R().Get("")
 	if err != nil {
 		return nil, fmt.Errorf("%v : %v", ErrFailedConnectingToAppiumServer, err)

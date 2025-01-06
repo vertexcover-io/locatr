@@ -23,6 +23,7 @@ var MAYBE_UNIQUE_XPATH_ATTRIBUTES = []string{
 	"text",
 }
 
+// nolint:unused
 func iterateNodes(node *xmlquery.Node, depth int) {
 	if node == nil {
 		return
@@ -242,6 +243,8 @@ func attrsToMap(attrs []xmlquery.Attr) map[string]string {
 	}
 	return attrMap
 }
+
+// nolint:unused
 func printLocatrs(locatrs []string) {
 	fmt.Printf("[")
 	for i, l := range locatrs {

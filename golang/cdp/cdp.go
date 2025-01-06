@@ -166,11 +166,11 @@ func (cPlugin *cdpPlugin) GetCurrentContext() string {
 		return ""
 	}
 }
-func (cPlugin *cdpPlugin) IsValidLocator(locatr string) (string, error) {
+func (cPlugin *cdpPlugin) IsValidLocator(locatr string) (bool, error) {
 	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
 	if value == "true" && err == nil {
-		return locatr, nil
+		return true, nil
 	} else {
-		return "", err
+		return false, err
 	}
 }
