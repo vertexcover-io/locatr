@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 
+	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
 	"github.com/vertexcover-io/locatr/golang/llm"
@@ -81,20 +82,27 @@ func handleInitialHandshake(message incomingMessage) error {
 		}
 		connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrCdpConnectionCreation, err)
+			return fmt.Errorf("%w: %w", ErrCdpConnectionCreation, err)
 		}
 		cdpLocatr, err := cdpLocatr.NewCdpLocatr(connection, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrCdpLocatrCreation, err)
+			return fmt.Errorf("%w: %w", ErrCdpLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
 	case "selenium":
 		settings := message.Settings
 		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrSeleniumLocatrCreation, err)
+			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = seleniumLocatr
+	case "appium":
+		settings := message.Settings
+		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(settings.AppiumUrl, settings.AppiumSessionId, baseLocatrOpts)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
+		}
+		clientAndLocatrs[message.ClientId] = appiumLocatr
 	}
 	return nil
 }
