@@ -26,6 +26,7 @@ from locatr.exceptions import (
 )
 from locatr.schema import (
     InitialHandshakeMessage,
+    LocatrAppiumSettings,
     LocatrCdpSettings,
     LocatrSeleniumSettings,
     MessageType,
@@ -41,7 +42,9 @@ class Locatr:
 
     def __init__(
         self,
-        locatr_settings: Union[LocatrCdpSettings, LocatrSeleniumSettings],
+        locatr_settings: Union[
+            LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
+        ],
         debug: bool = False,
     ) -> None:
         self._settings = locatr_settings
