@@ -1,5 +1,4 @@
 # Locatr 
-
 Locatr package helps you to find HTML locators on a webpage using prompts and llms.
 
 ## Overview 
