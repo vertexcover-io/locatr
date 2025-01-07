@@ -1,7 +1,6 @@
 package appiumLocatr
 
 import (
-	"fmt"
 	"strings"
 
 	locatr "github.com/vertexcover-io/locatr/golang"
@@ -49,12 +48,11 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	if platFormName == "" {
 		platFormName = capabilities.Value.Cap.PlatformName
 	}
-	platform := strings.ToLower(capabilities.Value.PlatformName)
-	eSpec, err := minifySource(pageSource, platform)
+	eSpec, err := minifySource(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, err
 	}
-	locatrMap, err := mapElementsToJson(pageSource, platform)
+	locatrMap, err := mapElementsToJson(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,10 +75,8 @@ func (apPlugin *appiumPlugin) GetCurrentContext() string {
 
 func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (bool, error) {
 	if err := apPlugin.client.FindElement(locatr); err == nil {
-		fmt.Println("error in is valid locatr", err)
 		return true, nil
 	} else {
-		fmt.Println("not a valid locatr", locatr)
 		return false, err
 	}
 }

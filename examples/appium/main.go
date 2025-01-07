@@ -27,13 +27,13 @@ func main() {
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		"https://staging.pcloudy.com/appiumcloud/wd/hub",
-		"e4432b14-cc80-4f69-88fa-0096cfe9374f", bLocatr,
+		"22dca751-941f-4335-b8bc-75cc75f2e382", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	l, err := aLocatr.GetLocatrStr("Airplane Mode id")
+	l, err := aLocatr.GetLocatrStr("Network and Internet id")
 	if err != nil {
 		fmt.Println("erorr getting locatr", err)
 	}

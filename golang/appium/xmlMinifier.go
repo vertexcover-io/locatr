@@ -222,10 +222,7 @@ func isValidElement(
 		return true
 	}
 	visible := isElementVisible(element, platform)
-	if !visible {
-		return false
-	}
-	return true
+	return visible
 }
 
 func isXpathUnique(xPath string, element *xmlquery.Node) (bool, int) {

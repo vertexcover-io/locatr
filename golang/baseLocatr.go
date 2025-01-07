@@ -195,7 +195,6 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (string, error) {
 	}
 
 	l.logger.Info("Extracting element ID using LLM")
-	fmt.Println(minifiedDOM.ContentStr())
 	llmOutputs, err := l.locateElementId(minifiedDOM.ContentStr(), userReq)
 	if err != nil {
 		l.logger.Error(fmt.Sprintf("Failed to locate element ID: %v", err))

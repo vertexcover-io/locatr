@@ -16,10 +16,8 @@ type AppiumClient struct {
 }
 
 type appiumPageSourceResponse struct {
-	// SessionId string `json:"sessionId"`
 	SessionId string `json:"sessionId,omitempty"`
 	Value     string `json:"value"`
-	// Value string `json:"value"`
 }
 
 type appiumGetElementResponse struct {
@@ -80,7 +78,6 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 		return nil, err
 	}
 	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
-	fmt.Println(joinedUrl.String())
 	client := CreateNewHttpClient(joinedUrl.String())
 	resp, err := client.R().Get("/")
 	if err != nil {
@@ -125,7 +122,6 @@ func (ac *AppiumClient) FindElement(xpath string) error {
 		return fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	if response.StatusCode() != 200 {
-		fmt.Println("here?? yayayy", string(response.Body()))
 		var result appiumGetElementResponse
 		err = json.Unmarshal(response.Body(), &result)
 		if err != nil {
@@ -145,7 +141,6 @@ func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
 	err = json.Unmarshal(response.Body(), &result)
 	if response.StatusCode() != 200 {
 		if err != nil {
-			fmt.Println("here???", string(response.Body()))
 			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 		}
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
@@ -160,7 +155,7 @@ func (ac *AppiumClient) GetCurrentActivity() (string, error) {
 	}
 	r := response.Result().(*getActivityResponse)
 	if response.StatusCode() != 200 {
-		return "", fmt.Errorf("%w : %w", ErrSessionNotActive, ac.sessionId)
+		return "", fmt.Errorf("%w : %s", ErrSessionNotActive, ac.sessionId)
 	}
 	return r.Value, nil
 }
