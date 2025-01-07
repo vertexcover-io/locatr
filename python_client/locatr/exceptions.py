@@ -32,7 +32,7 @@ class LocatrSocketError(Exception):
         super().__init__(msg)
 
 
-class LocatrSocketNotAvialable(Exception):
+class LocatrSocketNotAvailable(Exception):
     def __init__(self, msg: str) -> None:
         super().__init__(msg)
 

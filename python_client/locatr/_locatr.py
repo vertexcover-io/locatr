@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from pydantic import ValidationError
 
-from locatr._constants import SocketFilePath
+from locatr._constants import SOCKET_TIMEOUT, SocketFilePath
 from locatr._utils import (
     change_socket_file,
     check_socket_in_use,
@@ -75,6 +75,7 @@ class Locatr:
     def _initialize_socket(self):
         try:
             self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self._socket.settimeout(SOCKET_TIMEOUT)
             self._wait_for_server()
         except Exception as e:
             raise SocketInitializationError(f"Failed to initialize socket {e}")
