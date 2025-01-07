@@ -3,27 +3,24 @@ import socket
 import struct
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+from locatr._constants import VERSION, SocketFilePath
 from locatr._utils import (
-    check_socket_in_use,
     change_socket_file,
-    locatr_go_cleanup,
-    spawn_locatr_process,
-    log_output,
-    create_packed_message,
-    wait_for_socket,
-    send_data_over_socket,
+    check_socket_in_use,
     compare_version,
     convert_version,
+    create_packed_message,
+    locatr_go_cleanup,
     read_data_over_socket,
+    send_data_over_socket,
+    spawn_locatr_process,
 )
-from locatr._constants import VERSION, SocketFilePath
 from locatr.exceptions import (
     LocatrBinaryNotFound,
     LocatrClientServerVersionMisMatch,
     LocatrSocketError,
-    LocatrSocketNotAvailable,
 )
 
 
@@ -98,11 +95,19 @@ class TestUtils(unittest.TestCase):
     @patch("socket.socket")
     def test_read_data_over_socket(self, mock_socket):
         mock_socket_instance = mock_socket.return_value
-        mock_socket_instance.recv.side_effect = [bytes(VERSION), struct.pack(">I", 4), b"data"]
+        mock_socket_instance.recv.side_effect = [
+            bytes(VERSION),
+            struct.pack(">I", 4),
+            b"data",
+        ]
         data = read_data_over_socket(mock_socket_instance)
         self.assertEqual(data, b"data")
 
-        mock_socket_instance.recv.side_effect = [b"\x00\x00\x00", struct.pack(">I", 4), b"data"]
+        mock_socket_instance.recv.side_effect = [
+            b"\x00\x00\x00",
+            struct.pack(">I", 4),
+            b"data",
+        ]
         with self.assertRaises(LocatrClientServerVersionMisMatch):
             read_data_over_socket(mock_socket_instance)
 
@@ -113,5 +118,3 @@ class TestUtils(unittest.TestCase):
         mock_socket_instance.recv.side_effect = Exception("Unknown error")
         with self.assertRaises(LocatrSocketError):
             read_data_over_socket(mock_socket_instance)
-
-
