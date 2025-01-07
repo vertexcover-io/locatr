@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/reranker"
-
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 )
 
 func main() {
@@ -19,18 +18,22 @@ func main() {
 		os.Getenv("LLM_API_KEY"),
 	)
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
-	bLocatr := baseLocatr.BaseLocatrOptions{
+	bLocatr := locatr.BaseLocatrOptions{
 		ReRankClient: reRankClient,
 		LlmClient:    llmClient,
 		LogConfig: logger.LogConfig{
 			Level: logger.Debug,
 		},
 	}
-	aLocatr, err := appiumLocatr.NewAppiumLocatr("http://172.30.192.1:4723/", "a7e5b9d7-60a8-4f1c-bdb3-93a0956e4ef1", bLocatr)
+	aLocatr, err := appiumLocatr.NewAppiumLocatr(
+		"https://staging.pcloudy.com/appiumcloud/wd/hub",
+		"e4432b14-cc80-4f69-88fa-0096cfe9374f", bLocatr,
+	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
+		return
 	}
-	l, err := aLocatr.GetLocatrStr("Give me locatr that shows the current time.")
+	l, err := aLocatr.GetLocatrStr("Airplane Mode id")
 	if err != nil {
 		fmt.Println("erorr getting locatr", err)
 	}

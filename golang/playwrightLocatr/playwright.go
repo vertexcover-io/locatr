@@ -7,7 +7,6 @@ import (
 
 	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 )
 
@@ -17,18 +16,18 @@ type playwrightPlugin struct {
 
 type PlaywrightLocator struct {
 	page   playwright.Page
-	locatr *baseLocatr.BaseLocatr
+	locatr *locatr.BaseLocatr
 }
 
 var ErrUnableToLoadJsScriptsThroughPlaywright = errors.New("unable to load js script through playwright")
 
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
-func NewPlaywrightLocatr(page playwright.Page, options baseLocatr.BaseLocatrOptions) *PlaywrightLocator {
+func NewPlaywrightLocatr(page playwright.Page, options locatr.BaseLocatrOptions) *PlaywrightLocator {
 	pwPlugin := &playwrightPlugin{page: page}
 
 	return &PlaywrightLocator{
 		page:   page,
-		locatr: baseLocatr.NewBaseLocatr(pwPlugin, options),
+		locatr: locatr.NewBaseLocatr(pwPlugin, options),
 	}
 }
 
@@ -106,7 +105,7 @@ func (pl *PlaywrightLocator) WriteResultsToFile() {
 }
 
 // GetLocatrResults returns the locatr results.
-func (pl *PlaywrightLocator) GetLocatrResults() []baseLocatr.LocatrResult {
+func (pl *PlaywrightLocator) GetLocatrResults() []locatr.LocatrResult {
 	return pl.locatr.GetLocatrResults()
 }
 func (pl *playwrightPlugin) GetCurrentContext() string {

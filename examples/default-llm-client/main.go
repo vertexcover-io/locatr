@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 )
 
@@ -40,7 +40,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	options := baseLocatr.BaseLocatrOptions{
+	options := locatr.BaseLocatrOptions{
 		UseCache: true,
 	} // llm client is created by default by reading the environment variables.
 

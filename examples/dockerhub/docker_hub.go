@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
@@ -51,7 +51,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := baseLocatr.BaseLocatrOptions{UseCache: true, LogConfig: logger.LogConfig{Level: logger.Debug}, LlmClient: llmClient}
+	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: logger.LogConfig{Level: logger.Debug}, LlmClient: llmClient}
 
 	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 

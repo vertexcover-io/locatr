@@ -11,8 +11,8 @@ import (
 	"os"
 	"strconv"
 
+	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
@@ -22,10 +22,10 @@ import (
 
 var VERSION = []uint8{0, 0, 1}
 
-var clientAndLocatrs = make(map[string]baseLocatr.LocatrInterface)
+var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
 
-func createLocatrOptions(message incomingMessage) (baseLocatr.BaseLocatrOptions, error) {
-	opts := baseLocatr.BaseLocatrOptions{}
+func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
+	opts := locatr.BaseLocatrOptions{}
 	llmConfig := message.Settings.LlmSettings
 
 	if llmConfig.ReRankerApiKey != "" {
@@ -47,7 +47,7 @@ func createLocatrOptions(message incomingMessage) (baseLocatr.BaseLocatrOptions,
 		llmConfig.LlmApiKey,
 	)
 	if err != nil {
-		return baseLocatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
+		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
 	}
 	opts.LlmClient = llmClient
 
