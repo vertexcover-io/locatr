@@ -1,4 +1,4 @@
-package baseLocatr
+package locatr
 
 import (
 	"fmt"

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/selenium"
 )
@@ -17,7 +16,7 @@ type seleniumPlugin struct {
 
 type seleniumLocatr struct {
 	driver selenium.WebDriver
-	locatr *baseLocatr.BaseLocatr
+	locatr *locatr.BaseLocatr
 }
 
 var ErrUnableToLoadJsScriptSelenium = errors.New("unable to load js script through playwright")
@@ -25,7 +24,7 @@ var ErrUnableToLoadJsScriptSelenium = errors.New("unable to load js script throu
 // NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium seesion.
 func NewRemoteConnSeleniumLocatr(serverUrl string,
 	sessionId string,
-	opt baseLocatr.BaseLocatrOptions,
+	opt locatr.BaseLocatrOptions,
 ) (*seleniumLocatr, error) {
 	wd, err := selenium.ConnectRemote(serverUrl, sessionId)
 	if err != nil {
@@ -35,17 +34,17 @@ func NewRemoteConnSeleniumLocatr(serverUrl string,
 	seleniumPlugin := seleniumPlugin{driver: wd}
 	locatr := seleniumLocatr{
 		driver: wd,
-		locatr: baseLocatr.NewBaseLocatr(&seleniumPlugin, opt),
+		locatr: locatr.NewBaseLocatr(&seleniumPlugin, opt),
 	}
 	return &locatr, nil
 }
 
 func NewSeleniumLocatr(driver selenium.WebDriver,
-	options baseLocatr.BaseLocatrOptions) (*seleniumLocatr, error) {
+	options locatr.BaseLocatrOptions) (*seleniumLocatr, error) {
 	plugin := &seleniumPlugin{
 		driver: driver,
 	}
-	baseLocatr := baseLocatr.NewBaseLocatr(plugin, options)
+	baseLocatr := locatr.NewBaseLocatr(plugin, options)
 	return &seleniumLocatr{
 		driver: driver,
 		locatr: baseLocatr,
@@ -96,7 +95,7 @@ func (pl *seleniumLocatr) WriteResultsToFile() {
 	pl.locatr.WriteLocatrResultsToFile()
 }
 
-func (pl *seleniumLocatr) GetLocatrResults() []baseLocatr.LocatrResult {
+func (pl *seleniumLocatr) GetLocatrResults() []locatr.LocatrResult {
 	return pl.locatr.GetLocatrResults()
 }
 

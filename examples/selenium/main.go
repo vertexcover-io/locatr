@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	"log"
+	"os"
+	"time"
+
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
 	"github.com/vertexcover-io/selenium"
 	"github.com/vertexcover-io/selenium/chrome"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
-	options := baseLocatr.BaseLocatrOptions{
+	options := locatr.BaseLocatrOptions{
 		UseCache:     true,
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.

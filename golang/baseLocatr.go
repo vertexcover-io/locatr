@@ -1,4 +1,4 @@
-package baseLocatr
+package locatr
 
 import (
 	_ "embed"
@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
@@ -261,7 +260,7 @@ func (l *BaseLocatr) getValidLocator(locators []string) (string, error) {
 	return "", fmt.Errorf("%v %v", ErrUnableToFindValidLocator, errors.New("all locatrs exhausted"))
 }
 func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
-	chunks := reranker.SplitHtml(htmlDom, locatr.HTML_SEPARATORS, CHUNK_SIZE)
+	chunks := reranker.SplitHtml(htmlDom, HTML_SEPARATORS, CHUNK_SIZE)
 	l.logger.Debug(fmt.Sprintf("SplitHtml resulted in %d chunks.", len(chunks)))
 	request := reranker.ReRankRequest{
 		Query:     userReq,
@@ -286,7 +285,7 @@ func (l *BaseLocatr) llmGetElementId(htmlDom string, userReq string) (*llmLocato
 		return nil, fmt.Errorf("failed to marshal web input json: %w", err)
 	}
 
-	prompt := fmt.Sprintf("%s%s", locatr.LOCATR_PROMPT, string(jsonData))
+	prompt := fmt.Sprintf("%s%s", LOCATR_PROMPT, string(jsonData))
 
 	llmResponse, err := l.llmClient.ChatCompletion(prompt)
 	if err != nil {
