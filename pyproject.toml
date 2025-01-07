@@ -1,30 +1,50 @@
-[tool.poetry]
-name = "test_locatr"
-version = "0.19.0"
-description = "Get HTML elements locators using natural language."
-authors = ["Neeraj319 <neeraj@vertexcover.io>"]
-license = "MIT"
-readme = "python_client/README.md"
-packages = [
-    { include = "locatr", from = "python_client" },
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+  "python_client/*",
+  "LICENSE",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python_client/locatr"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+	"python_client/locatr/bin/locatr.bin",
+	"python_client/",
+]
+ignore-vcs = true
+exclude = [
+	"*.cache"
+]
+
+[project]
+name = "test_locatr"
+version = "0.27.0"
+description = "Get HTML/XML elements css/xpath selectors using natural language."
+readme = "python_client/README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pydantic>=2.10.4",
+]
+authors = [{ name = "Neeraj319", email = "neeraj@vertexcover.io"}]
 include = [
     "LICENSE",
     "python_client/locatr/bin/locatr.bin"
 ]
+license = "MIT"
 
-[tool.poetry.dependencies]
-python = ">=3.9"
-pydantic = "^2.10.4"
-
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.10.0"
-pre-commit = "^4.0.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "ruff>=0.8.6",
+]
 
 [tool.black]
 line-length = 80
+
+[tool.pytest.ini_options]
+pythonpath = ["./python_client"]
