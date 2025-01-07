@@ -100,7 +100,7 @@ func handleInitialHandshake(message incomingMessage) error {
 		settings := message.Settings
 		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(settings.AppiumUrl, settings.AppiumSessionId, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
+			return fmt.Errorf("%w: %w", ErrAppiumLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = appiumLocatr
 	}

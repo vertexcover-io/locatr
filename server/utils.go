@@ -43,7 +43,7 @@ func validateIncomingMessage(message incomingMessage) error {
 				return ErrMissingAppiumSessionId
 			}
 		} else {
-			return fmt.Errorf("%v: '%s'. Expected 'selenium' or 'cdp' or 'appium'", ErrInvalidPluginType, message.Settings.PluginType)
+			return fmt.Errorf("%w: '%s'. Expected 'selenium' or 'cdp' or 'appium'", ErrInvalidPluginType, message.Settings.PluginType)
 		}
 	} else if message.Type == "locatr_request" {
 		if message.UserRequest == "" {

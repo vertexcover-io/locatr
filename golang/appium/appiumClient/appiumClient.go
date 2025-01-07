@@ -84,10 +84,10 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 	client := CreateNewHttpClient(joinedUrl.String())
 	resp, err := client.R().Get("/")
 	if err != nil {
-		return nil, fmt.Errorf("%v : %v", ErrFailedConnectingToAppiumServer, err)
+		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("%v : %s", ErrSessionNotActive, sessionId)
+		return nil, fmt.Errorf("%w : %s", ErrSessionNotActive, sessionId)
 	}
 	return &AppiumClient{
 		httpClient: client,
@@ -160,7 +160,7 @@ func (ac *AppiumClient) GetCurrentActivity() (string, error) {
 	}
 	r := response.Result().(*getActivityResponse)
 	if response.StatusCode() != 200 {
-		return "", fmt.Errorf("%s : %s", ErrSessionNotActive, ac.sessionId)
+		return "", fmt.Errorf("%w : %w", ErrSessionNotActive, ac.sessionId)
 	}
 	return r.Value, nil
 }
