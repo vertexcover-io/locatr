@@ -3,8 +3,8 @@ package appiumLocatr
 import (
 	"strings"
 
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 )
 
@@ -13,10 +13,10 @@ type appiumPlugin struct {
 }
 
 type appiumLocatr struct {
-	locatr *baseLocatr.BaseLocatr
+	locatr *locatr.BaseLocatr
 }
 
-func NewAppiumLocatr(serverUrl string, sessionId string, opts baseLocatr.BaseLocatrOptions) (*appiumLocatr, error) {
+func NewAppiumLocatr(serverUrl string, sessionId string, opts locatr.BaseLocatrOptions) (*appiumLocatr, error) {
 	apC, err := appiumClient.NewAppiumClient(serverUrl, sessionId)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func NewAppiumLocatr(serverUrl string, sessionId string, opts baseLocatr.BaseLoc
 	plugin := &appiumPlugin{
 		client: apC,
 	}
-	baseLocatr := baseLocatr.NewBaseLocatr(plugin, opts)
+	baseLocatr := locatr.NewBaseLocatr(plugin, opts)
 	locatr := &appiumLocatr{
 		locatr: baseLocatr,
 	}
@@ -44,12 +44,15 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	if err != nil {
 		return nil, nil, err
 	}
-	platform := strings.ToLower(capabilities.Value.PlatformName)
-	eSpec, err := minifySource(pageSource, platform)
+	platFormName := capabilities.Value.PlatformName
+	if platFormName == "" {
+		platFormName = capabilities.Value.Cap.PlatformName
+	}
+	eSpec, err := minifySource(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, err
 	}
-	locatrMap, err := mapElementsToJson(pageSource, platform)
+	locatrMap, err := mapElementsToJson(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -57,6 +60,13 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 }
 
 func (apPlugin *appiumPlugin) GetCurrentContext() string {
+	capabilities, err := apPlugin.client.GetCapabilities()
+	if err != nil {
+		return ""
+	}
+	if strings.ToLower(capabilities.Value.PlatformName) != "andriod" {
+		return ""
+	}
 	if currentActivity, err := apPlugin.client.GetCurrentActivity(); err != nil {
 		return currentActivity
 	}
@@ -83,6 +93,6 @@ func (apLocatr *appiumLocatr) WriteResultsToFile() {
 	apLocatr.locatr.WriteLocatrResultsToFile()
 }
 
-func (apLocatr *appiumLocatr) GetLocatrResults() []baseLocatr.LocatrResult {
+func (apLocatr *appiumLocatr) GetLocatrResults() []locatr.LocatrResult {
 	return apLocatr.locatr.GetLocatrResults()
 }

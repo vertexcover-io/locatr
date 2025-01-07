@@ -13,7 +13,6 @@ import (
 	"github.com/mafredri/cdp/protocol/runtime"
 	"github.com/mafredri/cdp/rpcc"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	baseLocatr "github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"gopkg.in/validator.v2"
 )
@@ -25,7 +24,7 @@ type cdpPlugin struct {
 type cdpLocatr struct {
 	client     *cdp.Client
 	connection *rpcc.Conn
-	locatr     *baseLocatr.BaseLocatr
+	locatr     *locatr.BaseLocatr
 }
 
 type CdpConnectionOptions struct {
@@ -55,12 +54,12 @@ func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	return conn, nil
 }
 
-func NewCdpLocatr(connection *rpcc.Conn, locatrOptions baseLocatr.BaseLocatrOptions) (*cdpLocatr, error) {
+func NewCdpLocatr(connection *rpcc.Conn, locatrOptions locatr.BaseLocatrOptions) (*cdpLocatr, error) {
 	client := cdp.NewClient(connection)
 	cdpPlugin := &cdpPlugin{client: client}
 	return &cdpLocatr{
 		client:     client,
-		locatr:     baseLocatr.NewBaseLocatr(cdpPlugin, locatrOptions),
+		locatr:     locatr.NewBaseLocatr(cdpPlugin, locatrOptions),
 		connection: connection,
 	}, nil
 }
@@ -131,7 +130,7 @@ func (cdpLocatr *cdpLocatr) WriteResultsToFile() {
 	cdpLocatr.locatr.WriteLocatrResultsToFile()
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatrResults() []baseLocatr.LocatrResult {
+func (cdpLocatr *cdpLocatr) GetLocatrResults() []locatr.LocatrResult {
 	return cdpLocatr.locatr.GetLocatrResults()
 }
 

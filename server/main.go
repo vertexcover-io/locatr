@@ -11,7 +11,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
+	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
@@ -21,10 +22,10 @@ import (
 
 var VERSION = []uint8{0, 0, 1}
 
-var clientAndLocatrs = make(map[string]baseLocatr.LocatrInterface)
+var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
 
-func createLocatrOptions(message incomingMessage) (baseLocatr.BaseLocatrOptions, error) {
-	opts := baseLocatr.BaseLocatrOptions{}
+func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
+	opts := locatr.BaseLocatrOptions{}
 	llmConfig := message.Settings.LlmSettings
 
 	if llmConfig.ReRankerApiKey != "" {
@@ -46,7 +47,7 @@ func createLocatrOptions(message incomingMessage) (baseLocatr.BaseLocatrOptions,
 		llmConfig.LlmApiKey,
 	)
 	if err != nil {
-		return baseLocatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
+		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
 	}
 	opts.LlmClient = llmClient
 
@@ -81,20 +82,27 @@ func handleInitialHandshake(message incomingMessage) error {
 		}
 		connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrCdpConnectionCreation, err)
+			return fmt.Errorf("%w: %w", ErrCdpConnectionCreation, err)
 		}
 		cdpLocatr, err := cdpLocatr.NewCdpLocatr(connection, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrCdpLocatrCreation, err)
+			return fmt.Errorf("%w: %w", ErrCdpLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
 	case "selenium":
 		settings := message.Settings
 		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
 		if err != nil {
-			return fmt.Errorf("%v: %w", ErrSeleniumLocatrCreation, err)
+			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = seleniumLocatr
+	case "appium":
+		settings := message.Settings
+		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(settings.AppiumUrl, settings.AppiumSessionId, baseLocatrOpts)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrAppiumLocatrCreation, err)
+		}
+		clientAndLocatrs[message.ClientId] = appiumLocatr
 	}
 	return nil
 }

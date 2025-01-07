@@ -13,11 +13,11 @@ def setup_locatr() -> Locatr:
         model_name=os.environ.get("LLM_MODEL"),
         reranker_api_key=os.environ.get("COHERE_API_KEY"),
     )
-    locatr_settings_cdp = LocatrCdpSettings(
+    locatr_settings_playwright = LocatrCdpSettings(
         llm_settings=llm_settings,
         cdp_url="http://localhost:9222",
     )
-    return Locatr(locatr_settings_cdp)
+    return Locatr(locatr_settings_playwright)
 
 
 def main(cdp_locatr: Locatr):

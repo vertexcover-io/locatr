@@ -21,8 +21,10 @@ from locatr.exceptions import (
     LocatrClientServerVersionMisMatch,
     LocatrExecutionError,
     LocatrSocketError,
-    LocatrSocketNotAvialable,
+    LocatrSocketNotAvailable,
 )
+
+NAME = "/tmp/locatr{}.sock"
 
 
 def check_socket_in_use(path: str):
@@ -32,12 +34,9 @@ def check_socket_in_use(path: str):
 
 
 def change_socket_file() -> str:
-    name = "/tmp/locatr{}.sock"
-    name = name.format(name, random.randint(0, 100))
-
+    name = NAME.format(random.randint(0, 100000))
     while check_socket_in_use(name):
-        name = name.format(name, random.randint(0, 100))
-
+        name = NAME.format(random.randint(0, 100000))
     return name
 
 
@@ -98,8 +97,8 @@ def wait_for_socket(sock: socket.socket):
         except socket.error:
             index += 1
             time.sleep(1)
-    raise LocatrSocketNotAvialable(
-        f"Locatr socket not avialable after "
+    raise LocatrSocketNotAvailable(
+        f"Locatr socket not available after "
         f"{WAIT_FOR_SOCKET_MAXIMUM_RETRIES} retries"
     )
 

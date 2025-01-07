@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/playwright-community/playwright-go"
-	baselocatr "github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 	"github.com/vertexcover-io/locatr/golang/reranker"
@@ -60,7 +60,7 @@ func readYamlFile(filePath string) (*evalConfigYaml, error) {
 	return &eval, nil
 }
 func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) playwrightLocatr.PlaywrightLocator {
-	locatrOptions := baselocatr.BaseLocatrOptions{}
+	locatrOptions := locatr.BaseLocatrOptions{}
 	if evalConfig.Config.UseCache {
 		locatrOptions.UseCache = true
 	}

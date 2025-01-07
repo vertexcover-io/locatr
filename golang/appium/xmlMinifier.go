@@ -24,7 +24,7 @@ var MAYBE_UNIQUE_XPATH_ATTRIBUTES = []string{
 }
 
 // nolint:unused
-func iterateNodes(node *xmlquery.Node, depth int) {
+func printXmlTree(node *xmlquery.Node, depth int) {
 	if node == nil {
 		return
 	}
@@ -43,9 +43,25 @@ func iterateNodes(node *xmlquery.Node, depth int) {
 	fmt.Println()
 
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		iterateNodes(child, depth+1)
+		printXmlTree(child, depth+1)
 	}
 }
+
+func findFirstElementNode(node *xmlquery.Node) *xmlquery.Node {
+	if node.Type == xmlquery.ElementNode {
+		return node
+	}
+
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		found := findFirstElementNode(child)
+		if found != nil {
+			return found
+		}
+	}
+
+	return nil
+}
+
 func getElementHierarchyXpath(element *xmlquery.Node) string {
 	var parts []string
 	for element != nil {
@@ -90,6 +106,9 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 		return locatrs
 	}
 	xpathStr := getElementHierarchyXpath(element)
+	if xpathStr == "" {
+		return locatrs
+	}
 	locatrs = append(locatrs, fmt.Sprintf("xpath,%s", xpathStr))
 	for _, uniqueAttr := range MAYBE_UNIQUE_XPATH_ATTRIBUTES {
 		if attrValue := element.SelectAttr(uniqueAttr); attrValue != "" {
@@ -185,7 +204,7 @@ func getVisibleText(
 	if platform == "android" {
 		return strings.TrimSpace(element.SelectAttr("text"))
 	} else {
-		if labelText := strings.TrimSpace(element.SelectAttr("lable")); labelText != "" {
+		if labelText := strings.TrimSpace(element.SelectAttr("label")); labelText != "" {
 			return labelText
 		} else {
 			return strings.TrimSpace(element.SelectAttr("value"))
@@ -203,11 +222,7 @@ func isValidElement(
 		return true
 	}
 	visible := isElementVisible(element, platform)
-	if !visible {
-		fmt.Println("element not visible", element, element.Data)
-		return false
-	}
-	return true
+	return visible
 }
 
 func isXpathUnique(xPath string, element *xmlquery.Node) (bool, int) {
@@ -215,8 +230,7 @@ func isXpathUnique(xPath string, element *xmlquery.Node) (bool, int) {
 	for root.Parent != nil {
 		root = root.Parent
 	}
-
-	allElements := xmlquery.Find(root.FirstChild.NextSibling.NextSibling, xPath)
+	allElements := xmlquery.Find(findFirstElementNode(root), xPath)
 	elemLen := len(allElements)
 	if elemLen == 1 {
 		return true, -1
@@ -292,10 +306,12 @@ func minifySource(source string, platform string) (*elementSpec.ElementSpec, err
 	if err != nil {
 		return nil, err
 	}
+	firstElementNode := findFirstElementNode(root)
 	spec, err := createElementSpec(
-		root.FirstChild.NextSibling.NextSibling,
-		root.FirstChild.NextSibling.NextSibling,
-		platform)
+		firstElementNode,
+		firstElementNode,
+		platform,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -321,6 +337,6 @@ func mapElementsToJson(source string, platform string) (*elementSpec.IdToLocator
 			}
 		}
 	}
-	processElement(root.FirstChild.NextSibling.NextSibling)
+	processElement(findFirstElementNode(root))
 	return &elementMap, nil
 }

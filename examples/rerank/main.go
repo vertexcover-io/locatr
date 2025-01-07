@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 )
@@ -43,7 +43,7 @@ func main() {
 	time.Sleep(5 * time.Second) // wait for page to load
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
-	options := baseLocatr.BaseLocatrOptions{
+	options := locatr.BaseLocatrOptions{
 		UseCache:     true,
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
