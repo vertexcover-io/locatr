@@ -15,12 +15,12 @@ from locatr._utils import (
     locatr_go_cleanup,
     read_data_over_socket,
     send_data_over_socket,
-    spawn_locatr_process,
+    wait_for_socket,
 )
 from locatr.exceptions import (
-    LocatrBinaryNotFound,
     LocatrClientServerVersionMisMatch,
     LocatrSocketError,
+    LocatrSocketNotAvailable,
 )
 
 
@@ -44,12 +44,6 @@ class TestUtils(unittest.TestCase):
             process.kill.assert_called_once()
             self.assertFalse(os.path.exists(SocketFilePath.path))
 
-    def test_spawn_locatr_process(self):
-        try:
-            spawn_locatr_process(["arg1", "arg2"])
-        except LocatrBinaryNotFound:
-            self.fail("LocatrBinaryNotFound was raised unexpectedly!")
-
     def test_create_packed_message(self):
         message = "test message"
         packed_message = create_packed_message(message)
@@ -58,17 +52,17 @@ class TestUtils(unittest.TestCase):
         )
         self.assertEqual(packed_message, expected_message)
 
-    # @patch("socket.socket.connect")
-    # def test_wait_for_socket(self, mock_connect):
-    #     mock_connect.side_effect = [socket.error] * 5 + [None]
-    #     sock = MagicMock()
-    #     sock.connect = mock_connect
-    #     wait_for_socket(sock)
-    #     self.assertEqual(mock_connect.call_count, 6)
+    @patch("socket.socket.connect")
+    def test_wait_for_socket(self, mock_connect):
+        mock_connect.side_effect = [socket.error] * 5 + [None]
+        sock = MagicMock()
+        sock.connect = mock_connect
+        wait_for_socket(sock)
+        self.assertEqual(mock_connect.call_count, 6)
 
-    #     mock_connect.side_effect = socket.error
-    #     with self.assertRaises(LocatrSocketNotAvailable):
-    #         wait_for_socket(sock)
+        mock_connect.side_effect = socket.error
+        with self.assertRaises(LocatrSocketNotAvailable):
+            wait_for_socket(sock)
 
     @patch("socket.socket.send")
     def test_send_data_over_socket(self, mock_send):
