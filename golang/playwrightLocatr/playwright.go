@@ -81,8 +81,9 @@ func (pl *playwrightPlugin) evaluateJsFunction(function string) (string, error) 
 
 // evaluateJsScript runs the given javascript script in the browser.
 func (pl *playwrightPlugin) evaluateJsScript(scriptContent string) error {
-	if _, err := pl.page.Evaluate(string(scriptContent)); err != nil {
-		return fmt.Errorf("error evaluating js script: %v", err)
+	if _, err := pl.page.Evaluate(scriptContent); err != nil {
+		fmt.Println("here ---")
+		return err
 	}
 	return nil
 }
@@ -116,8 +117,11 @@ func (pl *playwrightPlugin) GetCurrentContext() string {
 		return ""
 	}
 }
-func (pl *playwrightPlugin) IsValidLocator(locatr string) (bool, error) {
-	value, err := pl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
+func (pl *playwrightPlugin) IsValidLocator(locatrString string) (bool, error) {
+	if err := pl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughPlaywright, err)
+	}
+	value, err := pl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
 		return true, nil
 	} else {

@@ -210,7 +210,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (*LocatrOutput, error) {
 		if len(llmOutputs) > 0 {
 			l.locatrResults = append(l.locatrResults,
 				createLocatrResultFromOutput(
-					userReq, currentUrl, []string{}, llmOutputs,
+					userReq, currentUrl, []string{}, llmOutputs, "",
 				)...,
 			)
 		}
@@ -228,7 +228,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (*LocatrOutput, error) {
 		l.logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
 		return nil, ErrUnableToFindValidLocator
 	}
-	locatrOUtput := &LocatrOutput{
+	locatrOutput := &LocatrOutput{
 		selectorType,
 		validLocator,
 	}
@@ -238,12 +238,13 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (*LocatrOutput, error) {
 			currentUrl,
 			locators,
 			llmOutputs,
+			selectorType,
 		)...,
 	)
 	if l.options.UseCache {
 		l.logger.Info(fmt.Sprintf("Adding locatrs of `%s` to cache", userReq))
 		l.logger.Debug(fmt.Sprintf("Adding Locatrs of `%s`: `%v` to cache", userReq, locators))
-		l.addCachedLocatrs(currentUrl, userReq, locators)
+		l.addCachedLocatrs(currentUrl, userReq, locatrOutput)
 		value, err := json.Marshal(l.cachedLocatrs)
 		if err != nil {
 			l.logger.Error(fmt.Sprintf("Failed to marshal cache: %v", err))
@@ -254,7 +255,7 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (*LocatrOutput, error) {
 			return nil, fmt.Errorf("%w: %w", ErrFailedToWriteCache, err)
 		}
 	}
-	return locatrOUtput, nil
+	return locatrOutput, nil
 
 }
 
@@ -442,7 +443,11 @@ func (l *BaseLocatr) GetLocatrResults() []LocatrResult {
 	return l.locatrResults
 }
 
-func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []string) {
+func (l *BaseLocatr) addCachedLocatrs(
+	url string,
+	locatrName string,
+	locatrOutput *LocatrOutput,
+) {
 	if _, ok := l.cachedLocatrs[url]; !ok {
 		l.logger.Debug(fmt.Sprintf("Domain `%s` not found in cache... Creating new cachedLocatrsDto", url))
 		l.cachedLocatrs[url] = []cachedLocatrsDto{}
@@ -451,13 +456,24 @@ func (l *BaseLocatr) addCachedLocatrs(url string, locatrName string, locatrs []s
 	for i, v := range l.cachedLocatrs[url] {
 		if v.LocatrName == locatrName {
 			l.logger.Debug(fmt.Sprintf("Found locatr `%s` in cache... Updating locators", locatrName))
-			l.cachedLocatrs[url][i].Locatrs = getUniqueStringArray(append(l.cachedLocatrs[url][i].Locatrs, locatrs...))
+			l.cachedLocatrs[url][i].Locatrs =
+				getUniqueStringArray(
+					append(l.cachedLocatrs[url][i].Locatrs,
+						locatrOutput.Selectors...,
+					))
+			l.cachedLocatrs[url][i].SelectorType = locatrOutput.SelectorType
 			return
 		}
 	}
 	if !found {
 		l.logger.Debug(fmt.Sprintf("Locatr `%s` not found in cache... Creating new locatr", locatrName))
-		l.cachedLocatrs[url] = append(l.cachedLocatrs[url], cachedLocatrsDto{LocatrName: locatrName, Locatrs: locatrs})
+		l.cachedLocatrs[url] =
+			append(l.cachedLocatrs[url],
+				cachedLocatrsDto{
+					LocatrName:   locatrName,
+					Locatrs:      locatrOutput.Selectors,
+					SelectorType: locatrOutput.SelectorType,
+				})
 	}
 }
 func (l *BaseLocatr) getLocatrsFromState(key string, currentContext string) ([]string, SelectorType, error) {
@@ -574,6 +590,7 @@ func createLocatrResultFromOutput(
 	currentUrl string,
 	allLocatrs []string,
 	output []locatrOutputDto,
+	selectorType SelectorType,
 ) []LocatrResult {
 	results := []LocatrResult{}
 	for _, outputDto := range output {
@@ -590,6 +607,7 @@ func createLocatrResultFromOutput(
 			AttemptNo:                outputDto.AttemptNo,
 			LlmErrorMessage:          outputDto.Error,
 			AllLocatrs:               allLocatrs,
+			SelectorType:             selectorType,
 		}
 		results = append(results, r)
 

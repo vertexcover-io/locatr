@@ -133,8 +133,11 @@ func (sl *seleniumPlugin) GetCurrentContext() string {
 	}
 }
 
-func (sl *seleniumPlugin) IsValidLocator(locatr string) (bool, error) {
-	value, err := sl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
+func (sl *seleniumPlugin) IsValidLocator(locatrString string) (bool, error) {
+	if err := sl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptSelenium, err)
+	}
+	value, err := sl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
 		return true, nil
 	} else {

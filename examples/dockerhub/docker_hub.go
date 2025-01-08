@@ -41,17 +41,19 @@ func main() {
 	if _, err := page.Goto("https://hub.docker.com/"); err != nil {
 		log.Fatalf("could not navigate to docker hub: %v", err)
 	}
-	time.Sleep(5 * time.Second) // wait for page to load
-
 	llmClient, err := llm.NewLlmClient(
 		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL_NAME"),
+		os.Getenv("LLM_MODEL"),
 		os.Getenv("LLM_API_KEY"),
 	)
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LogConfig: logger.LogConfig{Level: logger.Debug}, LlmClient: llmClient}
+	options := locatr.BaseLocatrOptions{UseCache: true,
+		LogConfig:       logger.LogConfig{Level: logger.Debug},
+		LlmClient:       llmClient,
+		ResultsFilePath: "docker_hub.json",
+	}
 
 	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
@@ -82,6 +84,7 @@ func main() {
 	time.Sleep(3 * time.Second)
 
 	tagsLoc, err := playWrightLocatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
+	playWrightLocatr.WriteResultsToFile()
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -90,6 +93,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not click on tags locator: %v", err)
 	}
-	playWrightLocatr.WriteResultsToFile()
 	time.Sleep(3 * time.Second)
 }

@@ -555,4 +555,3 @@ function isEquivalentStyle(style1, style2) {
 window.minifyHTML = minifyHTML;
 window.mapElementsToJson = mapElementsToJson;
 window.isValidLocator = isValidLocator;
-window.isEquivalentStyle = isEquivalentStyle;

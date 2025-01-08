@@ -166,8 +166,11 @@ func (cPlugin *cdpPlugin) GetCurrentContext() string {
 		return ""
 	}
 }
-func (cPlugin *cdpPlugin) IsValidLocator(locatr string) (bool, error) {
-	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
+func (cPlugin *cdpPlugin) IsValidLocator(locatrString string) (bool, error) {
+	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
+	}
+	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
 		return true, nil
 	} else {

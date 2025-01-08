@@ -50,10 +50,11 @@ func TestAddCachedLocatrs(t *testing.T) {
 	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	tests := []struct {
-		url        string
-		locatrName string
-		locatrs    []string
-		expected   map[string][]cachedLocatrsDto
+		url          string
+		locatrName   string
+		locatrs      []string
+		expected     map[string][]cachedLocatrsDto
+		SelectorType SelectorType
 	}{
 		{
 			url:        "http://example.com",
@@ -90,12 +91,17 @@ func TestAddCachedLocatrs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, tt.locatrs)
+		locatrOutput := &LocatrOutput{
+			SelectorType: tt.SelectorType,
+			Selectors:    tt.locatrs,
+		}
+		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, locatrOutput)
 		if !reflect.DeepEqual(baseLocatr.cachedLocatrs, tt.expected) {
 			t.Errorf("addCachedLocatrs() = %v, want %v", baseLocatr.cachedLocatrs, tt.expected)
 		}
 	}
 }
+
 func TestInitilizeState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
