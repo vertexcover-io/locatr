@@ -3,13 +3,16 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
@@ -239,13 +242,33 @@ func main() {
 	log.SetOutput(os.Stderr)
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
+	if _, err := os.Stat(socketFilePath); errors.Is(err, os.ErrNotExist) {
+		os.Remove(socketFilePath)
+	}
+
 	socket, err := net.Listen("unix", socketFilePath)
 	if err != nil {
 		log.Fatalf("failed connecting to socket: %v", err)
 		return
 	}
 	defer socket.Close()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigChan
+		log.Printf("Received signal: %v, shutting down...", sig)
+
+		if err := os.Remove(socketFilePath); err != nil {
+			log.Printf("Failed to remove socket file: %v", err)
+		} else {
+			log.Printf("Removed socket file: %s", socketFilePath)
+		}
+		os.Exit(0)
+	}()
+
 	log.Printf("Ready to accept connections on file: %s", socketFilePath)
+	defer os.Remove((socketFilePath))
 	for {
 		client, err := socket.Accept()
 		if err != nil {
