@@ -57,14 +57,14 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 	return opts, nil
 }
 
-func handleLocatrRequest(message incomingMessage) (string, error) {
+func handleLocatrRequest(message incomingMessage) (*locatr.LocatrOutput, error) {
 	baseLocatr, ok := clientAndLocatrs[message.ClientId]
 	if !ok {
-		return "", fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
+		return nil, fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
 	}
 	locatr, err := baseLocatr.GetLocatrStr(message.UserRequest)
 	if err != nil {
-		return "", fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
+		return nil, fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
 	}
 	return locatr, nil
 
@@ -206,7 +206,7 @@ func acceptConnection(fd net.Conn) {
 			}
 			log.Printf("Initial handshake successful with client: %s", clientMessage.ClientId)
 		case "locatr_request":
-			locatrString, err := handleLocatrRequest(clientMessage)
+			locatrOutput, err := handleLocatrRequest(clientMessage)
 			if err != nil {
 				errResp := outgoingMessage{
 					Type:     clientMessage.Type,
@@ -221,10 +221,11 @@ func acceptConnection(fd net.Conn) {
 				continue
 			}
 			successResp := outgoingMessage{
-				Type:     clientMessage.Type,
-				Status:   "ok",
-				ClientId: clientMessage.ClientId,
-				Output:   locatrString,
+				Type:         clientMessage.Type,
+				Status:       "ok",
+				ClientId:     clientMessage.ClientId,
+				Output:       locatrOutput.Selectors,
+				SelectorType: string(locatrOutput.SelectorType),
 			}
 			if err := writeResponse(fd, successResp); err != nil {
 				log.Printf("Failed to send success response to client during locatr request: %v", err)

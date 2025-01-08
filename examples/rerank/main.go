@@ -50,10 +50,13 @@ func main() {
 
 	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
-	newsItem, err := playWrightLocatr.GetLocatr("First news link")
+	nItem, err := playWrightLocatr.GetLocatr("First news link")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
-	newsItem.First().Click()
+	if err := page.Locator(nItem.Selectors[0]).Click(); err != nil {
+		log.Fatalf("could not click news item: %v", err)
+	}
 	time.Sleep(5 * time.Second)
+
 }

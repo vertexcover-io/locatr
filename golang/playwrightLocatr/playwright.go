@@ -34,26 +34,27 @@ func NewPlaywrightLocatr(page playwright.Page, options locatr.BaseLocatrOptions)
 func (pl *playwrightPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	locatr.SelectorType,
 	error,
 ) {
 	if err := pl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
-		return nil, nil, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughPlaywright, err)
+		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughPlaywright, err)
 	}
 	result, err := pl.evaluateJsFunction("minifyHTML()")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	elementsSpec := &elementSpec.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
 	result, _ = pl.evaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return elementsSpec, idLocatorMap, nil
+	return elementsSpec, idLocatorMap, "css", nil
 }
 
 // evaluateJsFunction runs the given javascript function in the browser and returns the result as a string.
@@ -87,16 +88,16 @@ func (pl *playwrightPlugin) evaluateJsScript(scriptContent string) error {
 }
 
 // GetLocatr returns a playwright locator object for the given user request.
-func (pl *PlaywrightLocator) GetLocatr(userReq string) (playwright.Locator, error) {
+func (pl *PlaywrightLocator) GetLocatr(userReq string) (*locatr.LocatrOutput, error) {
 	if err := pl.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{State: playwright.LoadStateDomcontentloaded}); err != nil {
 		return nil, fmt.Errorf("error waiting for load state: %v", err)
 	}
 
-	locatorStr, err := pl.locatr.GetLocatorStr(userReq)
+	locatorOutput, err := pl.locatr.GetLocatorStr(userReq)
 	if err != nil {
 		return nil, fmt.Errorf("error getting locator string: %v", err)
 	}
-	return pl.page.Locator(locatorStr), nil
+	return locatorOutput, nil
 }
 
 // WriteResultsToFile writes the locatr results to path specified in BaseLocatrOptions.ResultsFilePath.

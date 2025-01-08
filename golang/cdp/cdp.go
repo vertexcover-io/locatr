@@ -67,26 +67,27 @@ func NewCdpLocatr(connection *rpcc.Conn, locatrOptions locatr.BaseLocatrOptions)
 func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	locatr.SelectorType,
 	error,
 ) {
 	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
-		return nil, nil, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
+		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
 	}
 	result, err := cPlugin.evaluateJsFunction("minifyHTML()")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	elementsSpec := &elementSpec.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
 	result, _ = cPlugin.evaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return elementsSpec, idLocatorMap, nil
+	return elementsSpec, idLocatorMap, "css", nil
 }
 
 func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) {
@@ -118,12 +119,12 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (string, error) {
-	locatrStr, err := cdpLocatr.locatr.GetLocatorStr(userReq)
+func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
+	locatrOutput, err := cdpLocatr.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return "", fmt.Errorf("error getting locator string: %w", err)
+		return nil, fmt.Errorf("error getting locator string: %w", err)
 	}
-	return locatrStr, nil
+	return locatrOutput, nil
 
 }
 func (cdpLocatr *cdpLocatr) WriteResultsToFile() {

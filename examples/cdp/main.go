@@ -37,9 +37,9 @@ func main() {
 	}
 
 	newsItem, err := cdpLocatr.GetLocatrStr("First news link")
-	fmt.Println(newsItem)
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
 	}
+	fmt.Println(newsItem.Selectors)
 }

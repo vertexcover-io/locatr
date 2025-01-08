@@ -83,12 +83,12 @@ func (sl *seleniumPlugin) evaluateJsScript(script string) error {
 	return nil
 }
 
-func (sl *seleniumLocatr) GetLocatrStr(userReq string) (string, error) {
-	locatorStr, err := sl.locatr.GetLocatorStr(userReq)
+func (sl *seleniumLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
+	locatorOutput, err := sl.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return "", fmt.Errorf("error getting locator string: %w", err)
+		return nil, fmt.Errorf("error getting locator string: %w", err)
 	}
-	return locatorStr, nil
+	return locatorOutput, nil
 }
 
 func (pl *seleniumLocatr) WriteResultsToFile() {
@@ -102,26 +102,27 @@ func (pl *seleniumLocatr) GetLocatrResults() []locatr.LocatrResult {
 func (sl *seleniumPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	locatr.SelectorType,
 	error,
 ) {
 	if err := sl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
-		return nil, nil, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptSelenium, err)
+		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptSelenium, err)
 	}
 	result, err := sl.evaluateJsFunction("minifyHTML()")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	elementsSpec := &elementSpec.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
 	result, _ = sl.evaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return elementsSpec, idLocatorMap, nil
+	return elementsSpec, idLocatorMap, "css", nil
 }
 
 func (sl *seleniumPlugin) GetCurrentContext() string {

@@ -34,15 +34,16 @@ func NewAppiumLocatr(serverUrl string, sessionId string, opts locatr.BaseLocatrO
 func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	locatr.SelectorType,
 	error,
 ) {
 	pageSource, err := apPlugin.client.GetPageSource()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	capabilities, err := apPlugin.client.GetCapabilities()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	platFormName := capabilities.Value.PlatformName
 	if platFormName == "" {
@@ -50,13 +51,13 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
 	}
 	eSpec, err := minifySource(pageSource, platFormName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	locatrMap, err := mapElementsToJson(pageSource, platFormName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return eSpec, locatrMap, nil
+	return eSpec, locatrMap, "xpath", nil
 }
 
 func (apPlugin *appiumPlugin) GetCurrentContext() string {
@@ -81,12 +82,12 @@ func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (bool, error) {
 	}
 }
 
-func (apLocatr *appiumLocatr) GetLocatrStr(userReq string) (string, error) {
-	locatrStr, err := apLocatr.locatr.GetLocatorStr(userReq)
+func (apLocatr *appiumLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
+	locatrOutput, err := apLocatr.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return locatrStr, nil
+	return locatrOutput, nil
 
 }
 func (apLocatr *appiumLocatr) WriteResultsToFile() {

@@ -55,33 +55,38 @@ func main() {
 
 	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
-	searchBarLocator, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
+	sBarLoc, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
 	stringToSend := "Python"
-	err = searchBarLocator.Fill(stringToSend)
+	err = page.Locator(sBarLoc.Selectors[0]).Fill(stringToSend)
 	if err != nil {
 		log.Fatalf("could not fill search bar: %v", err)
 	}
-	searchBarLocator.Press("Enter")
+	err = page.Locator(sBarLoc.Selectors[0]).Press("Enter")
+	if err != nil {
+		log.Fatalf("could not press enter: %v", err)
+	}
 	time.Sleep(5 * time.Second)
-	pythonLink, err := playWrightLocatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
+
+	pLink, err := playWrightLocatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
 	log.Println("Clicking on python link")
-	err = pythonLink.First().Click()
+	err = page.Locator(pLink.Selectors[0]).Click()
 	if err != nil {
 		log.Fatalf("could not click on python link: %v", err)
 	}
 	time.Sleep(3 * time.Second)
-	tagsLocator, err := playWrightLocatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
+
+	tagsLoc, err := playWrightLocatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
 	log.Println("Clicking on tags locator")
-	err = tagsLocator.Nth(2).Click()
+	err = page.Locator(tagsLoc.Selectors[0]).Nth(2).Click()
 	if err != nil {
 		log.Fatalf("could not click on tags locator: %v", err)
 	}

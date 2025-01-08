@@ -59,7 +59,7 @@ func readYamlFile(filePath string) (*evalConfigYaml, error) {
 	}
 	return &eval, nil
 }
-func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) playwrightLocatr.PlaywrightLocator {
+func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) *playwrightLocatr.PlaywrightLocator {
 	locatrOptions := locatr.BaseLocatrOptions{}
 	if evalConfig.Config.UseCache {
 		locatrOptions.UseCache = true
@@ -77,7 +77,7 @@ func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) p
 	locatrOptions.LogConfig = logger.LogConfig{
 		Level: logger.Debug,
 	}
-	return *playwrightLocatr.NewPlaywrightLocatr(page, locatrOptions)
+	return playwrightLocatr.NewPlaywrightLocatr(page, locatrOptions)
 }
 
 func writeEvalResultToCsv(results []evalResult, fileName string) {

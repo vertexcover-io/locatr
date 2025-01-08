@@ -24,9 +24,10 @@ func (m *MockPlugin) IsValidLocator(locatr string) (bool, error) {
 func (sl *MockPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	SelectorType,
 	error,
 ) {
-	return nil, nil, nil
+	return nil, nil, "", nil
 }
 
 type MockLlmClient struct{}
@@ -227,7 +228,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		},
 	}
 
-	locatrs, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
+	locatrs, _, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -241,7 +242,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		}
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
+	locatrs, _, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
 	if err == nil {
 		t.Error("Expected error for non-existing key, got nil")
 	}
@@ -252,7 +253,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing key, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
 	if err == nil {
 		t.Error("Expected error for non-existing URL, got nil")
 	}
@@ -263,7 +264,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing URL, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

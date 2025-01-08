@@ -28,9 +28,10 @@ type incomingMessage struct {
 }
 
 type outgoingMessage struct {
-	Type     string `json:"type"`
-	Status   string `json:"status"`
-	ClientId string `json:"id"`
-	Output   string `json:"output"`
-	Error    string `json:"error"`
+	Type         string   `json:"type"`
+	Status       string   `json:"status"`
+	ClientId     string   `json:"id"`
+	Output       []string `json:"output"`
+	SelectorType string   `json:"selector_type"`
+	Error        string   `json:"error"`
 }
