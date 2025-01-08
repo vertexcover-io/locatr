@@ -224,7 +224,7 @@ func acceptConnection(fd net.Conn) {
 				Type:         clientMessage.Type,
 				Status:       "ok",
 				ClientId:     clientMessage.ClientId,
-				Output:       locatrOutput.Selectors,
+				Selectors:    locatrOutput.Selectors,
 				SelectorType: string(locatrOutput.SelectorType),
 			}
 			if err := writeResponse(fd, successResp); err != nil {
