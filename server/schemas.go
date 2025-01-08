@@ -8,10 +8,12 @@ type llmSettings struct {
 }
 
 type locatrSettings struct {
-	PluginType        string      `json:"plugin_type" binding:"required,oneof=selenium cdp"`
+	PluginType        string      `json:"plugin_type" binding:"required,oneof=selenium cdp appium"`
 	CdpURl            string      `json:"cdp_url"`
 	SeleniumUrl       string      `json:"selenium_url"`
 	SeleniumSessionId string      `json:"selenium_session_id"`
+	AppiumUrl         string      `json:"appium_url"`
+	AppiumSessionId   string      `json:"appium_session_id"`
 	CachePath         string      `json:"cache_path"`
 	UseCache          bool        `json:"use_cache"`
 	LlmSettings       llmSettings `json:"llm_settings"`
@@ -26,9 +28,10 @@ type incomingMessage struct {
 }
 
 type outgoingMessage struct {
-	Type     string `json:"type"`
-	Status   string `json:"status"`
-	ClientId string `json:"id"`
-	Output   string `json:"output"`
-	Error    string `json:"error"`
+	Type         string   `json:"type"`
+	Status       string   `json:"status"`
+	ClientId     string   `json:"id"`
+	Selectors    []string `json:"selectors"`
+	SelectorType string   `json:"selector_type"`
+	Error        string   `json:"error"`
 }

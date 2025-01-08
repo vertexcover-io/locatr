@@ -35,8 +35,15 @@ func validateIncomingMessage(message incomingMessage) error {
 			if message.Settings.CdpURl == "" {
 				return ErrMissingCdpUrl
 			}
+		} else if message.Settings.PluginType == "appium" {
+			if message.Settings.AppiumUrl == "" {
+				return ErrMissingAppiumUrl
+			}
+			if message.Settings.AppiumSessionId == "" {
+				return ErrMissingAppiumSessionId
+			}
 		} else {
-			return fmt.Errorf("%v: '%s'. Expected 'selenium' or 'cdp'", ErrInvalidPluginType, message.Settings.PluginType)
+			return fmt.Errorf("%w: '%s'. Expected 'selenium' or 'cdp' or 'appium'", ErrInvalidPluginType, message.Settings.PluginType)
 		}
 	} else if message.Type == "locatr_request" {
 		if message.UserRequest == "" {

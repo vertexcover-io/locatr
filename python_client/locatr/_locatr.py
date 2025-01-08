@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from pydantic import ValidationError
 
-from locatr._constants import SocketFilePath
+from locatr._constants import SOCKET_TIMEOUT, SocketFilePath
 from locatr._utils import (
     change_socket_file,
     check_socket_in_use,
@@ -26,10 +26,12 @@ from locatr.exceptions import (
 )
 from locatr.schema import (
     InitialHandshakeMessage,
+    LocatrAppiumSettings,
     LocatrCdpSettings,
+    LocatrOutput,
     LocatrSeleniumSettings,
     MessageType,
-    OutputMessage,
+    InitialHandShakeOutputMessage,
     OutputStatus,
     UserRequestMessage,
 )
@@ -41,7 +43,9 @@ class Locatr:
 
     def __init__(
         self,
-        locatr_settings: Union[LocatrCdpSettings, LocatrSeleniumSettings],
+        locatr_settings: Union[
+            LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
+        ],
         debug: bool = False,
     ) -> None:
         self._settings = locatr_settings
@@ -72,6 +76,7 @@ class Locatr:
     def _initialize_socket(self):
         try:
             self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self._socket.settimeout(SOCKET_TIMEOUT)
             self._wait_for_server()
         except Exception as e:
             raise SocketInitializationError(f"Failed to initialize socket {e}")
@@ -93,7 +98,7 @@ class Locatr:
 
         data = self._recv_message()
         try:
-            output = OutputMessage.model_validate_json(data)
+            output = InitialHandShakeOutputMessage.model_validate_json(data)
             if not output.status == OutputStatus.OK:
                 raise LocatrInitialHandshakeFailed(output.error)
         except ValidationError as e:
@@ -117,7 +122,7 @@ class Locatr:
             self._socket.close()
             raise e
 
-    def get_locatr(self, user_req: str):
+    def get_locatr(self, user_req: str) -> LocatrOutput:
         self._initialize_process_and_socket()
         message = UserRequestMessage(
             user_request=user_req, id=self._id, type=MessageType.LOCATR_REQUEST
@@ -127,14 +132,15 @@ class Locatr:
         self._send_message(packed_data)
         output_data = self._recv_message()
         try:
-            output = OutputMessage.model_validate_json(output_data)
-            if not output.status == OutputStatus.OK:
-                raise FailedToRetrieveLocatr(output.error)
-            return output.output
-        except ValidationError:
-            raise FailedToRetrieveLocatr("Internal message validation failed.")
+            print(str(output_data))
+            output_msg = LocatrOutput.model_validate_json(output_data)
+            if not output_msg.status == OutputStatus.OK:
+                raise FailedToRetrieveLocatr(output_msg.error)
+            return output_msg
+        except ValidationError as e:
+            raise FailedToRetrieveLocatr(str(e.errors()))
 
-    async def get_locatr_async(self, user_req: str) -> str:
+    async def get_locatr_async(self, user_req: str) -> LocatrOutput:
         return await asyncio.to_thread(self.get_locatr, user_req)
 
     def __del__(self):

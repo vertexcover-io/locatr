@@ -8,28 +8,38 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"github.com/vertexcover-io/locatr/golang/llm"
 )
 
 type MockPlugin struct{}
 
-func (m *MockPlugin) evaluateJsFunction(js string) (string, error) {
-	return "", nil
+func (m *MockPlugin) GetCurrentContext() string {
+	return ""
+}
+func (m *MockPlugin) IsValidLocator(locatr string) (bool, error) {
+	return true, nil
 }
 
-func (m *MockPlugin) evaluateJsScript(js string) error {
-	return nil
+func (sl *MockPlugin) GetMinifiedDomAndLocatorMap() (
+	*elementSpec.ElementSpec,
+	*elementSpec.IdToLocatorMap,
+	SelectorType,
+	error,
+) {
+	return nil, nil, "", nil
 }
 
 type MockLlmClient struct{}
 
-func (m *MockLlmClient) ChatCompletion(prompt string) (*chatCompletionResponse, error) {
+func (m *MockLlmClient) ChatCompletion(prompt string) (*llm.ChatCompletionResponse, error) {
 	return nil, nil
 }
-func (m *MockLlmClient) getProvider() LlmProvider {
+func (m *MockLlmClient) GetProvider() llm.LlmProvider {
 	return "test_provider"
 }
 
-func (m *MockLlmClient) getModel() string {
+func (m *MockLlmClient) GetModel() string {
 	return "test_model"
 }
 
@@ -40,10 +50,11 @@ func TestAddCachedLocatrs(t *testing.T) {
 	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	tests := []struct {
-		url        string
-		locatrName string
-		locatrs    []string
-		expected   map[string][]cachedLocatrsDto
+		url          string
+		locatrName   string
+		locatrs      []string
+		expected     map[string][]cachedLocatrsDto
+		SelectorType SelectorType
 	}{
 		{
 			url:        "http://example.com",
@@ -80,12 +91,17 @@ func TestAddCachedLocatrs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, tt.locatrs)
+		locatrOutput := &LocatrOutput{
+			SelectorType: tt.SelectorType,
+			Selectors:    tt.locatrs,
+		}
+		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, locatrOutput)
 		if !reflect.DeepEqual(baseLocatr.cachedLocatrs, tt.expected) {
 			t.Errorf("addCachedLocatrs() = %v, want %v", baseLocatr.cachedLocatrs, tt.expected)
 		}
 	}
 }
+
 func TestInitilizeState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
@@ -218,7 +234,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		},
 	}
 
-	locatrs, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
+	locatrs, _, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -232,7 +248,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		}
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
+	locatrs, _, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
 	if err == nil {
 		t.Error("Expected error for non-existing key, got nil")
 	}
@@ -243,7 +259,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing key, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
 	if err == nil {
 		t.Error("Expected error for non-existing URL, got nil")
 	}
@@ -254,7 +270,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing URL, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -279,6 +295,122 @@ func TestNewBaseLocatrNoLLmClient(t *testing.T) {
 	if baseLocatr.llmClient == nil {
 		t.Errorf("Expected llmClient, got %v", baseLocatr.llmClient)
 	}
-	assert.Equal(t, baseLocatr.llmClient.getProvider(), OpenAI)
-	assert.Equal(t, baseLocatr.llmClient.getModel(), "test_model")
+	assert.Equal(t, baseLocatr.llmClient.GetProvider(), llm.OpenAI)
+	assert.Equal(t, baseLocatr.llmClient.GetModel(), "test_model")
+}
+
+func TestFixLLmJson(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "No formatting",
+			input:    `{"key": "value"}`,
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Surrounded by backticks",
+			input:    "```{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Prefixed with json and surrounded by backticks",
+			input:    "```json{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Prefixed with json without backticks",
+			input:    "json{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Backticks only at start",
+			input:    "```{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Backticks only at end",
+			input:    "{\"key\": \"value\"}```",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Json prefix without backticks",
+			input:    "json{\"key\": \"value\"}",
+			expected: `{"key": "value"}`,
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Only backticks",
+			input:    "```",
+			expected: "",
+		},
+		{
+			name:     "Only json prefix",
+			input:    "json",
+			expected: "",
+		},
+		{
+			name:     "Json with escaped characters",
+			input:    "```json{\"key\": \"value\\n\"}```",
+			expected: `{"key": "value\n"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := fixLLmJson(test.input)
+			if result != test.expected {
+				t.Errorf("got %q, want %q", result, test.expected)
+			}
+		})
+	}
+}
+
+func TestGetUniqueStringArray(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "No duplicates",
+			input:    []string{"a", "b", "c"},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "With duplicates",
+			input:    []string{"a", "b", "a", "c", "b"},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "All duplicates",
+			input:    []string{"a", "a", "a"},
+			expected: []string{"a"},
+		},
+		{
+			name:     "Empty array",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "Single element",
+			input:    []string{"a"},
+			expected: []string{"a"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getUniqueStringArray(tt.input)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("got %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }

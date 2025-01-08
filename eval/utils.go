@@ -8,7 +8,10 @@ import (
 	"strings"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/logger"
+	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
+	"github.com/vertexcover-io/locatr/golang/reranker"
 	"gopkg.in/yaml.v3"
 )
 
@@ -56,7 +59,7 @@ func readYamlFile(filePath string) (*evalConfigYaml, error) {
 	}
 	return &eval, nil
 }
-func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) locatr.PlaywrightLocator {
+func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) *playwrightLocatr.PlaywrightLocator {
 	locatrOptions := locatr.BaseLocatrOptions{}
 	if evalConfig.Config.UseCache {
 		locatrOptions.UseCache = true
@@ -68,13 +71,13 @@ func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) l
 		locatrOptions.ResultsFilePath = evalConfig.Config.ResultsFilePath
 	}
 	if evalConfig.Config.UseReRank {
-		reRankClient := locatr.NewCohereClient(os.Getenv("COHERE_API_KEY"))
+		reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 		locatrOptions.ReRankClient = reRankClient
 	}
-	locatrOptions.LogConfig = locatr.LogConfig{
-		Level: locatr.Debug,
+	locatrOptions.LogConfig = logger.LogConfig{
+		Level: logger.Debug,
 	}
-	return *locatr.NewPlaywrightLocatr(page, locatrOptions)
+	return playwrightLocatr.NewPlaywrightLocatr(page, locatrOptions)
 }
 
 func writeEvalResultToCsv(results []evalResult, fileName string) {

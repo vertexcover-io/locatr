@@ -1,4 +1,4 @@
-package locatr
+package elementSpec
 
 import (
 	"testing"

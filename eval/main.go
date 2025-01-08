@@ -71,7 +71,7 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 		if step.UserRequest == "" {
 			continue
 		}
-		lastLocatr, err = playWrightLocatr.GetLocatr(step.UserRequest)
+		locatrOutput, err := playWrightLocatr.GetLocatr(step.UserRequest)
 		if err != nil {
 			log.Fatalf("Error getting locatr for step %s: %s", step.Name, err)
 			results = append(results, evalResult{
@@ -84,6 +84,7 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 			})
 			continue
 		}
+		lastLocatr = page.Locator(locatrOutput.Selectors[0])
 		currentResults := playWrightLocatr.GetLocatrResults()
 		currentLocatrs := currentResults[len(currentResults)-1].AllLocatrs
 

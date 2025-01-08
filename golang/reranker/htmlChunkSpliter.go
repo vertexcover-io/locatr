@@ -1,13 +1,15 @@
 // Borrowed from: https://github.com/langchain-ai/langchain/blob/master/libs/text-splitters/langchain_text_splitters/character.py
 // File contains the implementation of RecursiveCharacterTextSplitter
 
-package locatr
+package reranker
 
 import (
 	"log"
 	"regexp"
 	"strings"
 )
+
+const CHUNK_OVERLAP = 200
 
 func splitWithSeparator(text, separator string) []string {
 	re := regexp.MustCompile(separator)

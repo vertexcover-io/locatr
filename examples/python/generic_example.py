@@ -12,7 +12,7 @@ llm_settings = LlmSettings(
     llm_provider=LlmProvider.OPENAI,
     llm_api_key=os.environ.get("LLM_API_KEY"),
     model_name=os.environ.get("LLM_MODEL_NAME"),
-    reranker_api_key=os.environ.get("RERANKER_API_KEY"),
+    reranker_api_key=os.environ.get("COHERE_API_KEY"),
 )
 locatr_settings_selenium = LocatrSeleniumSettings(
     llm_settings=llm_settings,

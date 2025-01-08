@@ -1,8 +1,7 @@
-package locatr
+package elementSpec
 
 import (
 	"fmt"
-	"strings"
 
 	"gopkg.in/validator.v2"
 )
@@ -15,23 +14,7 @@ type ElementSpec struct {
 	Children   []ElementSpec     `json:"children"`
 }
 
-// nolint:unused
-func (e *ElementSpec) decapitalizeTagName() {
-	e.TagName = strings.ToLower(strings.TrimSpace(e.TagName))
-}
-
-// nolint:unused
-func (e *ElementSpec) trimAttributes() {
-	trimmedAttributes := make(map[string]string)
-	for k, v := range e.Attributes {
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-		if k != "" || v != "" {
-			trimmedAttributes[k] = v
-		}
-	}
-	e.Attributes = trimmedAttributes
-}
+type IdToLocatorMap map[string][]string
 
 func (e *ElementSpec) Validate() error {
 	if errs := validator.Validate(e); errs != nil {
@@ -54,6 +37,5 @@ func (e *ElementSpec) ContentStr() string {
 	for _, child := range e.Children {
 		childrenHTML += child.ContentStr()
 	}
-
 	return fmt.Sprintf("%s%s%s%s", openingTag, e.Text, childrenHTML, closingTag)
 }

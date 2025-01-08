@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field, HttpUrl
 class MessageType(str, Enum):
     INITIAL_HANDSHAKE = "initial_handshake"
     LOCATR_REQUEST = "locatr_request"
-    CHANGE_TAB = "change_tab"
 
 
 class OutputStatus(str, Enum):
@@ -24,6 +23,12 @@ class LlmProvider(str, Enum):
 class PluginType(str, Enum):
     SELENIUM = "selenium"
     CDP = "cdp"
+    APPIUM = "appium"
+
+
+class SelectorType(str, Enum):
+    XPATH = "xpath"
+    CSS = "css"
 
 
 class Message(BaseModel):
@@ -31,10 +36,14 @@ class Message(BaseModel):
     type: MessageType
 
 
-class OutputMessage(Message):
+class InitialHandShakeOutputMessage(Message):
     status: OutputStatus
     error: str
-    output: str
+
+
+class LocatrOutput(InitialHandShakeOutputMessage):
+    selectors: list[str]
+    selector_type: SelectorType
 
 
 class LlmSettings(BaseModel):
@@ -57,13 +66,21 @@ class LocatrSeleniumSettings(LocatrSettings):
     plugin_type: PluginType = PluginType.SELENIUM
 
 
+class LocatrAppiumSettings(LocatrSettings):
+    appium_url: HttpUrl
+    appium_session_id: str
+    plugin_type: PluginType = PluginType.APPIUM
+
+
 class LocatrCdpSettings(LocatrSettings):
     cdp_url: HttpUrl
     plugin_type: PluginType = Field(default=PluginType.CDP)
 
 
 class InitialHandshakeMessage(Message):
-    locatr_settings: Union[LocatrSeleniumSettings, LocatrCdpSettings]
+    locatr_settings: Union[
+        LocatrSeleniumSettings, LocatrCdpSettings, LocatrAppiumSettings
+    ]
 
 
 class UserRequestMessage(Message):
