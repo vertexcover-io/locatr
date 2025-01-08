@@ -26,15 +26,24 @@ class PluginType(str, Enum):
     APPIUM = "appium"
 
 
+class SelectorType(str, Enum):
+    XPATH = "xpath"
+    CSS = "css"
+
+
 class Message(BaseModel):
     id: uuid.UUID
     type: MessageType
 
 
-class OutputMessage(Message):
+class InitialHandShakeOutputMessage(Message):
     status: OutputStatus
     error: str
-    output: str
+
+
+class LocatrOutput(InitialHandShakeOutputMessage):
+    selectors: list[str]
+    selector_type: SelectorType
 
 
 class LlmSettings(BaseModel):

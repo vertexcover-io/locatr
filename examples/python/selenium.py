@@ -34,7 +34,9 @@ def main():
         locatr = setup_locatr(
             "http://127.0.0.1:4444/wd/hub", str(dr.session_id)
         )
-        search_bar_path = locatr.get_locatr("Search Docker Hub input field")
+        search_bar_path = locatr.get_locatr(
+            "Search Docker Hub input field"
+        ).selectors[0]
         element = dr.find_element(By.CSS_SELECTOR, search_bar_path)
         element.send_keys("Python")
         element.send_keys("Enter")

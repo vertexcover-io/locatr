@@ -38,7 +38,7 @@ def main():
     options = UiAutomator2Options().load_capabilities(capabilities)
     driver = webdriver.Remote(appium_server_url, options=options)
     appium_locatr = setup_locatr(appium_server_url, driver.session_id)
-    print(appium_locatr.get_locatr("Give xpath of the current time."))
+    print(appium_locatr.get_locatr("Give xpath of the current time.").selectors)
 
 
 if __name__ == "__main__":
