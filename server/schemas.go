@@ -31,7 +31,7 @@ type outgoingMessage struct {
 	Type         string   `json:"type"`
 	Status       string   `json:"status"`
 	ClientId     string   `json:"id"`
-	Output       []string `json:"output"`
+	Selectors    []string `json:"selectors"`
 	SelectorType string   `json:"selector_type"`
 	Error        string   `json:"error"`
 }
