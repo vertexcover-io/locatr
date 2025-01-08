@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 )
@@ -13,7 +13,7 @@ import (
 func main() {
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
-	options := baseLocatr.BaseLocatrOptions{
+	options := locatr.BaseLocatrOptions{
 		UseCache:     false,
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
@@ -37,9 +37,9 @@ func main() {
 	}
 
 	newsItem, err := cdpLocatr.GetLocatrStr("First news link")
-	fmt.Println(newsItem)
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
 	}
+	fmt.Println(newsItem.Selectors)
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/golang/baseLocatr"
+	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 )
@@ -50,20 +50,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create llm client: %v", err)
 	}
-	options := baseLocatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
+	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
 
 	locatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
 
-	codeDropDownLocatr, err := locatr.GetLocatr("<> Code dropdown")
+	cDropDownLoc, err := locatr.GetLocatr("<> Code dropdown")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
 	}
-	if err := codeDropDownLocatr.First().Click(); err != nil {
+	if err := page.Locator(cDropDownLoc.Selectors[0]).Click(); err != nil {
 		log.Fatalf("could not click on code dropdown: %v", err)
 		return
 	}
-	downloadZipLocatr, err := locatr.GetLocatr("Download ZIP button on the opened dropdown")
-	fmt.Println(downloadZipLocatr.First().InnerHTML())
+
+	dZipLoc, err := locatr.GetLocatr("Download ZIP button on the opened dropdown")
+	if err != nil {
+		log.Fatalf("could not get download ZIP locator: %v", err)
+		return
+	}
+	fmt.Println(page.Locator(dZipLoc.Selectors[0]).InnerHTML())
 	time.Sleep(5 * time.Second)
+
 }

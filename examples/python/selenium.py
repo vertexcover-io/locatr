@@ -15,12 +15,12 @@ def setup_locatr(selenium_url: str, selenium_session_id: str) -> Locatr:
         model_name=os.environ.get("LLM_MODEL"),
         reranker_api_key=os.environ.get("COHERE_API_KEY"),
     )
-    locatr_settings_cdp = LocatrSeleniumSettings(
+    locatr_settings_selenium = LocatrSeleniumSettings(
         llm_settings=llm_settings,
         selenium_url=selenium_url,
         selenium_session_id=selenium_session_id,
     )
-    return Locatr(locatr_settings_cdp)
+    return Locatr(locatr_settings_selenium)
 
 
 def main():

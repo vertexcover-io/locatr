@@ -13,7 +13,6 @@ import (
 	"github.com/mafredri/cdp/protocol/runtime"
 	"github.com/mafredri/cdp/rpcc"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	baseLocatr "github.com/vertexcover-io/locatr/golang/baseLocatr"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"gopkg.in/validator.v2"
 )
@@ -25,7 +24,7 @@ type cdpPlugin struct {
 type cdpLocatr struct {
 	client     *cdp.Client
 	connection *rpcc.Conn
-	locatr     *baseLocatr.BaseLocatr
+	locatr     *locatr.BaseLocatr
 }
 
 type CdpConnectionOptions struct {
@@ -55,12 +54,12 @@ func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	return conn, nil
 }
 
-func NewCdpLocatr(connection *rpcc.Conn, locatrOptions baseLocatr.BaseLocatrOptions) (*cdpLocatr, error) {
+func NewCdpLocatr(connection *rpcc.Conn, locatrOptions locatr.BaseLocatrOptions) (*cdpLocatr, error) {
 	client := cdp.NewClient(connection)
 	cdpPlugin := &cdpPlugin{client: client}
 	return &cdpLocatr{
 		client:     client,
-		locatr:     baseLocatr.NewBaseLocatr(cdpPlugin, locatrOptions),
+		locatr:     locatr.NewBaseLocatr(cdpPlugin, locatrOptions),
 		connection: connection,
 	}, nil
 }
@@ -68,26 +67,27 @@ func NewCdpLocatr(connection *rpcc.Conn, locatrOptions baseLocatr.BaseLocatrOpti
 func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	locatr.SelectorType,
 	error,
 ) {
 	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
-		return nil, nil, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
+		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
 	}
 	result, err := cPlugin.evaluateJsFunction("minifyHTML()")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	elementsSpec := &elementSpec.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
 	}
 
 	result, _ = cPlugin.evaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return elementsSpec, idLocatorMap, nil
+	return elementsSpec, idLocatorMap, "css", nil
 }
 
 func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) {
@@ -119,19 +119,19 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (string, error) {
-	locatrStr, err := cdpLocatr.locatr.GetLocatorStr(userReq)
+func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
+	locatrOutput, err := cdpLocatr.locatr.GetLocatorStr(userReq)
 	if err != nil {
-		return "", fmt.Errorf("error getting locator string: %w", err)
+		return nil, fmt.Errorf("error getting locator string: %w", err)
 	}
-	return locatrStr, nil
+	return locatrOutput, nil
 
 }
 func (cdpLocatr *cdpLocatr) WriteResultsToFile() {
 	cdpLocatr.locatr.WriteLocatrResultsToFile()
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatrResults() []baseLocatr.LocatrResult {
+func (cdpLocatr *cdpLocatr) GetLocatrResults() []locatr.LocatrResult {
 	return cdpLocatr.locatr.GetLocatrResults()
 }
 
@@ -166,11 +166,14 @@ func (cPlugin *cdpPlugin) GetCurrentContext() string {
 		return ""
 	}
 }
-func (cPlugin *cdpPlugin) IsValidLocator(locatr string) (string, error) {
-	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatr))
+func (cPlugin *cdpPlugin) IsValidLocator(locatrString string) (bool, error) {
+	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
+	}
+	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
-		return locatr, nil
+		return true, nil
 	} else {
-		return "", err
+		return false, err
 	}
 }

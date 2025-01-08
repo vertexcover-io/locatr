@@ -1,4 +1,4 @@
-package baseLocatr
+package locatr
 
 import (
 	"fmt"
@@ -17,16 +17,17 @@ type MockPlugin struct{}
 func (m *MockPlugin) GetCurrentContext() string {
 	return ""
 }
-func (m *MockPlugin) IsValidLocator(locatr string) (string, error) {
-	return "", nil
+func (m *MockPlugin) IsValidLocator(locatr string) (bool, error) {
+	return true, nil
 }
 
 func (sl *MockPlugin) GetMinifiedDomAndLocatorMap() (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
+	SelectorType,
 	error,
 ) {
-	return nil, nil, nil
+	return nil, nil, "", nil
 }
 
 type MockLlmClient struct{}
@@ -49,10 +50,11 @@ func TestAddCachedLocatrs(t *testing.T) {
 	baseLocatr := NewBaseLocatr(mockPlugin, options)
 
 	tests := []struct {
-		url        string
-		locatrName string
-		locatrs    []string
-		expected   map[string][]cachedLocatrsDto
+		url          string
+		locatrName   string
+		locatrs      []string
+		expected     map[string][]cachedLocatrsDto
+		SelectorType SelectorType
 	}{
 		{
 			url:        "http://example.com",
@@ -89,12 +91,17 @@ func TestAddCachedLocatrs(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, tt.locatrs)
+		locatrOutput := &LocatrOutput{
+			SelectorType: tt.SelectorType,
+			Selectors:    tt.locatrs,
+		}
+		baseLocatr.addCachedLocatrs(tt.url, tt.locatrName, locatrOutput)
 		if !reflect.DeepEqual(baseLocatr.cachedLocatrs, tt.expected) {
 			t.Errorf("addCachedLocatrs() = %v, want %v", baseLocatr.cachedLocatrs, tt.expected)
 		}
 	}
 }
+
 func TestInitilizeState(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	mockLlmClient := &MockLlmClient{}
@@ -227,7 +234,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		},
 	}
 
-	locatrs, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
+	locatrs, _, err := baseLocatr.getLocatrsFromState("test_key", testUrl)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -241,7 +248,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		}
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
+	locatrs, _, err = baseLocatr.getLocatrsFromState("non_existing_key", testUrl)
 	if err == nil {
 		t.Error("Expected error for non-existing key, got nil")
 	}
@@ -252,7 +259,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing key, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://non-existing-url.com")
 	if err == nil {
 		t.Error("Expected error for non-existing URL, got nil")
 	}
@@ -263,7 +270,7 @@ func TestGetLocatrsFromState(t *testing.T) {
 		t.Errorf("Expected nil locatrs for non-existing URL, got %v", locatrs)
 	}
 
-	locatrs, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
+	locatrs, _, err = baseLocatr.getLocatrsFromState("test_key", "https://another-example.com")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

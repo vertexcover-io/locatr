@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from pydantic import ValidationError
 
-from locatr._constants import SocketFilePath
+from locatr._constants import SOCKET_TIMEOUT, SocketFilePath
 from locatr._utils import (
     change_socket_file,
     check_socket_in_use,
@@ -26,6 +26,7 @@ from locatr.exceptions import (
 )
 from locatr.schema import (
     InitialHandshakeMessage,
+    LocatrAppiumSettings,
     LocatrCdpSettings,
     LocatrSeleniumSettings,
     MessageType,
@@ -41,7 +42,9 @@ class Locatr:
 
     def __init__(
         self,
-        locatr_settings: Union[LocatrCdpSettings, LocatrSeleniumSettings],
+        locatr_settings: Union[
+            LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
+        ],
         debug: bool = False,
     ) -> None:
         self._settings = locatr_settings
@@ -72,6 +75,7 @@ class Locatr:
     def _initialize_socket(self):
         try:
             self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self._socket.settimeout(SOCKET_TIMEOUT)
             self._wait_for_server()
         except Exception as e:
             raise SocketInitializationError(f"Failed to initialize socket {e}")
