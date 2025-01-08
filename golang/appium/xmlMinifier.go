@@ -97,7 +97,7 @@ func getElementHierarchyXpath(element *xmlquery.Node) string {
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
 		parts[i], parts[j] = parts[j], parts[i]
 	}
-	return strings.Join(parts, "/")
+	return "/" + strings.Join(parts, "/")
 }
 
 func getElementLocatrs(element *xmlquery.Node) []string {
@@ -109,7 +109,7 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 	if xpathStr == "" {
 		return locatrs
 	}
-	locatrs = append(locatrs, fmt.Sprintf("xpath,%s", xpathStr))
+	locatrs = append(locatrs, xpathStr)
 	for _, uniqueAttr := range MAYBE_UNIQUE_XPATH_ATTRIBUTES {
 		if attrValue := element.SelectAttr(uniqueAttr); attrValue != "" {
 			escapedValue := ""
@@ -124,7 +124,7 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 			xpathStr := fmt.Sprintf("//%s[@%s=%s]", element.Data, uniqueAttr, escapedValue)
 			isUnique, _ := isXpathUnique(xpathStr, element)
 			if isUnique {
-				locatrs = append(locatrs, fmt.Sprintf("xpath,%s", xpathStr))
+				locatrs = append(locatrs, xpathStr)
 				break
 			}
 		}
@@ -145,7 +145,7 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 			xPathStr := fmt.Sprintf("//%s[%s]", element.Data, xPathPredicate)
 			isUnique, _ := isXpathUnique(xPathStr, element)
 			if isUnique {
-				locatrs = append(locatrs, fmt.Sprintf("xpath,%s", xPathStr))
+				locatrs = append(locatrs, xPathStr)
 				break
 			}
 		}
@@ -159,7 +159,7 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 	if elementIndx == -1 {
 		return locatrs
 	} else if elementIndx != 0 {
-		locatrs = append(locatrs, fmt.Sprintf("xpath,%s,[%d]", baseXpath, elementIndx+1))
+		locatrs = append(locatrs, fmt.Sprintf("%s,[%d]", baseXpath, elementIndx+1))
 	}
 	return locatrs
 }
