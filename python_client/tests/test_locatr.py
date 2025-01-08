@@ -97,7 +97,7 @@ class TestLocatr:
     @patch("locatr._locatr.Locatr._send_message")
     @patch(
         "locatr._locatr.Locatr._recv_message",
-        return_value=b'{"status": "ok", "id": "123e4567-e89b-12d3-a456-426614174000", "type": "initial_handshake", "error": "", "output": ""}',
+        return_value=b'{"status": "ok", "id": "123e4567-e89b-12d3-a456-426614174000", "type": "initial_handshake", "error": "", "selectors": ["hello"], "selector_type": "xpath"}',
     )
     def test_get_locatr(
         self,
@@ -107,7 +107,8 @@ class TestLocatr:
         locatr_instance,
     ):
         result = locatr_instance.get_locatr("user request")
-        assert result == ""
+        assert result.selectors == ["hello"]
+        assert result.selector_type == "xpath"
         mock_initialize_process_and_socket.assert_called_once()
         mock_send_message.assert_called_once()
         mock_recv_message.assert_called_once()
