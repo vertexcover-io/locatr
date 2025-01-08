@@ -30,6 +30,9 @@ jobs:
         with:
           version: "latest"
 
-      - name: Run Tests
-        run: uv sync && pytest -s
+      - name: Install dependencies
+        run: uv sync
+
+      - name: run test
+        run: uv run --frozen pytest
 
