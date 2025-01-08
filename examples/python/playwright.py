@@ -31,7 +31,7 @@ def main(cdp_locatr: Locatr):
 
         search_bar_selector = cdp_locatr.get_locatr(
             "Search input bar on the steam store."
-        )
+        ).selectors[0]
 
         search_barch_locatr = page.locator(search_bar_selector)
         search_barch_locatr.first.fill("Counter Strike 2")

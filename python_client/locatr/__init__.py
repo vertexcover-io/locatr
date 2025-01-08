@@ -8,4 +8,5 @@ from locatr.schema import (
     LocatrCdpSettings,
     LocatrSeleniumSettings,
     PluginType,
+    LocatrOutput,
 )
