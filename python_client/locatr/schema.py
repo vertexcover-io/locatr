@@ -5,6 +5,13 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field, HttpUrl
 
 
+class LogLevel(int, Enum):
+    DEBUG = -4
+    INFO = 0
+    WARN = 4
+    ERROR = 8
+
+
 class MessageType(str, Enum):
     INITIAL_HANDSHAKE = "initial_handshake"
     LOCATR_REQUEST = "locatr_request"

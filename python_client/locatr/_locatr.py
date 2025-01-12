@@ -30,6 +30,7 @@ from locatr.schema import (
     LocatrCdpSettings,
     LocatrOutput,
     LocatrSeleniumSettings,
+    LogLevel,
     MessageType,
     InitialHandShakeOutputMessage,
     OutputStatus,
@@ -46,11 +47,11 @@ class Locatr:
         locatr_settings: Union[
             LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
         ],
-        debug: bool = False,
+        log_level: LogLevel | None = LogLevel.ERROR,
     ) -> None:
         self._settings = locatr_settings
         self._id = uuid.uuid4()
-        self._debug: bool = debug
+        self._log_level = log_level
         self._socket = None
 
     def _initialize_process_and_socket(self):
@@ -63,10 +64,13 @@ class Locatr:
         if not Locatr._process:
             if check_socket_in_use(SocketFilePath.path):
                 SocketFilePath.path = change_socket_file()
-            Locatr._process = spawn_locatr_process(
-                [f"-socketFilePath={SocketFilePath.path}"]
-            )
-        if self._debug:
+            args = [
+                f"-socketFilePath={SocketFilePath.path}",
+            ]
+            if self._log_level is not None:
+                args.append(f"-logLevel={self._log_level.value}")
+            Locatr._process = spawn_locatr_process(args)
+        if self._log_level is not None:
             self._start_locatr_log()
 
     def _start_locatr_log(self):
