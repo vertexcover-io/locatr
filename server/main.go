@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 
 	"net"
 	"net/url"
@@ -249,11 +250,19 @@ func acceptConnection(fd net.Conn) {
 
 func main() {
 	var socketFilePath string
+	var logLevel int
 	flag.StringVar(&socketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socket file to listen at.")
+	flag.IntVar(&logLevel, "logLevel", int(slog.LevelError), "log level for the server")
 	flag.Parse()
 
 	if _, err := os.Stat(socketFilePath); !errors.Is(err, os.ErrNotExist) {
 		os.Remove(socketFilePath)
+	}
+	if (logLevel == int(slog.LevelDebug)) ||
+		(logLevel == int(slog.LevelInfo)) ||
+		(logLevel == int(slog.LevelWarn)) ||
+		(logLevel == int(slog.LevelError)) {
+		logger.Level.Set(slog.Level(logLevel))
 	}
 
 	socket, err := net.Listen("unix", socketFilePath)
