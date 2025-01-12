@@ -1,0 +1,39 @@
+name: "evals for android clock"
+automationName: "uiautomator2"
+platform: "android"
+deviceName: "35051FDH20070B"
+appConfig:
+  appPackage: "com.google.android.deskclock"
+  appActivity: "com.android.deskclock.DeskClock"
+
+serverUrl: "http://localhost:4723"
+config:
+  useCache: false
+  cachePath: ".clock.cache"
+  resultsFilePath: "clock.json"
+  useReRank: true
+
+steps:
+  - name: "Locate alarm"
+    userRequest: "alarm button"
+    expectedLocatrs: ["alarm"]
+
+  - name: "Click alarm button"
+    action: "click"
+    timeout: 1
+
+  - name: "locate '+' button"
+    userRequest: "'+' button"
+    expectedLocatrs: ["alarm"]
+
+  - name: "click on '+' button"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate Ok button"
+    userRequest: "'Ok' button"
+    expectedLocatrs: ["alarm"]
+
+  - name: "click on Ok button"
+    action: "click"
+    timeout: 5

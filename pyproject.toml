@@ -39,8 +39,11 @@ license = "MIT"
 
 [dependency-groups]
 dev = [
+    "appium-python-client>=4.4.0",
+    "pyaml>=25.1.0",
     "pytest>=8.3.4",
     "ruff>=0.8.6",
+    "typer>=0.15.1",
 ]
 
 [tool.ruff]
