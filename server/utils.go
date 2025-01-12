@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 
+	"github.com/vertexcover-io/locatr/golang/logger"
 	"gopkg.in/validator.v2"
 )
 
@@ -62,16 +62,20 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 	buf := new(bytes.Buffer)
 	bytesString := dumpJson(outputMessage)
 	length := len(bytesString)
+
 	for _, val := range VERSION {
 		err := binary.Write(buf, binary.BigEndian, val)
 		if err != nil {
-			log.Fatalf("Error writing version to buffer %v", err)
+			logger.Logger.Error("Error writing version to buffer",
+				"error", err)
 			break
 		}
 	}
+
 	err := binary.Write(buf, binary.BigEndian, int32(length))
 	if err != nil {
-		log.Fatalf("Error writing length to buffer: %v", err)
+		logger.Logger.Error("Error writing length to buffer",
+			"error", err)
 	}
 	buf.Write(bytesString)
 	return buf.Bytes()
@@ -79,9 +83,10 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 
 func handleReadError(err error) {
 	if err == io.EOF {
-		log.Println("Connection closed by client")
+		logger.Logger.Info("Connection closed by client")
 	} else {
-		log.Printf("Failed to read message: %v", err)
+		logger.Logger.Error("Failed to read message",
+			"error", err)
 	}
 }
 
@@ -89,9 +94,15 @@ func writeResponse(fd net.Conn, msg outgoingMessage) error {
 	data := generateBytesMessage(msg)
 	_, err := fd.Write(data)
 	if err != nil {
-		log.Printf("Error writing response: %v", err)
+		logger.Logger.Error("Error writing response",
+			"error", err,
+			"clientId", msg.ClientId) // Assuming msg has ClientId
 		return err
 	}
+	logger.Logger.Info("Response written to client",
+		"clientId", msg.ClientId, // Assuming msg has ClientId
+		"status", msg.Status,
+		"type", msg.Type)
 	return nil
 }
 

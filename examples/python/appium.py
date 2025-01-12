@@ -1,3 +1,4 @@
+# pyright: reportPrivateImportUsage=false
 import os
 
 from appium import webdriver

@@ -7,7 +7,6 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
@@ -21,9 +20,6 @@ func main() {
 	bLocatr := locatr.BaseLocatrOptions{
 		ReRankClient: reRankClient,
 		LlmClient:    llmClient,
-		LogConfig: logger.LogConfig{
-			Level: logger.Debug,
-		},
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		"http://172.30.192.1:4723",

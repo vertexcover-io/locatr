@@ -151,5 +151,5 @@ l.get_locatr("red 'yes button' in the form")
 You can also get locatrs asynchronously. Just call `get_locatr_async`.
 
 ```
-    await l.get_locatr_async("red 'yes button' in the form")
+await l.get_locatr_async("red 'yes button' in the form")
 ```
