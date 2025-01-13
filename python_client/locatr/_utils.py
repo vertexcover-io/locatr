@@ -65,7 +65,6 @@ def spawn_locatr_process(args: List[str]) -> Popen[bytes]:
 
 def log_output(process: Popen[bytes]):
     if not process.stdout or not process.stderr:
-        print("here??")
         return
     try:
         while True:

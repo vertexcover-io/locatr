@@ -96,11 +96,11 @@ func writeResponse(fd net.Conn, msg outgoingMessage) error {
 	if err != nil {
 		logger.Logger.Error("Error writing response",
 			"error", err,
-			"clientId", msg.ClientId) // Assuming msg has ClientId
+			"clientId", msg.ClientId)
 		return err
 	}
 	logger.Logger.Info("Response written to client",
-		"clientId", msg.ClientId, // Assuming msg has ClientId
+		"clientId", msg.ClientId,
 		"status", msg.Status,
 		"type", msg.Type)
 	return nil

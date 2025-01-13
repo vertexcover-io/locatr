@@ -40,7 +40,6 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 
 	opts.CachePath = message.Settings.CachePath
 	opts.UseCache = message.Settings.UseCache
-
 	opts.ResultsFilePath = message.Settings.ResultsFilePath
 
 	llmClient, err := llm.NewLlmClient(

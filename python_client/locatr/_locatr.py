@@ -32,7 +32,7 @@ from locatr.schema import (
     LocatrSeleniumSettings,
     LogLevel,
     MessageType,
-    InitialHandShakeOutputMessage,
+    LocatrBaseOutputMessage,
     OutputStatus,
     UserRequestMessage,
 )
@@ -102,7 +102,7 @@ class Locatr:
 
         data = self._recv_message()
         try:
-            output = InitialHandShakeOutputMessage.model_validate_json(data)
+            output = LocatrBaseOutputMessage.model_validate_json(data)
             if not output.status == OutputStatus.OK:
                 raise LocatrInitialHandshakeFailed(output.error)
         except ValidationError as e:
@@ -136,10 +136,12 @@ class Locatr:
         self._send_message(packed_data)
         output_data = self._recv_message()
         try:
-            output_msg = LocatrOutput.model_validate_json(output_data)
+            output_msg = LocatrBaseOutputMessage.model_validate_json(
+                output_data
+            )
             if not output_msg.status == OutputStatus.OK:
                 raise FailedToRetrieveLocatr(output_msg.error)
-            return output_msg
+            return LocatrOutput.model_validate_json(output_data)
         except ValidationError as e:
             raise FailedToRetrieveLocatr(str(e.errors()))
 
