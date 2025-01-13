@@ -1,0 +1,73 @@
+name: "evals for android calculator"
+automationName: "uiautomator2"
+platform: "android"
+deviceName: "replace your device"
+appConfig:
+  appPackage: "com.google.android.calculator"
+  appActivity: "com.android.calculator2.Calculator"
+
+serverUrl: "http://localhost:4723"
+config:
+  useCache: true
+  cachePath: ".calculator.cache"
+  resultsFilePath: "calcualtor.json"
+  useReRank: true
+
+steps:
+  - name: "Locate 1"
+    userRequest: "1 button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[18]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/digit_1"]',
+      ]
+    timeout: 1
+
+  - name: "Click 1 button"
+    action: "click"
+    timeout: 1
+
+  - name: "locate '+' button"
+    userRequest: "'+' button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[21]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/op_add"]',
+      ]
+    timeout: 1
+
+  - name: "click on '+' button"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate 2 button"
+    userRequest: "2 button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[19]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/digit_2"]',
+      ]
+
+  - name: "click on 2"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate '=' button"
+    userRequest: "'=' button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[25]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/eq"]',
+      ]
+
+  - name: "click on '=' button"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate AC button"
+    userRequest: "'AC button'"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[25]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/eq"]',
+      ]

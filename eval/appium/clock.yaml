@@ -1,14 +1,14 @@
 name: "evals for android clock"
 automationName: "uiautomator2"
 platform: "android"
-deviceName: "35051FDH20070B"
+deviceName: "" # replace your device name
 appConfig:
   appPackage: "com.google.android.deskclock"
   appActivity: "com.android.deskclock.DeskClock"
 
 serverUrl: "http://localhost:4723"
 config:
-  useCache: false
+  useCache: true
   cachePath: ".clock.cache"
   resultsFilePath: "clock.json"
   useReRank: true
@@ -16,7 +16,11 @@ config:
 steps:
   - name: "Locate alarm"
     userRequest: "alarm button"
-    expectedLocatrs: ["alarm"]
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.widget.FrameLayout[1]",
+        '//android.widget.FrameLayout[@resource-id="com.google.android.deskclock:id/tab_menu_alarm"]',
+      ]
 
   - name: "Click alarm button"
     action: "click"
@@ -24,7 +28,13 @@ steps:
 
   - name: "locate '+' button"
     userRequest: "'+' button"
-    expectedLocatrs: ["alarm"]
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup/android.view.ViewGroup[2]/android.widget.Button",
+        '//android.widget.Button[@resource-id="com.google.android.deskclock:id/fab"]',
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.ImageButton[21]",
+        '//android.widget.ImageButton[@resource-id="com.google.android.calculator:id/op_add"]',
+      ]
 
   - name: "click on '+' button"
     action: "click"
@@ -32,7 +42,11 @@ steps:
 
   - name: "Locate Ok button"
     userRequest: "'Ok' button"
-    expectedLocatrs: ["alarm"]
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.Button[3]",
+        '//android.widget.Button[@resource-id="com.google.android.deskclock:id/material_timepicker_ok_button"]',
+      ]
 
   - name: "click on Ok button"
     action: "click"
