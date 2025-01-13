@@ -43,12 +43,12 @@ class Message(BaseModel):
     type: MessageType
 
 
-class InitialHandShakeOutputMessage(Message):
+class LocatrBaseOutputMessage(Message):
     status: OutputStatus
     error: str
 
 
-class LocatrOutput(InitialHandShakeOutputMessage):
+class LocatrOutput(LocatrBaseOutputMessage):
     selectors: list[str]
     selector_type: SelectorType
 
