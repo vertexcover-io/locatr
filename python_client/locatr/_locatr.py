@@ -55,7 +55,6 @@ class Locatr:
         self._socket = None
 
     def _initialize_process_and_socket(self):
-        self._initialize_process()
         if not self._socket:
             self._initialize_socket()
             self._perform_initial_handshake()

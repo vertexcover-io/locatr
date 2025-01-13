@@ -1,0 +1,92 @@
+name: "evals for android khalti"
+automationName: "uiautomator2"
+platform: "android"
+deviceName: "35051FDH20070B" # replace your device name
+appConfig:
+  appPackage: "com.khalti"
+  appActivity: ".MainActivity"
+
+serverUrl: "http://172.30.192.1:4723"
+config:
+  useCache: true
+  cachePath: ".khalti.cache"
+  resultsFilePath: "khalti.json"
+  useReRank: true
+  pageLoadTimeout: 8
+
+steps:
+  - name: "Locate Login  button"
+    userRequest: "Login button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.View/android.view.View/android.view.View/android.view.View[1]/android.widget.Button",
+        '//android.widget.Button[@content-desc=""LOGIN""]',
+      ]
+
+  - name: "Click on 'Login' button"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Don't allow button"
+    userRequest: "Don't allow button"
+    expectedLocatrs:
+      [
+        "//hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.ScrollView/android.widget.LinearLayout/android.widget.LinearLayout/android.widget.LinearLayout[2]/android.widget.Button[2]",
+        '//android.widget.Button[@resource-id=""com.android.permissioncontroller:id/permission_deny_button""]',
+      ]
+
+  - name: "Click on 'don't allow' button"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate number/email input bar"
+    userRequest: "Locate number/email input bar"
+    expectedLocatrs: []
+
+  - name: "Click on 'email' input bar"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate current number/email input bar"
+    userRequest: "Locate current number/email input bar"
+    expectedLocatrs: []
+
+  - name: "Fill Email"
+    action: "fill"
+    fillText: "example@gmail.com"
+    timeout: 2
+
+  - name: "Locate password input bar"
+    userRequest: "Locate password input bar"
+    expectedLocatrs: []
+
+  - name: "Go back"
+    action: "press"
+    keyCode: 4
+    timeout: 2
+
+  - name: "Click on 'password' input bar"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate current password input bar"
+    userRequest: "Locate current password input bar"
+    expectedLocatrs: []
+
+  - name: "Fill Email"
+    action: "fill"
+    fillText: "examplepassword123443242"
+    timeout: 2
+
+  - name: "Go back"
+    action: "press"
+    keyCode: 4
+    timeout: 3
+
+  - name: "Locate login button"
+    userRequest: "Locate login button"
+    expectedLocatrs: []
+
+  - name: "Click on 'login' button"
+    action: "click"
+    timeout: 2

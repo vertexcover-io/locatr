@@ -23,6 +23,7 @@ class EvalActions(str, Enum):
     PRESS = "press"
     FILL = "fill"
     HOVER = "hover"
+    BACK = "back"
 
 
 class AndroidConfig(BaseModel):
@@ -39,6 +40,7 @@ class LocatrConfig(BaseModel):
     cache_path: str = Field(alias="cachePath")
     results_file_path: str = Field(alias="resultsFilePath")
     use_rerank: bool = Field(alias="useReRank")
+    page_load_timeout: int | None = Field(alias="pageLoadTimeout", default=None)
 
 
 class Step(BaseModel):
@@ -49,6 +51,7 @@ class Step(BaseModel):
 class ActionStep(Step):
     action: EvalActions
     key: str | None = Field(default=None)
+    key_code: int | None = Field(default=None, alias="keyCode")
     fill_text: str | None = Field(alias="fillText", default=None)
 
 
@@ -99,7 +102,8 @@ def start_appium_server(config: EvalConfigYaml) -> webdriver.Remote:
             locale="US",
         )
     opts = UiAutomator2Options().load_capabilities(cap)
-    driver = webdriver.Remote(str(config.server_url), options=opts)
+    driver = webdriver.Remote("http://172.30.192.1:4723", options=opts)
+    # driver = webdriver.Remote(str(config.server_url), options=opts)
     return driver
 
 
@@ -114,11 +118,12 @@ def setup_locatr(
     )
     locatr_settings_appium = LocatrAppiumSettings(
         llm_settings=llm_settings,
-        appium_url=appium_url,
+        appium_url="http://172.30.192.1:4723",
         appium_session_id=appium_session_id,
         cache_path=cache_path,
         use_cache=use_cache,
     )
+    print(locatr_settings_appium)
     return Locatr(locatr_settings_appium)
 
 
@@ -131,6 +136,8 @@ async def run_eval(eval_config: EvalConfigYaml) -> List[EvalResult]:
         cache_path=eval_config.config.cache_path,
         use_cache=eval_config.config.use_cache,
     )
+    if eval_config.config.page_load_timeout:
+        await asyncio.sleep(eval_config.config.page_load_timeout)
     try:
         selector = ""
         for step in eval_config.steps:
@@ -169,6 +176,11 @@ async def run_eval(eval_config: EvalConfigYaml) -> List[EvalResult]:
                 match step.action:
                     case EvalActions.CLICK:
                         element.click()
+                    case EvalActions.FILL:
+                        element.send_keys(step.fill_text)
+                    case EvalActions.PRESS:
+                        print("here??")
+                        driver.press_keycode(step.key_code)
             if step.timeout:
                 typer.echo(f"Sleeping for {step.timeout} seconds.")
                 await asyncio.sleep(step.timeout)

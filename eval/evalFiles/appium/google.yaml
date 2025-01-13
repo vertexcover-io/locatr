@@ -1,0 +1,39 @@
+# TODO: add expected locatr for google
+name: "evals for android google"
+automationName: "uiautomator2"
+platform: "android"
+deviceName: "35051FDH20070B" # replace your device name
+appConfig:
+  appPackage: "com.google.android.googlequicksearchbox"
+  appActivity: ".SearchActivity"
+
+serverUrl: "http://172.30.192.1:4723"
+config:
+  useCache: true
+  cachePath: ".google.cache"
+  resultsFilePath: "google.json"
+  useReRank: true
+  pageLoadTimeout: 8
+
+steps:
+  - name: "Locate search bar"
+    userRequest: "Search bar"
+    expectedLocatrs: []
+
+  - name: "Click on search bar"
+    action: "click"
+    timeout: 1
+
+  - name: "Locate the current search bar"
+    userRequest: "current search bar"
+    expectedLocatrs: []
+
+  - name: "Search for trapestery"
+    action: "fill"
+    fillText: "Trapestery"
+    timeout: 5
+
+  - name: "Press serach bar"
+    action: "press"
+    keyCode: 84 # 84 corresponds to KeyEvent.KEYCODE_SEARCH
+    timeout: 5
