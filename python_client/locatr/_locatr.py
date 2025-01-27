@@ -26,12 +26,12 @@ from locatr.exceptions import (
 )
 from locatr.schema import (
     InitialHandshakeMessage,
+    InitialHandShakeOutputMessage,
     LocatrAppiumSettings,
     LocatrCdpSettings,
     LocatrOutput,
     LocatrSeleniumSettings,
     MessageType,
-    InitialHandShakeOutputMessage,
     OutputStatus,
     UserRequestMessage,
 )
@@ -132,7 +132,6 @@ class Locatr:
         self._send_message(packed_data)
         output_data = self._recv_message()
         try:
-            print(str(output_data))
             output_msg = LocatrOutput.model_validate_json(output_data)
             if not output_msg.status == OutputStatus.OK:
                 raise FailedToRetrieveLocatr(output_msg.error)

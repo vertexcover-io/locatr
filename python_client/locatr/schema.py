@@ -28,7 +28,8 @@ class PluginType(str, Enum):
 
 class SelectorType(str, Enum):
     XPATH = "xpath"
-    CSS = "css"
+    CSS = "css selector"
+    INVALID = ""
 
 
 class Message(BaseModel):

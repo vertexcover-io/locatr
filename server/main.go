@@ -209,10 +209,11 @@ func acceptConnection(fd net.Conn) {
 			locatrOutput, err := handleLocatrRequest(clientMessage)
 			if err != nil {
 				errResp := outgoingMessage{
-					Type:     clientMessage.Type,
-					Status:   "error",
-					Error:    err.Error(),
-					ClientId: clientMessage.ClientId,
+					Type:      clientMessage.Type,
+					Selectors: []string{},
+					Status:    "error",
+					Error:     err.Error(),
+					ClientId:  clientMessage.ClientId,
 				}
 				if err := writeResponse(fd, errResp); err != nil {
 					log.Printf("Failed to send error response to client during locatr request: %v", err)
