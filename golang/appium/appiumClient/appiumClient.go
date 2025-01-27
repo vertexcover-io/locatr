@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -18,6 +19,10 @@ type AppiumClient struct {
 type appiumPageSourceResponse struct {
 	SessionId string `json:"sessionId,omitempty"`
 	Value     string `json:"value"`
+}
+
+type appiumGetCurrentContextResponse struct {
+	Value string `json:"value"`
 }
 
 type appiumGetElementResponse struct {
@@ -79,7 +84,7 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 	}
 	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
 	client := CreateNewHttpClient(joinedUrl.String())
-	resp, err := client.R().Get("/")
+	resp, err := client.R().Get("/context")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -90,6 +95,56 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 		httpClient: client,
 		sessionId:  sessionId,
 	}, nil
+}
+
+func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
+	body := map[string]any{
+		"script": script,
+		"args":   []string{},
+	}
+	bodyJson, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	response, err := ac.httpClient.R().
+		SetBody(bodyJson).
+		Post("/execute/sync")
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
+	}
+	if response.StatusCode() != 200 {
+		return nil, fmt.Errorf("%w: %s", ErrSessionNotActive, ac.sessionId)
+	}
+	var responseBody map[string]any
+	err = json.Unmarshal(response.Body(), &responseBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	return responseBody, nil
+}
+
+func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
+	response, err := ac.httpClient.R().Get("/context")
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
+	}
+	if response.StatusCode() != 200 {
+		return "", fmt.Errorf("%w: %s", ErrSessionNotActive, ac.sessionId)
+	}
+	var responseBody appiumGetCurrentContextResponse
+	err = json.Unmarshal(response.Body(), &responseBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	return responseBody.Value, nil
+}
+
+func (ac *AppiumClient) IsWebView() bool {
+	view, err := ac.GetCurrentViewContext()
+	if err != nil {
+		return false
+	}
+	return strings.Contains(view, "WEBVIEW")
 }
 
 func (ac *AppiumClient) GetPageSource() (string, error) {

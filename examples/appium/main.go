@@ -8,32 +8,30 @@ import (
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
-	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
 func main() {
 	llmClient, _ := llm.NewLlmClient(
 		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL"),
-		os.Getenv("LLM_API_KEY"),
+		os.Getenv("OPENAI_MODEL"),
+		os.Getenv("OPENAI_KEY"),
 	)
-	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 	bLocatr := locatr.BaseLocatrOptions{
-		ReRankClient: reRankClient,
-		LlmClient:    llmClient,
+		LlmClient: llmClient,
 		LogConfig: logger.LogConfig{
 			Level: logger.Debug,
 		},
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
-		"http://172.30.192.1:4723",
-		"477d6d25-1c0a-49a4-a640-2b96ea7e9b93", bLocatr,
+		"https://device.pcloudy.com/appiumcloud/wd/hub",
+		"70a4b5a5-ab83-4560-9adc-96d3c1efd9ad", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	l, err := aLocatr.GetLocatrStr("Network and internet id")
+	desc := "This element is a secure text field designed for user input of sensitive information, specifically a password. It is an interactive element that allows users to enter their password while concealing the text for privacy and security purposes. The field is currently enabled and visible, reflecting that it can be interacted with in the user interface. It is semantically significant as it contributes to user authentication processes, making it essential for forms requiring secure login credentials. Users can expect this type of element to be present in login screens or any scenario that necessitates password entry."
+	l, err := aLocatr.GetLocatrStr(desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)
 	}
