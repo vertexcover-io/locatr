@@ -16,8 +16,11 @@ run:
 	cd server && \
 	trap 'rm -rf $(SOCKET_FILE); exit' INT TERM EXIT && \
 	go run . -socketFilePath=$(SOCKET_FILE)
+
+clean:
+	rm -rf dist
 	
-publish: build
+publish: clean build
 	uv build
 	uv publish
 

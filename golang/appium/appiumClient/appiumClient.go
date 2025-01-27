@@ -97,6 +97,10 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 	}, nil
 }
 
+type resp struct {
+	Value any `json:"value"`
+}
+
 func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 	body := map[string]any{
 		"script": script,
@@ -107,6 +111,7 @@ func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 		return nil, err
 	}
 	response, err := ac.httpClient.R().
+		SetHeader("Content-Type", "application/json").
 		SetBody(bodyJson).
 		Post("/execute/sync")
 	if err != nil {
@@ -115,12 +120,12 @@ func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 	if response.StatusCode() != 200 {
 		return nil, fmt.Errorf("%w: %s", ErrSessionNotActive, ac.sessionId)
 	}
-	var responseBody map[string]any
-	err = json.Unmarshal(response.Body(), &responseBody)
+	var respBody resp
+	err = json.Unmarshal(response.Body(), &respBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		return response.Body(), nil
 	}
-	return responseBody, nil
+	return respBody.Value, nil
 }
 
 func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
@@ -163,10 +168,10 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 	return responseBody.Value, nil
 }
 
-func (ac *AppiumClient) FindElement(xpath string) error {
+func (ac *AppiumClient) FindElement(locator, locator_type string) error {
 	requestBody := findElementRequest{
-		Using: "xpath",
-		Value: xpath,
+		Using: locator_type,
+		Value: locator,
 	}
 	response, err := ac.httpClient.R().
 		SetBody(requestBody).

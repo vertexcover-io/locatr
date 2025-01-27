@@ -18,19 +18,20 @@ func main() {
 	)
 	bLocatr := locatr.BaseLocatrOptions{
 		LlmClient: llmClient,
+		// ReRankClient: reranker.NewCohereClient(os.Getenv("RERANK_KEY")),
 		LogConfig: logger.LogConfig{
 			Level: logger.Debug,
 		},
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		"https://device.pcloudy.com/appiumcloud/wd/hub",
-		"70a4b5a5-ab83-4560-9adc-96d3c1efd9ad", bLocatr,
+		"89ead025-4cf4-4c44-b723-feff1c3aa28f", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	desc := "This element is a secure text field designed for user input of sensitive information, specifically a password. It is an interactive element that allows users to enter their password while concealing the text for privacy and security purposes. The field is currently enabled and visible, reflecting that it can be interacted with in the user interface. It is semantically significant as it contributes to user authentication processes, making it essential for forms requiring secure login credentials. Users can expect this type of element to be present in login screens or any scenario that necessitates password entry."
+	desc := "This element is a textbox designed for user input, specifically for search queries. It is labeled for accessibility as \"Google Search\" and allows users to enter text. The textbox supports autocomplete features, enhancing the user experience by suggesting possible queries as the user types. It is configured to ignore capitalization and offers spell check capabilities. Additionally, it has a maximum length for input, ensuring submissions remain manageable. The role of the element is defined as a \"textbox,\" indicating its primary purpose for text entry."
 	l, err := aLocatr.GetLocatrStr(desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)

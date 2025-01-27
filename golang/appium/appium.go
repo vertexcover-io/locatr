@@ -66,6 +66,8 @@ func (apPlugin *appiumPlugin) evaluateJsFunction(function string) (string, error
 	switch res := result.(type) {
 	case string:
 		return res, nil
+	case []byte:
+		return string(res), nil
 	default:
 		return fmt.Sprint(res), nil
 	}
@@ -89,7 +91,7 @@ func (apPlugin *appiumPlugin) htmlMinification() (*elementSpec.ElementSpec, *ele
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
 	}
-	return elementsSpec, idLocatorMap, "css", nil
+	return elementsSpec, idLocatorMap, "css selector", nil
 }
 
 func (apPlugin *appiumPlugin) xmlMinification() (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
@@ -131,7 +133,12 @@ func (apPlugin *appiumPlugin) GetCurrentContext() string {
 }
 
 func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (bool, error) {
-	if err := apPlugin.client.FindElement(locatr); err == nil {
+	locator_type := "xpath"
+	if apPlugin.client.IsWebView() {
+		locator_type = "css selector"
+	}
+
+	if err := apPlugin.client.FindElement(locatr, locator_type); err == nil {
 		return true, nil
 	} else {
 		return false, err
