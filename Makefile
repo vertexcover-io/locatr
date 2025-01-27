@@ -8,6 +8,7 @@ all: build
 
 build:
 	cd server && go build -o locatr.bin . || { echo "Go build failed"; exit 1; }
+	mkdir -p ${PYTHON_CLIENT_BIN}
 	mv $(BINARY_PATH) $(PYTHON_CLIENT_BIN) || { echo "Failed to move the binary"; exit 1; }
 	echo "Build and move successful."
 
