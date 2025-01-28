@@ -149,7 +149,8 @@ func (ac *AppiumClient) IsWebView() bool {
 	if err != nil {
 		return false
 	}
-	return strings.Contains(view, "WEBVIEW")
+	view = strings.ToLower(view)
+	return strings.Contains(view, "webview") || strings.Contains(view, "chromium")
 }
 
 func (ac *AppiumClient) GetPageSource() (string, error) {
