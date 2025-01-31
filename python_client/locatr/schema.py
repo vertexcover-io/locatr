@@ -18,6 +18,8 @@ class OutputStatus(str, Enum):
 class LlmProvider(str, Enum):
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    OPEN_ROUTER = "open-router"
+    GROQ = "groq"
 
 
 class PluginType(str, Enum):

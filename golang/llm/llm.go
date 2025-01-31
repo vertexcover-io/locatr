@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
-	"github.com/sashabaranov/go-openai"
+	"github.com/openai/openai-go"
+	openai_option "github.com/openai/openai-go/option"
 	"gopkg.in/validator.v2"
 )
 
@@ -19,8 +20,8 @@ type LlmWebInputDto struct {
 }
 
 type llmClient struct {
-	apiKey          string      `validate:"regexp=sk-*"`
-	provider        LlmProvider `validate:"regexp=(openai|anthropic)"`
+	apiKey          string      `validate:"required"`
+	provider        LlmProvider `validate:"regexp=(openai|anthropic|open-router|groq)"`
 	model           string      `validate:"min=2,max=50"`
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
@@ -43,8 +44,10 @@ type ChatCompletionResponse struct {
 }
 
 const (
-	OpenAI    LlmProvider = "openai"
-	Anthropic LlmProvider = "anthropic"
+	OpenAI     LlmProvider = "openai"
+	Anthropic  LlmProvider = "anthropic"
+	OpenRouter LlmProvider = "open-router"
+	Groq       LlmProvider = "groq"
 )
 
 var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
@@ -69,9 +72,16 @@ func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient
 
 	switch client.provider {
 	case OpenAI:
-		client.openaiClient = openai.NewClient(client.apiKey)
+		os.Setenv("OPENAI_API_KEY", client.apiKey)
+		client.openaiClient = openai.NewClient()
 	case Anthropic:
 		client.anthropicClient = anthropic.NewClient(client.apiKey)
+	case OpenRouter:
+		os.Setenv("OPENAI_API_KEY", client.apiKey)
+		client.openaiClient = openai.NewClient(openai_option.WithBaseURL("https://openrouter.ai/api/v1/"))
+	case Groq:
+		os.Setenv("OPENAI_API_KEY", client.apiKey)
+		client.openaiClient = openai.NewClient(openai_option.WithBaseURL("https://api.groq.com/openai/v1/"))
 	default:
 		return nil, ErrInvalidProviderForLlm
 	}
@@ -81,7 +91,7 @@ func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient
 // ChatCompletion sends a prompt to the LLM model and returns the completion string or and error.
 func (c *llmClient) ChatCompletion(prompt string) (*ChatCompletionResponse, error) {
 	switch c.provider {
-	case OpenAI:
+	case OpenAI, OpenRouter, Groq:
 		return c.openaiRequest(prompt)
 	case Anthropic:
 		return c.anthropicRequest(prompt)
@@ -119,19 +129,17 @@ func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, er
 
 func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error) {
 	start := time.Now()
-	resp, err := c.openaiClient.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: c.model,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: prompt,
+	resp, err := c.openaiClient.Chat.Completions.New(
+		context.Background(), openai.ChatCompletionNewParams{
+			Model: openai.F(c.model),
+			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+				openai.UserMessage(prompt),
+			}),
+			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
+				openai.ResponseFormatJSONObjectParam{
+					Type: openai.F(openai.ResponseFormatJSONObjectTypeJSONObject),
 				},
-			},
-			ResponseFormat: &openai.ChatCompletionResponseFormat{
-				Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-			},
+			),
 		},
 	)
 	if err != nil {
@@ -140,9 +148,9 @@ func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error
 	completionResponse := ChatCompletionResponse{
 		Prompt:       prompt,
 		Completion:   resp.Choices[0].Message.Content,
-		TotalTokens:  resp.Usage.TotalTokens,
-		InputTokens:  resp.Usage.PromptTokens,
-		OutputTokens: resp.Usage.CompletionTokens,
+		TotalTokens:  int(resp.Usage.TotalTokens),
+		InputTokens:  int(resp.Usage.PromptTokens),
+		OutputTokens: int(resp.Usage.CompletionTokens),
 		TimeTaken:    int(time.Since(start).Seconds()),
 		Provider:     OpenAI,
 	}
@@ -151,14 +159,9 @@ func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error
 }
 
 func CreateLlmClientFromEnv() (*llmClient, error) {
-	var provider LlmProvider
-	envProvider := os.Getenv("LLM_PROVIDER")
-	if envProvider == string(OpenAI) {
-		provider = OpenAI
-	} else if envProvider == string(Anthropic) {
-		provider = Anthropic
-	}
-	return NewLlmClient(provider, os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"))
+	return NewLlmClient(
+		LlmProvider(os.Getenv("LLM_PROVIDER")), os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"),
+	)
 }
 
 func (c *llmClient) GetProvider() LlmProvider {
