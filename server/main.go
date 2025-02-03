@@ -113,11 +113,13 @@ func acceptConnection(fd net.Conn) {
 	lengthBuf := make([]byte, 4)
 	versionBuf := make([]byte, 3)
 	for {
-		_, err := fd.Read(versionBuf)
+		sum := 0
+		count, err := fd.Read(versionBuf)
 		if err != nil {
 			handleReadError(err)
 			return
 		}
+		sum += count
 		if !(compareVersion(versionBuf)) {
 			msg := outgoingMessage{
 				Status: "error",
@@ -134,18 +136,24 @@ func acceptConnection(fd net.Conn) {
 			}
 			return
 		}
-		_, err = fd.Read(lengthBuf)
+
+		count, err = fd.Read(lengthBuf)
+		if err != nil {
+			handleReadError(err)
+			return
+		}
 		msgLength := binary.BigEndian.Uint32(lengthBuf)
-		if err != nil {
-			handleReadError(err)
-			return
-		}
+		sum += count
+
 		message := make([]byte, msgLength)
-		_, err = fd.Read(message)
+		count, err = fd.Read(message)
 		if err != nil {
 			handleReadError(err)
 			return
 		}
+		sum += count
+
+		logger.Logger.Debug("Read bytes from client", slog.Int("count", sum))
 
 		var clientMessage incomingMessage
 		if err := json.Unmarshal(message, &clientMessage); err != nil {
@@ -153,9 +161,9 @@ func acceptConnection(fd net.Conn) {
 				"error", err,
 				"message", string(message))
 			msg := outgoingMessage{
-				Type:     clientMessage.Type,
+				Type:     "error",
 				Status:   "error",
-				ClientId: clientMessage.ClientId,
+				ClientId: "00000000-0000-0000-0000-000000000000",
 				Error:    err.Error(),
 			}
 			if err := writeResponse(fd, msg); err != nil {
