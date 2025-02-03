@@ -39,6 +39,7 @@ license = "MIT"
 
 [dependency-groups]
 dev = [
+    "pytest-cov>=6.0.0",
     "pytest>=8.3.4",
     "ruff>=0.8.6",
 ]
@@ -48,3 +49,17 @@ line-length = 80
 
 [tool.pytest.ini_options]
 pythonpath = ["./python_client"]
+
+[tool.coverage.run]
+source = ["python_client/locatr"]
+omit = ["python_client/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]

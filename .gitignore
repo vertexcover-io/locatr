@@ -1,3 +1,9 @@
+# Coverage files
+coverage.out
+coverage.html
+htmlcov/
+.coverage
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
