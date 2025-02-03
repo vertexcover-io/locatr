@@ -17,7 +17,7 @@ def locatr_instance():
         cdp_url="http://localhost:9222",
         llm_settings={},
     )
-    return Locatr(locatr_settings=settings, debug=True)
+    return Locatr(locatr_settings=settings)
 
 
 class TestLocatr:

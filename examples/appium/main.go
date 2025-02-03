@@ -7,7 +7,6 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logger"
 )
 
 func main() {
@@ -18,10 +17,6 @@ func main() {
 	)
 	bLocatr := locatr.BaseLocatrOptions{
 		LlmClient: llmClient,
-		// ReRankClient: reranker.NewCohereClient(os.Getenv("RERANK_KEY")),
-		LogConfig: logger.LogConfig{
-			Level: logger.Debug,
-		},
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		"https://device.pcloudy.com/appiumcloud/wd/hub",
