@@ -8,32 +8,31 @@ import (
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
-	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
 func main() {
 	llmClient, _ := llm.NewLlmClient(
 		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL"),
-		os.Getenv("LLM_API_KEY"),
+		os.Getenv("OPENAI_MODEL"),
+		os.Getenv("OPENAI_KEY"),
 	)
-	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 	bLocatr := locatr.BaseLocatrOptions{
-		ReRankClient: reRankClient,
-		LlmClient:    llmClient,
+		LlmClient: llmClient,
+		// ReRankClient: reranker.NewCohereClient(os.Getenv("RERANK_KEY")),
 		LogConfig: logger.LogConfig{
 			Level: logger.Debug,
 		},
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
-		"http://172.30.192.1:4723",
-		"477d6d25-1c0a-49a4-a640-2b96ea7e9b93", bLocatr,
+		"https://device.pcloudy.com/appiumcloud/wd/hub",
+		"89ead025-4cf4-4c44-b723-feff1c3aa28f", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	l, err := aLocatr.GetLocatrStr("Network and internet id")
+	desc := "This element is a textbox designed for user input, specifically for search queries. It is labeled for accessibility as \"Google Search\" and allows users to enter text. The textbox supports autocomplete features, enhancing the user experience by suggesting possible queries as the user types. It is configured to ignore capitalization and offers spell check capabilities. Additionally, it has a maximum length for input, ensuring submissions remain manageable. The role of the element is defined as a \"textbox,\" indicating its primary purpose for text entry."
+	l, err := aLocatr.GetLocatrStr(desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)
 	}
