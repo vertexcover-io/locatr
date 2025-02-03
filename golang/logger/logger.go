@@ -12,7 +12,11 @@ func newLogger() *slog.Logger {
 	opts := &slog.HandlerOptions{
 		Level: Level,
 	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	log_file, err := os.Create("locator_log.json")
+	if err != nil {
+		panic("failed to create log file")
+	}
+	return slog.New(slog.NewJSONHandler(log_file, opts))
 }
 
 var Logger = newLogger()
