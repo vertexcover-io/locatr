@@ -221,6 +221,9 @@ func isValidElement(
 	if element.Data == "hierarchy" {
 		return true
 	}
+	if element.FirstChild != nil {
+		return true
+	}
 	visible := isElementVisible(element, platform)
 	return visible
 }
