@@ -608,14 +608,6 @@ func createLocatrResultFromOutput(
 	return results
 }
 
-// func sortRerankChunks(chunks []string, reRankResults []reranker.ReRankResult) []string {
-// 	finalChunks := []string{}
-// 	for _, result := range reRankResults {
-// 		finalChunks = append(finalChunks, chunks[result.Index])
-// 	}
-// 	return finalChunks
-// }
-
 func sortRerankChunks(chunks []string, reRankResults []reranker.ReRankResult) []string {
 	// Filter out results with indices out of range
 	validResults := []reranker.ReRankResult{}

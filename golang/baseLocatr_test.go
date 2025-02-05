@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
@@ -901,7 +900,6 @@ func TestGetValidLocator(t *testing.T) {
 	mockPlugin := &MockPlugin{}
 	baseLocatr := &BaseLocatr{
 		plugin: mockPlugin,
-		logger: logger.NewLogger(logger.LogConfig{}),
 	}
 
 	// Test case 1: All locators are valid
@@ -918,7 +916,6 @@ func TestGetValidLocator(t *testing.T) {
 	}
 	baseLocatrInvalid := &BaseLocatr{
 		plugin: mockPluginInvalid,
-		logger: logger.NewLogger(logger.LogConfig{}),
 	}
 
 	locatorsWithInvalid := []string{"locator1", "locator2", "locator3"}
@@ -936,7 +933,6 @@ func TestGetValidLocator(t *testing.T) {
 	}
 	baseLocatrNoValid := &BaseLocatr{
 		plugin: mockPluginNoValid,
-		logger: logger.NewLogger(logger.LogConfig{}),
 	}
 
 	validLocators, err = baseLocatrNoValid.getValidLocator(locators)
@@ -955,7 +951,6 @@ func TestLlmGetElementId(t *testing.T) {
 
 	baseLocatr := &BaseLocatr{
 		llmClient: mockLlmClient,
-		logger:    logger.NewLogger(logger.LogConfig{}),
 	}
 
 	// Test case 1: Successful LLM response
@@ -972,7 +967,6 @@ func TestLlmGetElementId(t *testing.T) {
 	}
 	baseLocatrError := &BaseLocatr{
 		llmClient: mockLlmClientError,
-		logger:    logger.NewLogger(logger.LogConfig{}),
 	}
 
 	_, err = baseLocatrError.llmGetElementId(htmlDom, userReq)
@@ -990,7 +984,6 @@ func TestGetLocatrOutput(t *testing.T) {
 
 	baseLocatr := &BaseLocatr{
 		llmClient: mockLlmClient,
-		logger:    logger.NewLogger(logger.LogConfig{}),
 	}
 
 	// Test case 1: Successful locatr output
@@ -1010,7 +1003,6 @@ func TestGetLocatrOutput(t *testing.T) {
 	}
 	baseLocatrError := &BaseLocatr{
 		llmClient: mockLlmClientError,
-		logger:    logger.NewLogger(logger.LogConfig{}),
 	}
 
 	_, err = baseLocatrError.getLocatrOutput(htmlDom, userReq)

@@ -22,8 +22,8 @@ type LlmWebInputDto struct {
 
 type llmClient struct {
 	apiKey          string      `validate:"required"`
-	provider        LlmProvider `validate:"regexp=(openai|anthropic|open-router|groq)"`
-	model           string      `validate:"min=2,max=50"`
+	provider        LlmProvider `validate:"required,regexp=(openai|anthropic|open-router|groq)"`
+	model           string      `validate:"required,min=2,max=50"`
 	openaiClient    *openai.Client
 	anthropicClient *anthropic.Client
 }
@@ -52,6 +52,8 @@ const (
 )
 
 var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
+var ErrInvalidModelName = errors.New("model name must be between 2 and 50 characters")
+var ErrInvalidApiKey = errors.New("API key is required")
 
 const MAX_TOKENS int = 256
 
@@ -61,6 +63,7 @@ const MAX_TOKENS int = 256
 // The `apiKey` is the API key associated with the chosen provider.
 // Returns an initialized *llmClient or an error if validation or provider initialization fails.
 func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient, error) {
+
 	client := &llmClient{
 		apiKey:   apiKey,
 		provider: provider,
@@ -164,9 +167,19 @@ func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error
 }
 
 func CreateLlmClientFromEnv() (*llmClient, error) {
-	return NewLlmClient(
-		LlmProvider(os.Getenv("LLM_PROVIDER")), os.Getenv("LLM_MODEL"), os.Getenv("LLM_API_KEY"),
-	)
+	provider := os.Getenv("LLM_PROVIDER")
+	if provider == "" {
+		return nil, ErrInvalidProviderForLlm
+	}
+	model := os.Getenv("LLM_MODEL")
+	if model == "" {
+		return nil, ErrInvalidModelName
+	}
+	apiKey := os.Getenv("LLM_API_KEY")
+	if apiKey == "" {
+		return nil, ErrInvalidApiKey
+	}
+	return NewLlmClient(LlmProvider(provider), model, apiKey)
 }
 
 func (c *llmClient) GetProvider() LlmProvider {
