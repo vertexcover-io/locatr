@@ -9,4 +9,5 @@ from locatr.schema import (
     LocatrSeleniumSettings,
     PluginType,
     LocatrOutput,
+    LogLevel,
 )

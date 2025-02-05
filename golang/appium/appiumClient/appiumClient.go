@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/vertexcover-io/locatr/golang/logger"
 )
 
 type AppiumClient struct {
@@ -78,6 +79,7 @@ func CreateNewHttpClient(baseUrl string) *resty.Client {
 }
 
 func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) {
+	defer logger.GetTimeLogger("Creating appium client")()
 	baseUrl, err := url.Parse(serverUrl)
 	if err != nil {
 		return nil, err
@@ -102,6 +104,8 @@ type resp struct {
 }
 
 func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
+	defer logger.GetTimeLogger("Appium: ExecuteScript")()
+
 	body := map[string]any{
 		"script": script,
 		"args":   []string{},
@@ -129,6 +133,8 @@ func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 }
 
 func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
+	defer logger.GetTimeLogger("Appium: GetCurrentViewContext")()
+
 	response, err := ac.httpClient.R().Get("/context")
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
@@ -154,6 +160,8 @@ func (ac *AppiumClient) IsWebView() bool {
 }
 
 func (ac *AppiumClient) GetPageSource() (string, error) {
+	defer logger.GetTimeLogger("Appium: GetPageSource")()
+
 	response, err := ac.httpClient.R().Get("source/")
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
@@ -170,6 +178,8 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 }
 
 func (ac *AppiumClient) FindElement(locator, locator_type string) error {
+	defer logger.GetTimeLogger("Appium: FindElement")()
+
 	requestBody := findElementRequest{
 		Using: locator_type,
 		Value: locator,
@@ -194,6 +204,8 @@ func (ac *AppiumClient) FindElement(locator, locator_type string) error {
 }
 
 func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
+	defer logger.GetTimeLogger("Appium: GetCapabilities")()
+
 	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Get("/")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
@@ -210,6 +222,8 @@ func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
 }
 
 func (ac *AppiumClient) GetCurrentActivity() (string, error) {
+	defer logger.GetTimeLogger("Appium: GetCurrentActivity")()
+
 	response, err := ac.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)

@@ -13,7 +13,6 @@ import (
 	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
 )
 
@@ -50,7 +49,6 @@ func main() {
 		log.Fatalf("could not create llm client: %v", err)
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true,
-		LogConfig:       logger.LogConfig{Level: logger.Debug},
 		LlmClient:       llmClient,
 		ResultsFilePath: "docker_hub.json",
 	}

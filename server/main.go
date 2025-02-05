@@ -6,7 +6,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
+
 	"net"
 	"net/url"
 	"os"
@@ -36,8 +37,6 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 	} else {
 		opts.ReRankClient = reranker.CreateCohereClientFromEnv()
 	}
-
-	opts.LogConfig = logger.LogConfig{Level: logger.Debug}
 
 	opts.CachePath = message.Settings.CachePath
 	opts.UseCache = message.Settings.UseCache
@@ -114,11 +113,13 @@ func acceptConnection(fd net.Conn) {
 	lengthBuf := make([]byte, 4)
 	versionBuf := make([]byte, 3)
 	for {
-		_, err := fd.Read(versionBuf)
+		sum := 0
+		count, err := fd.Read(versionBuf)
 		if err != nil {
 			handleReadError(err)
 			return
 		}
+		sum += count
 		if !(compareVersion(versionBuf)) {
 			msg := outgoingMessage{
 				Status: "error",
@@ -130,34 +131,44 @@ func acceptConnection(fd net.Conn) {
 				),
 			}
 			if err := writeResponse(fd, msg); err != nil {
-				log.Printf("Failed to send error response to client: %v", err)
+				logger.Logger.Error("Failed to send error response to client",
+					"error", err)
 			}
-			return
-		}
-		_, err = fd.Read(lengthBuf)
-		msgLength := binary.BigEndian.Uint32(lengthBuf)
-		if err != nil {
-			handleReadError(err)
-			return
-		}
-		message := make([]byte, msgLength)
-		_, err = fd.Read(message)
-		if err != nil {
-			handleReadError(err)
 			return
 		}
 
+		count, err = fd.Read(lengthBuf)
+		if err != nil {
+			handleReadError(err)
+			return
+		}
+		msgLength := binary.BigEndian.Uint32(lengthBuf)
+		sum += count
+
+		message := make([]byte, msgLength)
+		count, err = fd.Read(message)
+		if err != nil {
+			handleReadError(err)
+			return
+		}
+		sum += count
+
+		logger.Logger.Debug("Read bytes from client", slog.Int("count", sum))
+
 		var clientMessage incomingMessage
 		if err := json.Unmarshal(message, &clientMessage); err != nil {
-			log.Printf("Error parsing JSON: %v", err)
+			logger.Logger.Error("Error parsing JSON",
+				"error", err,
+				"message", string(message))
 			msg := outgoingMessage{
-				Type:     clientMessage.Type,
+				Type:     "error",
 				Status:   "error",
-				ClientId: clientMessage.ClientId,
+				ClientId: "00000000-0000-0000-0000-000000000000",
 				Error:    err.Error(),
 			}
 			if err := writeResponse(fd, msg); err != nil {
-				log.Printf("Failed to send error response to client: %v", err)
+				logger.Logger.Error("Failed to send error response to client",
+					"error", err)
 				return
 			}
 			continue
@@ -171,7 +182,8 @@ func acceptConnection(fd net.Conn) {
 				Error:    err.Error(),
 			}
 			if err := writeResponse(fd, errResp); err != nil {
-				log.Printf("Failed to send validation error response to client: %v", err)
+				logger.Logger.Error("Failed to send validation error response to client",
+					"error", err)
 				return
 			}
 			continue
@@ -190,7 +202,9 @@ func acceptConnection(fd net.Conn) {
 					ClientId: clientMessage.ClientId,
 				}
 				if err := writeResponse(fd, errResp); err != nil {
-					log.Printf("Failed to send error response to client during handshake: %v", err)
+					logger.Logger.Error("Failed to send error response to client during handshake",
+						"error", err,
+						"clientId", clientMessage.ClientId)
 					return
 				}
 				continue
@@ -201,10 +215,13 @@ func acceptConnection(fd net.Conn) {
 				ClientId: clientMessage.ClientId,
 			}
 			if err := writeResponse(fd, successResp); err != nil {
-				log.Printf("Failed to send success response to client during handshake: %v", err)
+				logger.Logger.Error("Failed to send success response to client during handshake",
+					"error", err,
+					"clientId", clientMessage.ClientId)
 				return
 			}
-			log.Printf("Initial handshake successful with client: %s", clientMessage.ClientId)
+			logger.Logger.Info("Initial handshake successful with client",
+				"clientId", clientMessage.ClientId)
 		case "locatr_request":
 			locatrOutput, err := handleLocatrRequest(clientMessage)
 			if err != nil {
@@ -216,7 +233,9 @@ func acceptConnection(fd net.Conn) {
 					ClientId:  clientMessage.ClientId,
 				}
 				if err := writeResponse(fd, errResp); err != nil {
-					log.Printf("Failed to send error response to client during locatr request: %v", err)
+					logger.Logger.Error("Failed to send error response to client during locatr request",
+						"error", err,
+						"clientId", clientMessage.ClientId)
 					return
 				}
 				continue
@@ -229,52 +248,60 @@ func acceptConnection(fd net.Conn) {
 				SelectorType: string(locatrOutput.SelectorType),
 			}
 			if err := writeResponse(fd, successResp); err != nil {
-				log.Printf("Failed to send success response to client during locatr request: %v", err)
+				logger.Logger.Error("Failed to send success response to client during locatr request",
+					"error", err,
+					"clientId", clientMessage.ClientId)
 				return
 			}
 		}
 	}
-
 }
 
 func main() {
 	var socketFilePath string
+	var logLevel int
 	flag.StringVar(&socketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socket file to listen at.")
+	flag.IntVar(&logLevel, "logLevel", int(slog.LevelError), "log level for the server")
 	flag.Parse()
-	log.SetOutput(os.Stderr)
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
-	if _, err := os.Stat(socketFilePath); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(socketFilePath); !errors.Is(err, os.ErrNotExist) {
 		os.Remove(socketFilePath)
+	}
+	if (logLevel == int(slog.LevelDebug)) ||
+		(logLevel == int(slog.LevelInfo)) ||
+		(logLevel == int(slog.LevelWarn)) ||
+		(logLevel == int(slog.LevelError)) {
+		logger.Level.Set(slog.Level(logLevel))
 	}
 
 	socket, err := net.Listen("unix", socketFilePath)
 	if err != nil {
-		log.Fatalf("failed connecting to socket: %v", err)
-		return
+		logger.Logger.Error("Failed connecting to socket", "error", err)
+		os.Exit(1)
 	}
 	defer socket.Close()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
 		sig := <-sigChan
-		log.Printf("Received signal: %v, shutting down...", sig)
+		logger.Logger.Info("Received signal, shutting down...", "signal", sig)
 
 		if err := os.Remove(socketFilePath); err != nil {
-			log.Printf("Failed to remove socket file: %v", err)
-		} else {
-			log.Printf("Removed socket file: %s", socketFilePath)
+			logger.Logger.Error("Failed to remove socket file", "error", err)
 		}
 		os.Exit(0)
 	}()
 
-	log.Printf("Ready to accept connections on file: %s", socketFilePath)
-	defer os.Remove((socketFilePath))
+	logger.Logger.Info("Ready to accept connections", "socketFilePath", socketFilePath)
+	defer os.Remove(socketFilePath)
+
 	for {
 		client, err := socket.Accept()
 		if err != nil {
-			log.Fatal("Failed accepting socket %w", err)
+			logger.Logger.Error("Failed accepting socket", "error", err)
+			continue
 		}
 		go func() {
 			acceptConnection(client)

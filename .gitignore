@@ -217,3 +217,5 @@ cython_debug/
 .pypirc
 
 __debug*
+
+locator_log.json
