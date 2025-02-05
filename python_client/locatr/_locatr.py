@@ -27,11 +27,12 @@ from locatr.exceptions import (
 from locatr.schema import (
     InitialHandshakeMessage,
     LocatrAppiumSettings,
+    LocatrBaseOutputMessage,
     LocatrCdpSettings,
     LocatrOutput,
     LocatrSeleniumSettings,
+    LogLevel,
     MessageType,
-    InitialHandShakeOutputMessage,
     OutputStatus,
     UserRequestMessage,
 )
@@ -46,11 +47,11 @@ class Locatr:
         locatr_settings: Union[
             LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
         ],
-        debug: bool = False,
+        log_level: LogLevel | None = LogLevel.ERROR,
     ) -> None:
         self._settings = locatr_settings
         self._id = uuid.uuid4()
-        self._debug: bool = debug
+        self._log_level = log_level
         self._socket = None
 
     def _initialize_process_and_socket(self):
@@ -63,10 +64,13 @@ class Locatr:
         if not Locatr._process:
             if check_socket_in_use(SocketFilePath.path):
                 SocketFilePath.path = change_socket_file()
-            Locatr._process = spawn_locatr_process(
-                [f"-socketFilePath={SocketFilePath.path}"]
-            )
-        if self._debug:
+            args = [
+                f"-socketFilePath={SocketFilePath.path}",
+            ]
+            if self._log_level is not None:
+                args.append(f"-logLevel={self._log_level.value}")
+            Locatr._process = spawn_locatr_process(args)
+        if self._log_level is not None:
             self._start_locatr_log()
 
     def _start_locatr_log(self):
@@ -98,7 +102,7 @@ class Locatr:
 
         data = self._recv_message()
         try:
-            output = InitialHandShakeOutputMessage.model_validate_json(data)
+            output = LocatrBaseOutputMessage.model_validate_json(data)
             if not output.status == OutputStatus.OK:
                 raise LocatrInitialHandshakeFailed(output.error)
         except ValidationError as e:
@@ -132,11 +136,10 @@ class Locatr:
         self._send_message(packed_data)
         output_data = self._recv_message()
         try:
-            print(str(output_data))
             output_msg = LocatrOutput.model_validate_json(output_data)
             if not output_msg.status == OutputStatus.OK:
                 raise FailedToRetrieveLocatr(output_msg.error)
-            return output_msg
+            return LocatrOutput.model_validate_json(output_data)
         except ValidationError as e:
             raise FailedToRetrieveLocatr(str(e.errors()))
 

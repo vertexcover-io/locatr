@@ -71,10 +71,11 @@ def log_output(process: Popen[bytes]):
             stdout_line = process.stdout.readline().decode()
             stderr_line = process.stderr.readline().decode()
             if stdout_line:
-                print(stdout_line)
+                print(stdout_line, end="")
+                sys.stdout.flush()
             if stderr_line:
-                print(stderr_line)
-
+                print(stderr_line, end="")
+                sys.stdout.flush()
     except Exception as e:
         print("exception while reading process output", e, file=sys.stderr)
 

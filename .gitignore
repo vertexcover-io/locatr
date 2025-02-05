@@ -221,3 +221,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+__debug*
+
+locator_log.json

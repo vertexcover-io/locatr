@@ -9,6 +9,7 @@ import (
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/openai/openai-go"
 	openai_option "github.com/openai/openai-go/option"
+	"github.com/vertexcover-io/locatr/golang/logger"
 	"gopkg.in/validator.v2"
 )
 
@@ -101,6 +102,8 @@ func (c *llmClient) ChatCompletion(prompt string) (*ChatCompletionResponse, erro
 }
 
 func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, error) {
+	defer logger.GetTimeLogger("LLM: AnthropicCompletion")()
+
 	start := time.Now()
 	resp, err := c.anthropicClient.CreateMessages(
 		context.Background(),
@@ -128,6 +131,8 @@ func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, er
 }
 
 func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error) {
+	defer logger.GetTimeLogger("LLM: OpenAICompletion")()
+
 	start := time.Now()
 	resp, err := c.openaiClient.Chat.Completions.New(
 		context.Background(), openai.ChatCompletionNewParams{

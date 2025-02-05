@@ -5,6 +5,13 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field, HttpUrl
 
 
+class LogLevel(int, Enum):
+    DEBUG = -4
+    INFO = 0
+    WARN = 4
+    ERROR = 8
+
+
 class MessageType(str, Enum):
     INITIAL_HANDSHAKE = "initial_handshake"
     LOCATR_REQUEST = "locatr_request"
@@ -30,7 +37,8 @@ class PluginType(str, Enum):
 
 class SelectorType(str, Enum):
     XPATH = "xpath"
-    CSS = "css"
+    CSS = "css selector"
+    INVALID = ""
 
 
 class Message(BaseModel):
@@ -38,12 +46,12 @@ class Message(BaseModel):
     type: MessageType
 
 
-class InitialHandShakeOutputMessage(Message):
+class LocatrBaseOutputMessage(Message):
     status: OutputStatus
     error: str
 
 
-class LocatrOutput(InitialHandShakeOutputMessage):
+class LocatrOutput(LocatrBaseOutputMessage):
     selectors: list[str]
     selector_type: SelectorType
 

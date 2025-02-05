@@ -2,38 +2,36 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	locatr "github.com/vertexcover-io/locatr/golang"
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
-	"github.com/vertexcover-io/locatr/golang/reranker"
 )
 
 func main() {
+	logger.Level.Set(slog.LevelDebug)
+
 	llmClient, _ := llm.NewLlmClient(
 		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL"),
-		os.Getenv("LLM_API_KEY"),
+		os.Getenv("OPENAI_MODEL"),
+		os.Getenv("OPENAI_KEY"),
 	)
-	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 	bLocatr := locatr.BaseLocatrOptions{
-		ReRankClient: reRankClient,
-		LlmClient:    llmClient,
-		LogConfig: logger.LogConfig{
-			Level: logger.Debug,
-		},
+		LlmClient: llmClient,
 	}
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
-		"http://172.30.192.1:4723",
-		"477d6d25-1c0a-49a4-a640-2b96ea7e9b93", bLocatr,
+		"http://localhost:4723",
+		"640daa1b-afdc-45a3-83fd-d0c37cffb3de", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	l, err := aLocatr.GetLocatrStr("Network and internet id")
+	desc := "This input element is designed for password entry, indicated by its type attribute set to \"password,\" which obscures the text entered for privacy. It requires user input, as denoted by the \"required\" attribute, ensuring that users do not submit the form without filling out this field. The placeholder text prompts users to \"Enter your password,\" guiding them on the expected input. This input is commonly used within forms where sensitive data is collected, such as registration or login forms."
+	l, err := aLocatr.GetLocatrStr(desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)
 	}
