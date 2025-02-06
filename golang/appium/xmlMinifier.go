@@ -48,34 +48,48 @@ func printXmlTree(node *xmlquery.Node, depth int) {
 }
 
 func findFirstElementNode(node *xmlquery.Node) *xmlquery.Node {
+	// If the current node is an element node, return it immediately
 	if node.Type == xmlquery.ElementNode {
 		return node
 	}
 
+	// Recursively search through child nodes
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		// Recursively call findFirstElementNode on each child
 		found := findFirstElementNode(child)
+		// If an element node is found, return it
 		if found != nil {
 			return found
 		}
 	}
 
+	// If no element node is found, return nil
 	return nil
 }
 
 func getElementHierarchyXpath(element *xmlquery.Node) string {
+	// Initialize a slice to store XPath parts
 	var parts []string
+
+	// Traverse up the XML tree
 	for element != nil {
-		if element.Data == "AppiumAUT" {
+		// Stop if we reach the root "AppiumAUT" element
+		if element.Data == "AppiumAUT" || element.Type == xmlquery.DocumentNode { // Stop at the AppiumAUT or document node element
 			break
 		}
+
+		// Get the parent node
 		parent := element.Parent
 		if parent != nil {
+			// Find all siblings with the same tag name
 			var sibilingsOfSameTag []*xmlquery.Node
 			for sib := parent.FirstChild; sib != nil; sib = sib.NextSibling {
 				if sib.Type == xmlquery.ElementNode && sib.Data == element.Data {
 					sibilingsOfSameTag = append(sibilingsOfSameTag, sib)
 				}
 			}
+
+			// If multiple siblings with same tag, add position
 			if len(sibilingsOfSameTag) > 1 {
 				pos := 1
 				for i, sib := range sibilingsOfSameTag {
@@ -85,33 +99,50 @@ func getElementHierarchyXpath(element *xmlquery.Node) string {
 					}
 				}
 				parts = append(parts, fmt.Sprintf("%s[%d]", element.Data, pos))
-
 			} else {
 				parts = append(parts, element.Data)
 			}
 		} else {
 			parts = append(parts, element.Data)
 		}
+
+		// Move up to parent
 		element = parent
 	}
+
+	// Reverse the parts to create top-down XPath
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
 		parts[i], parts[j] = parts[j], parts[i]
 	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+	// Return the XPath string
 	return "/" + strings.Join(parts, "/")
+
 }
 
 func getElementLocatrs(element *xmlquery.Node) []string {
+	// Initialize empty locator list
 	locatrs := []string{}
+
+	// Skip hierarchy root
 	if element.Data == "hierarchy" {
 		return locatrs
 	}
+
+	// Generate hierarchy-based XPath
 	xpathStr := getElementHierarchyXpath(element)
 	if xpathStr == "" {
 		return locatrs
 	}
 	locatrs = append(locatrs, xpathStr)
+
+	// Try unique attributes for XPath
 	for _, uniqueAttr := range MAYBE_UNIQUE_XPATH_ATTRIBUTES {
 		if attrValue := element.SelectAttr(uniqueAttr); attrValue != "" {
+			// Escape attribute value for XPath
 			escapedValue := ""
 			if strings.Contains(attrValue, "'") && !strings.Contains(attrValue, "\"") {
 				escapedValue = fmt.Sprintf("\"%s\"", attrValue)
@@ -121,7 +152,11 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 				escapedValue = strings.Replace(strings.Replace(attrValue, "\"", "\\\"", -1), "'", "\\'", -1)
 				escapedValue = fmt.Sprintf("\"%s\"", escapedValue)
 			}
+
+			// Generate unique attribute XPath
 			xpathStr := fmt.Sprintf("//%s[@%s=%s]", element.Data, uniqueAttr, escapedValue)
+
+			// Check if XPath is unique
 			isUnique, _ := isXpathUnique(xpathStr, element)
 			if isUnique {
 				locatrs = append(locatrs, xpathStr)
@@ -129,73 +164,83 @@ func getElementLocatrs(element *xmlquery.Node) []string {
 			}
 		}
 	}
+
+	// If still not unique, try combining attributes
 	if len(locatrs) > 1 {
 		return locatrs
 	}
+
 	xpathConditions := []string{}
 	for _, uniqueAttr := range MAYBE_UNIQUE_XPATH_ATTRIBUTES {
 		if attrValue := element.SelectAttr(uniqueAttr); attrValue != "" {
+			// JSON escaping for attribute values
 			escapedValue, _ := json.Marshal(attrValue)
-
 			escapedValueStr := string(escapedValue)
 
 			xpathConditions = append(xpathConditions, fmt.Sprintf("@%s=%s", uniqueAttr, escapedValueStr))
 
 			xPathPredicate := strings.Join(xpathConditions, " and ")
 			xPathStr := fmt.Sprintf("//%s[%s]", element.Data, xPathPredicate)
+
+			// Check for unique combined attribute XPath
 			isUnique, _ := isXpathUnique(xPathStr, element)
 			if isUnique {
 				locatrs = append(locatrs, xPathStr)
 				break
 			}
 		}
-
 	}
+
+	// If still not unique, try adding index to base XPath
 	if len(locatrs) > 1 {
 		return locatrs
 	}
+
 	baseXpath := getElementHierarchyXpath(element)
 	_, elementIndx := isXpathUnique(baseXpath, element)
+
 	if elementIndx == -1 {
 		return locatrs
 	} else if elementIndx != 0 {
 		locatrs = append(locatrs, fmt.Sprintf("%s,[%d]", baseXpath, elementIndx+1))
 	}
+
 	return locatrs
 }
 
-func isElementVisible(
-	element *xmlquery.Node, platform string,
-) bool {
+func isElementVisible(element *xmlquery.Node, platform string) bool {
+	// Android visibility check using bounds
 	if platform == "android" {
 		bounds := element.SelectAttr("bounds")
 		if bounds == "" {
 			return false
 		}
+
 		boundsParts := strings.Split(bounds, "][")
 		if len(boundsParts) != 2 {
 			return false
 		}
+
 		start := strings.Split(strings.Replace(boundsParts[0], "[", "", -1), ",")
 		end := strings.Split(strings.Replace(boundsParts[1], "]", "", -1), ",")
+
 		wstartInt, _ := strconv.Atoi(start[0])
 		wendInt, _ := strconv.Atoi(end[0])
 		width := wendInt - wstartInt
+
 		hstartInt, _ := strconv.Atoi(start[1])
 		hendInt, _ := strconv.Atoi(end[1])
 		height := hendInt - hstartInt
-		if width > 0 && height > 0 {
-			return true
-		} else {
-			return false
-		}
-	} else {
-		visible := strings.ToLower(element.SelectAttr("visible"))
-		if visible == "" {
-			visible = "true"
-		}
-		return visible == "true"
+
+		return width > 0 && height > 0
 	}
+
+	// iOS visibility check
+	visible := strings.ToLower(element.SelectAttr("visible"))
+	if visible == "" {
+		visible = "true"
+	}
+	return visible == "true"
 }
 
 func getVisibleText(
@@ -219,9 +264,6 @@ func isValidElement(
 		return false
 	}
 	if element.Data == "hierarchy" {
-		return true
-	}
-	if element.FirstChild != nil {
 		return true
 	}
 	visible := isElementVisible(element, platform)
@@ -253,6 +295,7 @@ func generateUniqueId(id string) string {
 	md5Hash := md5.Sum([]byte(id))
 	return hex.EncodeToString(md5Hash[:])
 }
+
 func attrsToMap(attrs []xmlquery.Attr) map[string]string {
 	attrMap := make(map[string]string)
 	for _, attr := range attrs {
@@ -305,6 +348,9 @@ func createElementSpec(
 }
 
 func minifySource(source string, platform string) (*elementSpec.ElementSpec, error) {
+	if source == "" {
+		return nil, fmt.Errorf("source is empty")
+	}
 	root, err := xmlquery.Parse(strings.NewReader(source))
 	if err != nil {
 		return nil, err
@@ -322,6 +368,9 @@ func minifySource(source string, platform string) (*elementSpec.ElementSpec, err
 }
 
 func mapElementsToJson(source string, platform string) (*elementSpec.IdToLocatorMap, error) {
+	if source == "" {
+		return nil, fmt.Errorf("source is empty")
+	}
 	root, err := xmlquery.Parse(strings.NewReader(source))
 	if err != nil {
 		return nil, err

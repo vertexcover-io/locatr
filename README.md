@@ -47,7 +47,7 @@ pip install locatr
 
 #### Python example
 
-```py
+```python
 # example assumes that there is already a page opened in the selenium session.
 import os
 

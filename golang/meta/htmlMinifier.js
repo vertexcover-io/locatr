@@ -527,7 +527,7 @@ function mapElementsToJson() {
 /**
  * Check if a provided locator is a valid locator in the dom.
  * @param {string} locator - The locator to check.
- * @resturns {boolean} true if the locator is valid, false otherwise.
+ * @returns {boolean} true if the locator is valid, false otherwise.
  */
 function isValidLocator(locator) {
 	try {
