@@ -1,0 +1,11 @@
+steps:
+- locatrs:
+  - /html/body/div[2]/div/div[3]/main/header/h1
+  userRequest: Button to edit the page
+- locatrs:
+  - /html/body/div/header/div[2]/div
+  userRequest: Donate button
+- locatrs:
+  - /html/body/div/header/div[2]/div/div/div/form/div/div/input
+  userRequest: Search query on wikipedia
+url: https://en.wikipedia.org/wiki/Quora

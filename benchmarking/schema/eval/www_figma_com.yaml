@@ -1,0 +1,8 @@
+steps:
+- locatrs:
+  - /html/body/div/div[2]/header/div/ul/li[3]/a[2]
+  userRequest: Button to get started
+- locatrs:
+  - /html/body/div/div/div[2]/button[2]/span/span
+  userRequest: Do not allow cookies button
+url: https://www.figma.com/

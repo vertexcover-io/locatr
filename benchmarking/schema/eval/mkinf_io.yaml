@@ -1,0 +1,14 @@
+steps:
+- locatrs:
+  - /html/body/div/div/div/div/section[2]/div/div/div[2]/div/div/button
+  userRequest: Button to book a demo
+- locatrs:
+  - /html/body/div/div/div/div/section/div/div/div[2]/div/button
+  userRequest: Link to blogs
+- locatrs:
+  - /html/body/div/div/div/div/div/div/button
+  userRequest: Button to accept the cookies
+- locatrs:
+  - /html/body/div/div/div/div/section/div/div/div[2]/div/button[2]
+  userRequest: Link to the documentation
+url: https://mkinf.io/

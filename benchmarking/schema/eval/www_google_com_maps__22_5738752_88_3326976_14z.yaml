@@ -1,0 +1,5 @@
+steps:
+- locatrs:
+  - /html/body/div/div[3]/div[8]/div[23]/div[5]/div/div[2]
+  userRequest: Button to change map layer type
+url: https://www.google.com/maps/@22.5738752,88.3326976,14z?entry=ttu&g_ep=EgoyMDI1MDIwOS4wIKXMDSoASAFQAw%3D%3D

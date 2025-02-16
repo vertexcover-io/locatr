@@ -1,0 +1,9 @@
+steps:
+- locatrs:
+  - //button[@data-raw="Show recent bugs in primer/react."]
+  - //button[@data-id="bugs-in-primer"]
+  userRequest: Button to recent bugs
+- locatrs:
+  - /html/body/div/div[5]/div/div/aside/div/div/loading-context/div/div[2]/div/div/div/div
+  userRequest: Locate first recent activity
+url: https://github.com/
