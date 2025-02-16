@@ -1,9 +1,10 @@
 import os
-import yaml
 import re
 from urllib.parse import urlparse, urlunparse
-from supabase import create_client
+
+import yaml
 from postgrest.exceptions import APIError
+from supabase import create_client
 
 # Initialize Supabase client
 supabase= create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])

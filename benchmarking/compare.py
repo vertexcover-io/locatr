@@ -1,6 +1,7 @@
-from pathlib import Path
-import yaml
 import sys
+from pathlib import Path
+
+import yaml
 from playwright.sync_api import sync_playwright
 
 if len(sys.argv) == 2:
