@@ -16,7 +16,7 @@ run:
 	cd server && \
 	trap 'rm -rf $(SOCKET_FILE); exit' INT TERM EXIT && \
 	go run . -socketFilePath=$(SOCKET_FILE)
-
+	
 clean:
 	rm -rf dist
 	
@@ -24,5 +24,16 @@ publish: clean build
 	uv build
 	uv publish
 
+# Go coverage targets
+.PHONY: go-test-coverage
+go-test-coverage:
+	go test ./golang/... -coverprofile=coverage.out -covermode=atomic
+	go tool cover -html=coverage.out -o coverage.html
 
+# Python coverage targets
+.PHONY: python-test-coverage
+python-test-coverage:
+	uv run python -m pytest --cov=python_client --cov-report=html --cov-config=pyproject.toml
 
+.PHONY: test-coverage
+test-coverage: go-test-coverage python-test-coverage

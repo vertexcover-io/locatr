@@ -19,9 +19,9 @@ type seleniumLocatr struct {
 	locatr *locatr.BaseLocatr
 }
 
-var ErrUnableToLoadJsScriptSelenium = errors.New("unable to load js script through playwright")
+var ErrUnableToLoadJsScriptSelenium = errors.New("unable to load js script through selenium")
 
-// NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium seesion.
+// NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium session.
 func NewRemoteConnSeleniumLocatr(serverUrl string,
 	sessionId string,
 	opt locatr.BaseLocatrOptions,
