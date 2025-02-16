@@ -1,0 +1,13 @@
+steps:
+- locatrs:
+  - //img[@src="https://images-na.ssl-images-amazon.com/captcha/xzqdsmvh/Captcha_dxnqopoblr.jpg"]
+  - /html/body/div/div/div[3]/div/div/form/div/div/div/div/img
+  userRequest: Image containing characters to solve captcha
+- locatrs:
+  - //input[@id="captchacharacters"]
+  - //input[@name="field-keywords"]
+  userRequest: Input to type characters from captcha image
+- locatrs:
+  - /html/body/div/header/div/div[3]/div[20]/div/div[3]/span[2]
+  userRequest: Button to change the delivery address
+url: https://www.amazon.com/

@@ -1,0 +1,16 @@
+steps:
+- locatrs:
+  - //a[@href="/catalogs/gen-ai" and @data-discover="true"]
+  - /html/body/div[3]/div/div/div[3]/div/div[2]/div/div/div/div/div/div/div/div/div/div/div/a
+  userRequest: Locate Generative AI link
+- locatrs:
+  - /html/body/div[3]/div/div/div[3]/div/div/div/div/div/a
+  userRequest: Locate view catalog button
+- locatrs:
+  - /html/body/div[3]/div/div/header/div/div/div[2]/div[2]/div/button
+  userRequest: Button to change theme
+- locatrs:
+  - //a[@href="https://app.docker.com/signup?_gl=1*1d1bfvv*_gcl_au*MTI3MjgzNDQ4MC4xNzM2ODU5NTA3*_ga*MTczNTIxNDM1MC4xNzMyNTIxMjE5*_ga_XJWPQMJYHQ*MTczOTM5MjUzNi4zMS4xLjE3MzkzOTI1MzcuNTkuMC4w"]
+  - //a[@data-testid="signup"]
+  userRequest: Sign up button
+url: https://hub.docker.com/

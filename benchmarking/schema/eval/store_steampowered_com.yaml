@@ -1,0 +1,24 @@
+steps:
+- locatrs:
+  - /html/body/div/div[7]/div/div/div[3]/div/a/div
+  userRequest: Button to the install the steam application
+- locatrs:
+  - //span[@id="language_pulldown"]
+  - /html/body/div/div[7]/div/div/div[3]/div/span
+  userRequest: Button to change the website's language
+- locatrs:
+  - //a[@href="https://store.steampowered.com/explore/new/?snr=1_4_4__125"]
+  - /html/body/div/div[7]/div[6]/div[3]/div/div/div/div[6]/a[2]
+  userRequest: Link to browse new releases
+- locatrs:
+  - //a[@href="https://store.steampowered.com/tags/en/Indie/?snr=1_4_4__125"]
+  - /html/body/div/div[7]/div[6]/div[3]/div/div/div[2]/a[6]
+  userRequest: Link to browse Indie genre
+- locatrs:
+  - //a[@href="https://store.steampowered.com/tag/browse/?snr=1_4_4__125#yours"]
+  - /html/body/div/div[7]/div[6]/div[3]/div/div/div/div[4]/a[3]
+  userRequest: Link to recommended tags
+- locatrs:
+  - /html/body/div/div[7]/div[6]/div[3]/div[2]/div[2]/div/div/div/div[2]/div[2]/div/a[3]/span
+  userRequest: Link to steam labs
+url: https://store.steampowered.com/

@@ -1,0 +1,21 @@
+steps:
+- locatrs:
+  - //input[@id="ssp-service-zip"]
+  - //input[@name="POL_ratedZip5" and @type="tel" and @placeholder="5-Digit ZIP Code"
+    and @aria-label="5-Digit ZIP Code" and @data-qm-encrypt="true"]
+  userRequest: Zip code input
+- locatrs:
+  - /html/body/div[2]/div/div/div/div/section/div/div/div/form/div[2]/div[4]/div/div
+  userRequest: Checkbox for including Motorcycle
+- locatrs:
+  - /html/body/div[2]/div/div/div/div/section/div/div/div/form/div[2]/div[3]/div/div
+  userRequest: Checkbox to include renters
+- locatrs:
+  - //img[@src="/includes/livechat/images/gabby-face.png"]
+  - //img[@alt="Gabby!"]
+  userRequest: Button to chat with the website bot
+- locatrs:
+  - //a[@data-link-name="primary-header:Español"]
+  - //a[@href="/espanol/?lang=es-US" and @aria-expanded="false"]
+  userRequest: Button to change the language
+url: https://www.geico.com/

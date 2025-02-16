@@ -1,0 +1,19 @@
+steps:
+- locatrs:
+  - /html/body/div[5]/div/div/div/div/div[3]/div[3]/div/div[2]/div/div/div/button/div
+  userRequest: Display total before taxes slider button
+- locatrs:
+  - //input[@id="bigsearch-query-location-input"]
+  - //input[@name="query"]
+  userRequest: Input to search destinations
+- locatrs:
+  - /html/body/div[5]/div/div/div/div/div[3]/div[2]/div/div/div/header/div/div[2]/div[2]/div/div/div/form/div[2]/div/div[3]/div/div/div/div[2]
+  userRequest: Check in date input
+- locatrs:
+  - /html/body/div[5]/div/div/div/div/div[3]/div[2]/div/div/div/header/div/div[2]/div[2]/div/div/div/form/div[2]/div/div[3]/div[3]/div/div/div[2]
+  userRequest: Check out date input
+- locatrs:
+  - //button[@data-testid="category-bar-filter-button"]
+  - /html/body/div[5]/div/div/div/div/div[3]/div[3]/div/div/div/div/div/div/div/div[2]/div/div/button
+  userRequest: Filter button
+url: https://www.airbnb.co.in/

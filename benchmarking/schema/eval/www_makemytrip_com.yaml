@@ -1,0 +1,18 @@
+steps:
+- locatrs:
+  - //span[@data-cy="closeModal"]
+  - /html/body/div/div/div/div/div[2]/div[2]/div/section/span
+  userRequest: Login popup close button
+- locatrs:
+  - //label[@for="fromCity"]
+  - /html/body/div/div/div[2]/div/div/div/div/div[2]/div/div/label
+  userRequest: Locate departure location
+- locatrs:
+  - //label[@for="toCity"]
+  - /html/body/div/div/div[2]/div/div/div/div/div[2]/div/div[2]/label
+  userRequest: Locate arrival location
+- locatrs:
+  - //label[@for="departure"]
+  - /html/body/div/div/div[2]/div/div/div/div/div[2]/div/div[3]/label
+  userRequest: Locate departure date
+url: https://www.makemytrip.com/

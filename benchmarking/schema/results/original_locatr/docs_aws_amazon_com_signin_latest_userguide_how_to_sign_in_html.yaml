@@ -1,0 +1,10 @@
+url: https://docs.aws.amazon.com/signin/latest/userguide/how-to-sign-in.html
+steps:
+    - userRequest: Update preferences button
+      locatrs: []
+    - userRequest: Button to like the page
+      locatrs: []
+    - userRequest: Button to dislike the page
+      locatrs: []
+    - userRequest: Link to document history
+      locatrs: []
