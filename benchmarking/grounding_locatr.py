@@ -1,22 +1,20 @@
-from playwright.sync_api import sync_playwright
-from pathlib import Path
+import logging
 import re
 import sys
-import yaml
-from dataclasses import dataclass, asdict
-from typing import Literal
-from pathlib import Path
 from base64 import standard_b64encode
+from dataclasses import dataclass, asdict
+from pathlib import Path
 from textwrap import dedent
-from json_repair import repair_json
-import logging
+from typing import Literal
 
+import yaml
 from anthropic import Anthropic
-
 from dotenv import load_dotenv
-
 from gradio_client import Client, handle_file
+from json_repair import repair_json
 from PIL import Image, ImageDraw
+from playwright.sync_api import sync_playwright
+
 
 load_dotenv()
 

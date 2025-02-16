@@ -9,7 +9,7 @@ COHERE_API_KEY=
 
 ### Fetch evals from supabase
   ```
-  python fetch_evals.py
+  uv run fetch_evals.py
   ```
 
 ### Generating results
@@ -22,27 +22,27 @@ COHERE_API_KEY=
 
 - Anthropic Grounding Locatr
   ```
-  python grounding_locatr.py anthropic
+  uv run grounding_locatr.py anthropic
   ```
 
 - OS Atlas Grounding Locatr
   ```
-  python grounding_locatr.py os_atlas
+  uv run grounding_locatr.py os_atlas
   ```
   
 ### Comparing results with evals
 
 - Original Locatr
   ```
-  python compare.py original
+  uv run compare.py original
   ```
 
 - Anthropic Grounding Locatr
   ```
-  python compare.py anthropic
+  uv run compare.py anthropic
   ```
 
 - OS Atlas Grounding Locatr
   ```
-  python compare.py os_atlas
+  uv run compare.py os_atlas
   ```
