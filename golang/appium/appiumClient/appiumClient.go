@@ -143,9 +143,14 @@ func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
 		return "", fmt.Errorf("%w: %s", ErrSessionNotActive, ac.sessionId)
 	}
 	var responseBody appiumGetCurrentContextResponse
-	err = json.Unmarshal(response.Body(), &responseBody)
+	body := response.Body()
+	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", fmt.Errorf(
+			"failed to unmarshal response: %w, expected json, received: %s",
+			err,
+			body,
+		)
 	}
 	return responseBody.Value, nil
 }
@@ -170,9 +175,14 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 		return "", fmt.Errorf("%w : %s ", ErrSessionNotActive, ac.sessionId)
 	}
 	var responseBody appiumPageSourceResponse
-	err = json.Unmarshal(response.Body(), &responseBody)
+	body := response.Body()
+	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", fmt.Errorf(
+			"failed to unmarshal response: %w, expected json, received: %s",
+			err,
+			body,
+		)
 	}
 	return responseBody.Value, nil
 }
@@ -194,9 +204,14 @@ func (ac *AppiumClient) FindElement(locator, locator_type string) error {
 	}
 	if response.StatusCode() != 200 {
 		var result appiumGetElementResponse
-		err = json.Unmarshal(response.Body(), &result)
+		body := response.Body()
+		err = json.Unmarshal(body, &result)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal response: %w", err)
+			return fmt.Errorf(
+				"failed to unmarshal response: %w, expected json, received: %s",
+				err,
+				body,
+			)
 		}
 		return fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
@@ -211,10 +226,15 @@ func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	var result sessionResponse
-	err = json.Unmarshal(response.Body(), &result)
+	body := response.Body()
+	err = json.Unmarshal(body, &result)
 	if response.StatusCode() != 200 {
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+			return nil, fmt.Errorf(
+				"failed to unmarshal response: %w, expected json, received: %s",
+				err,
+				body,
+			)
 		}
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
