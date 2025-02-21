@@ -17,7 +17,7 @@ func TestFindFirstElementNode(t *testing.T) {
 		result := findFirstElementNode(doc)
 
 		if result == nil {
-			t.Errorf("Expected to find an element node, got nil")
+			t.Fatal("Expected to find an element node, got nil")
 		}
 		if result.Data != "root" {
 			t.Errorf("Expected 'root' element, got %s", result.Data)
@@ -31,7 +31,7 @@ func TestFindFirstElementNode(t *testing.T) {
 		result := findFirstElementNode(doc)
 
 		if result == nil {
-			t.Errorf("Expected to find an element node, got nil")
+			t.Fatal("Expected to find an element node, got nil")
 		}
 		if result.Data != "root" {
 			t.Errorf("Expected 'root' element, got %s", result.Data)
@@ -45,7 +45,7 @@ func TestFindFirstElementNode(t *testing.T) {
 		result := findFirstElementNode(doc)
 
 		if result == nil {
-			t.Errorf("Expected to find an element node, got nil")
+			t.Fatal("Expected to find an element node, got nil")
 		}
 		if result.Data != "root" {
 			t.Errorf("Expected 'root' element, got %s", result.Data)
@@ -88,7 +88,7 @@ func TestFindFirstElementNode(t *testing.T) {
 		result := findFirstElementNode(doc)
 
 		if result == nil {
-			t.Errorf("Expected to find an element node, got nil")
+			t.Fatal("Expected to find an element node, got nil")
 		}
 		if result.Data != "root" {
 			t.Errorf("Expected 'root' element, got %s", result.Data)

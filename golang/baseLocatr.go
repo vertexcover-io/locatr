@@ -260,7 +260,7 @@ func (l *BaseLocatr) getValidLocator(locators []string) ([]string, error) {
 			locatrsToReturn = append(locatrsToReturn, locator)
 			logger.Logger.Debug(fmt.Sprintf("Valid locator found: `%s`", locator))
 		} else {
-			logger.Logger.Debug(fmt.Sprintf("error while checking for valid locatr %v", err))
+			logger.Logger.Debug(fmt.Sprintf("error while checking for valid locatr: %s", err.Error()))
 		}
 	}
 	if len(locatrsToReturn) == 0 {
@@ -312,7 +312,11 @@ func (l *BaseLocatr) llmGetElementId(htmlDom string, userReq string) (*llmLocato
 	logger.Logger.Debug(fmt.Sprintf("Repaired LLM response: %s", llmResponse.Completion))
 
 	if err = json.Unmarshal([]byte(llmResponse.Completion), llmLocatorOutput); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal llmLocatorOutputDto json: %w", err)
+		return nil, fmt.Errorf(
+			"failed to unmarshal llmLocatorOutputDto json: %w, expectd json: recevied: %s",
+			err,
+			llmResponse.Completion,
+		)
 	}
 	return llmLocatorOutput, nil
 }
@@ -531,7 +535,12 @@ func (l *BaseLocatr) loadLocatorsCache(cachePath string) error {
 	}
 	err = json.Unmarshal(byteValue, &l.cachedLocatrs)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal cache file `(%s)`: %v", cachePath, err)
+		return fmt.Errorf(
+			"failed to unmarshal cache file `(%s)`: %v, expected json received: %s",
+			cachePath,
+			err,
+			byteValue,
+		)
 	}
 	return nil
 }
