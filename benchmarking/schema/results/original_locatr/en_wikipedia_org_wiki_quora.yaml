@@ -1,8 +1,0 @@
-url: https://en.wikipedia.org/wiki/Quora
-steps:
-    - userRequest: Button to edit the page
-      locatrs: []
-    - userRequest: Donate button
-      locatrs: []
-    - userRequest: Search query on wikipedia
-      locatrs: []
