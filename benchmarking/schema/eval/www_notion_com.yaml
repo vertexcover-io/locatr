@@ -1,8 +1,0 @@
-steps:
-- locatrs:
-  - /html/body/div/div/div/main/div/div/section/header/nav/a[2]
-  userRequest: Locate demo request button
-- locatrs:
-  - /html/body/div/div/div/div/header/div/div[2]/div/nav/div/div/ul/li[5]/a/div
-  userRequest: Locate pricing button
-url: https://www.notion.com/
