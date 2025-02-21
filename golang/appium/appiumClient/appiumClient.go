@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"time"
@@ -118,6 +119,13 @@ func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(bodyJson).
 		Post("/execute/sync")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -136,6 +144,13 @@ func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetCurrentViewContext")()
 
 	response, err := ac.httpClient.R().Get("/context")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -168,6 +183,13 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetPageSource")()
 
 	response, err := ac.httpClient.R().Get("source/")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -199,6 +221,12 @@ func (ac *AppiumClient) FindElement(locator, locator_type string) error {
 		SetResult(&appiumGetElementResponse{}).
 		Post("element")
 
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -222,6 +250,13 @@ func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
 	defer logger.GetTimeLogger("Appium: GetCapabilities")()
 
 	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Get("/")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -245,6 +280,13 @@ func (ac *AppiumClient) GetCurrentActivity() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetCurrentActivity")()
 
 	response, err := ac.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
