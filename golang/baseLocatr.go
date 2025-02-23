@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/llm"
@@ -269,6 +270,7 @@ func (l *BaseLocatr) getValidLocator(locators []string) ([]string, error) {
 	return locatrsToReturn, nil
 }
 func (l *BaseLocatr) getReRankedChunks(htmlDom string, userReq string) ([]string, error) {
+	logger.Logger.Debug(fmt.Sprintf("Length of html DOM: %d\n", utf8.RuneCountInString(htmlDom)))
 	chunks := reranker.SplitHtml(htmlDom, HTML_SEPARATORS, CHUNK_SIZE)
 	logger.Logger.Debug(fmt.Sprintf("SplitHtml resulted in %d chunks.", len(chunks)))
 	request := reranker.ReRankRequest{
@@ -300,6 +302,7 @@ func (l *BaseLocatr) llmGetElementId(htmlDom string, userReq string) (*llmLocato
 	if err != nil {
 		return nil, fmt.Errorf("failed to get response from LLM: %w", err)
 	}
+	logger.Logger.Debug(fmt.Sprintf("Input tokens: %d, Output tokens: %d", llmResponse.InputTokens, llmResponse.OutputTokens))
 
 	llmLocatorOutput := &llmLocatorOutputDto{
 		completionResponse: *llmResponse,
@@ -381,11 +384,15 @@ func (l *BaseLocatr) locateElementId(htmlDOM string, userReq string) ([]locatrOu
 				attempt++
 				logger.Logger.Debug(fmt.Sprintf("Max chunks reached in attempt %d, this will be the final attempt.", attempt+1))
 			}
-			domToProcess = strings.
-				Join(chunks[MAX_CHUNKS_EACH_RERANK_ITERATION:endIndex], "\n")
+			startIndex := MAX_CHUNKS_EACH_RERANK_ITERATION
+			if endIndex < startIndex {
+				startIndex = endIndex
+			}
+			domToProcess = strings.Join(chunks[startIndex:endIndex], "\n")
 		default:
 			domToProcess = htmlDOM
 		}
+		logger.Logger.Debug(fmt.Sprintf("Dom to Process: %s", domToProcess))
 
 		logger.Logger.Debug(fmt.Sprintf("attempt no (%d) to find locatr with reranking", attempt+1))
 		requestCompletedAt := time.Now()

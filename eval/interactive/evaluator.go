@@ -14,6 +14,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"regexp"
@@ -68,6 +69,19 @@ type Output struct {
 	InputTokens     int64
 	OutputTokens    int64
 	TotalTokens     int64
+	CostInDollars   float64
+}
+
+func calculateCost(inputTokens, outputTokens int, costPer1MInputTokens, costPer1MOutputTokens float64) float64 {
+	fmt.Printf("cost per 1 mil input tokens: %.5f\n", costPer1MInputTokens)
+	fmt.Printf("cost per 1 mil output tokens: %.5f\n", costPer1MOutputTokens)
+
+	// Convert to float64 before division
+	inputCost := (float64(inputTokens) / 1000000.0) * costPer1MInputTokens
+	outputCost := (float64(outputTokens) / 1000000.0) * costPer1MOutputTokens
+
+	fmt.Printf("Input cost: %.5f, Output cost: %.5f\n\n", inputCost, outputCost)
+	return inputCost + outputCost
 }
 
 type Captured struct {
@@ -82,7 +96,9 @@ type LocatrInterface interface {
 }
 
 type OriginalLocatr struct {
-	instance *playwrightLocatr.PlaywrightLocator
+	instance              *playwrightLocatr.PlaywrightLocator
+	costPer1MInputTokens  float64
+	costPer1MOutputTokens float64
 }
 
 func (l OriginalLocatr) call(page *playwright.Page, query string) (*Output, error) {
@@ -98,13 +114,19 @@ func (l OriginalLocatr) call(page *playwright.Page, query string) (*Output, erro
 		InputTokens:     int64(lastResult.InputTokens),
 		OutputTokens:    int64(lastResult.OutputTokens),
 		TotalTokens:     int64(lastResult.TotalTokens),
+		CostInDollars: calculateCost(
+			lastResult.InputTokens,
+			lastResult.OutputTokens,
+			l.costPer1MInputTokens,
+			l.costPer1MOutputTokens,
+		),
 	}
 
 	if len(lastResult.AllLocatrs) == 0 {
 		return &output, nil
 	}
 
-	points := make([]Point, len(lastResult.AllLocatrs))
+	points := []Point{}
 	appended := false
 	viewportSize := (*page).ViewportSize()
 
@@ -116,6 +138,7 @@ func (l OriginalLocatr) call(page *playwright.Page, query string) (*Output, erro
 		X := bbox.X + bbox.Width/2
 		Y := bbox.Y + bbox.Height/2
 
+		fmt.Printf("X: %.2f, Y: %.2f\n", X, Y)
 		// Check if the element is within the viewport
 		if X < 0 || Y < 0 ||
 			bbox.X > float64(viewportSize.Width) || bbox.Y > float64(viewportSize.Height) {
@@ -136,7 +159,9 @@ func (l OriginalLocatr) call(page *playwright.Page, query string) (*Output, erro
 const ANTHROPIC_GROUNDING_INSTRUCTION string = `Given the screen resolution of 1280x800, identify the exact (X, Y) coordinates for the described area, element, or object on a browser GUI screen.`
 
 type AnthropicGroundingLocatr struct {
-	client *anthropic.Client
+	client                *anthropic.Client
+	costPer1MInputTokens  float64
+	costPer1MOutputTokens float64
 }
 
 func (l AnthropicGroundingLocatr) call(page *playwright.Page, query string) (*Output, error) {
@@ -152,7 +177,6 @@ func (l AnthropicGroundingLocatr) call(page *playwright.Page, query string) (*Ou
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Tool input schema: %v\n", toolInputSchema)
 	anthropicToolInputSchema := anthropic.BetaToolInputSchemaParam{
 		Type:       anthropic.F(anthropic.BetaToolInputSchemaTypeObject),
 		Properties: anthropic.F(toolInputSchema["properties"]),
@@ -161,7 +185,7 @@ func (l AnthropicGroundingLocatr) call(page *playwright.Page, query string) (*Ou
 	response, err := l.client.Beta.Messages.New(
 		context.TODO(),
 		anthropic.BetaMessageNewParams{
-			Model:     anthropic.F(anthropic.ModelClaude3_5SonnetLatest),
+			Model:     anthropic.F(anthropic.ModelClaude3_5Sonnet20241022),
 			MaxTokens: anthropic.F(int64(1024)),
 			Messages: anthropic.F([]anthropic.BetaMessageParam{
 				{
@@ -215,6 +239,12 @@ func (l AnthropicGroundingLocatr) call(page *playwright.Page, query string) (*Ou
 		InputTokens:     response.Usage.InputTokens,
 		OutputTokens:    response.Usage.OutputTokens,
 		TotalTokens:     response.Usage.InputTokens + response.Usage.OutputTokens,
+		CostInDollars: calculateCost(
+			int(response.Usage.InputTokens),
+			int(response.Usage.OutputTokens),
+			l.costPer1MInputTokens,
+			l.costPer1MOutputTokens,
+		),
 	}
 	content := response.Content[0]
 
@@ -259,7 +289,7 @@ func (l AnthropicGroundingLocatr) call(page *playwright.Page, query string) (*Ou
 
 }
 
-func getOriginalLocatrInstance(page *playwright.Page, rerank bool) *playwrightLocatr.PlaywrightLocator {
+func getOriginalLocatrInstance(page *playwright.Page) *playwrightLocatr.PlaywrightLocator {
 	llmClient, err := llm.NewLlmClient(
 		llm.OpenAI, "gpt-4o", os.Getenv("OPENAI_API_KEY"),
 	)
@@ -268,10 +298,8 @@ func getOriginalLocatrInstance(page *playwright.Page, rerank bool) *playwrightLo
 		return nil
 	}
 	locatrOptions := locatr.BaseLocatrOptions{LlmClient: llmClient}
-	if rerank {
-		reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
-		locatrOptions.ReRankClient = reRankClient
-	}
+	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
+	locatrOptions.ReRankClient = reRankClient
 	return playwrightLocatr.NewPlaywrightLocatr(*page, locatrOptions)
 }
 
@@ -415,16 +443,20 @@ func processURLs(urls []string) error {
 			return fmt.Errorf("failed to unmarshal captured elements: %v", err)
 		}
 
-		originalLocatrWithoutReranking := OriginalLocatr{instance: getOriginalLocatrInstance(&page, false)} // without Reranker
-		originalLocatrWithReranking := OriginalLocatr{instance: getOriginalLocatrInstance(&page, true)}
+		originalLocatr := OriginalLocatr{
+			instance:              getOriginalLocatrInstance(&page),
+			costPer1MInputTokens:  2.5,
+			costPer1MOutputTokens: 10.0,
+		}
 		anthropicGroundingLocatr := AnthropicGroundingLocatr{
-			client: anthropic.NewClient(option.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY"))),
+			client:                anthropic.NewClient(option.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY"))),
+			costPer1MInputTokens:  3.0,
+			costPer1MOutputTokens: 15.0,
 		}
 
-		redColor := color.RGBA{R: 255, G: 0, B: 0, A: 255}      // Selected manually
-		blueColor := color.RGBA{R: 0, G: 0, B: 255, A: 255}     // Generated by original Locator (without reranking)
-		yellowColor := color.RGBA{R: 255, G: 255, B: 0, A: 255} // Generated by original Locator (with reranking)
-		greenColor := color.RGBA{R: 0, G: 255, B: 0, A: 255}    // Generated by anthropic grounding locatr
+		redColor := color.RGBA{R: 255, G: 0, B: 0, A: 255}   // Selected manually
+		blueColor := color.RGBA{R: 0, G: 0, B: 255, A: 255}  // Generated by original Locator (with reranking)
+		greenColor := color.RGBA{R: 0, G: 255, B: 0, A: 255} // Generated by anthropic grounding locatr
 
 		// Process Captured Elements
 		for _, elem := range captured {
@@ -438,7 +470,8 @@ func processURLs(urls []string) error {
 
 			// Wait until scroll reaches the desired point
 			if _, err := page.WaitForFunction(
-				`([X, Y]) => window.scrollX == X && window.scrollY == Y`, []float64{scrollCoords.X, scrollCoords.Y},
+				`([X, Y]) =>Math.round(window.scrollX) == Math.round(X) && Math.round(window.scrollY) == Math.round(Y)`,
+				[]float64{scrollCoords.X, scrollCoords.Y},
 			); err != nil {
 				return fmt.Errorf("scroll verification failed: %v", err)
 			}
@@ -459,7 +492,7 @@ func processURLs(urls []string) error {
 				log.Fatalf("Failed to decode image: %v", err)
 			}
 
-			drawPoints(img, &[]Point{elem.ElementCoordinates}, redColor, 14)
+			drawPoints(img, &[]Point{elem.ElementCoordinates}, redColor, 15)
 			outputs := make(map[string]*Output, 3)
 
 			call := func(locatr LocatrInterface, name string, color color.Color, radius int) {
@@ -479,9 +512,8 @@ func processURLs(urls []string) error {
 				}
 			}
 
-			call(originalLocatrWithoutReranking, "originalLocatrWithoutReranking", blueColor, 12)
-			call(originalLocatrWithReranking, "originalLocatrWithReranking", yellowColor, 10)
-			call(anthropicGroundingLocatr, "anthropicGroundingLocatr", greenColor, 8)
+			call(originalLocatr, "originalLocatr", blueColor, 12)
+			call(anthropicGroundingLocatr, "anthropicGroundingLocatr", greenColor, 9)
 
 			// Convert back to bytes
 			finalBytes, err := imageToBytes(img)
@@ -549,6 +581,7 @@ func loadURLs(inputPath string) ([]string, error) {
 
 func main() {
 	// Load environment variables
+	logger.Level.Set(slog.LevelDebug)
 	if err := godotenv.Load(); err != nil {
 		log.Println("Error loading .env file")
 	}
