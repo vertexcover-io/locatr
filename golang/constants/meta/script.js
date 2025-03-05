@@ -511,7 +511,7 @@ function minifyHTML() {
  * Maps each element in the document to its CSS locator and unique ID.
  * @returns {string} JSON map of CSS locators to unique IDs.
  */
-function mapElementsToJson() {
+function createLocatorMap() {
 	const elements = document.querySelectorAll("*");
 	const map = {};
 
@@ -529,7 +529,7 @@ function mapElementsToJson() {
  * @param {string} locator - The locator to check.
  * @returns {boolean} true if the locator is valid, false otherwise.
  */
-function isValidLocator(locator) {
+function isLocatorValid(locator) {
 	try {
 		return document.querySelector(locator) !== null;
 	} catch (error) {
@@ -551,7 +551,68 @@ function isEquivalentStyle(style1, style2) {
 	return true;
 }
 
+function scrollToLocator(locator) {
+	const element = document.querySelector(locator);
+	if (element === null) {
+		return false
+	}
+	element.scrollIntoView({
+		block: 'center',
+		inline: 'nearest'
+	})
+	return true
+}
+
+function scrollToPosition(x, y) {
+    window.scrollTo(x, y)    
+}
+
+function verifyScrollPosition(x, y) {
+  return Math.round(window.scrollX) == Math.round(x) && Math.round(window.scrollY) == Math.round(y)
+}
+
+function waitForScrollCompletion() {
+    return new Promise(resolve => {
+      // Store initial position for both vertical and horizontal scrolling
+      let lastScrollY = window.scrollY;
+      let lastScrollX = window.scrollX;
+      
+      // Check if scrolling has stopped in both directions
+      const checkScroll = () => {
+        if (Math.round(window.scrollX) == Math.round(lastScrollX) && Math.round(window.scrollY) == Math.round(lastScrollY)) {
+          resolve(true);
+        } else {
+          lastScrollY = window.scrollY;
+          lastScrollX = window.scrollX;
+          setTimeout(checkScroll, 50);
+        }
+      };
+      
+      // Start checking after a small delay
+      setTimeout(checkScroll, 50);
+    });
+}
+
+function getScrollPosition() { 
+    return {x: window.scrollX, y: window.scrollY}
+}
+
+function getLocatorsFromPoint(x, y) {
+	let element = document.elementFromPoint(x, y);
+	if (element === null) {
+		return ["bro"];
+	}
+    return generateCssSelectors(element);
+}
 
 window.minifyHTML = minifyHTML;
-window.mapElementsToJson = mapElementsToJson;
-window.isValidLocator = isValidLocator;
+window.createLocatorMap = createLocatorMap;
+window.isLocatorValid = isLocatorValid;
+window.scrollToLocator = scrollToLocator;
+window.scrollToPosition = scrollToPosition;
+window.verifyScrollPosition = verifyScrollPosition;
+window.waitForScrollCompletion = waitForScrollCompletion;
+window.getScrollPosition = getScrollPosition;
+window.getLocatorsFromPoint = getLocatorsFromPoint;
+
+window.locatrScriptAttached = true;
