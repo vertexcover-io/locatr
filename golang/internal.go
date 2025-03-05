@@ -76,14 +76,13 @@ func (l *Locatr) persistCache() error {
 func (l *Locatr) processCacheRequest(completion *types.LocatrCompletion, userRequest string) error {
 	if entries, ok := l.cache[l.plugin.GetCurrentContext()]; ok {
 		retry := false
-
-	retryLoop: // TODO: Document why we are taking this approach
 		for _, entry := range entries {
 			if entry.UserRequest != userRequest {
 				continue
 			}
 
 			validLocators := []string{}
+		retryLoop:
 			for i, locator := range entry.Locators {
 				ok, err := l.plugin.IsLocatorValid(locator)
 				if err != nil || !ok {

@@ -42,7 +42,7 @@ func main() {
 		log.Fatalf("could not create new page: %v", err)
 	}
 
-	url := "https://github.com"
+	url := "https://makemytrip.com"
 	if _, err := page.Goto(url); err != nil {
 		log.Fatalf("failed to load URL: %v", err)
 	}
@@ -52,7 +52,7 @@ func main() {
 		log.Fatalf("could not create playwright locatr: %v", err)
 	}
 
-	query := "Button to subscribe to newsletter"
+	query := "Button to close the login popup"
 	useGrounding := true
 
 	completion, err := locatr.Locate(query, useGrounding)
