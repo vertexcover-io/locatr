@@ -487,24 +487,12 @@ function createElementSpec(element) {
 }
 
 /**
- * Builds a tree structure of element specifications starting from a root element.
- * @param {Element} element - The root element to build the tree from.
- * @returns {ElementSpec|null} The element specification tree or null if invalid.
- */
-function buildElementTree(element) {
-	let elementSpec = createElementSpec(element);
-	if (!elementSpec) return null;
-
-	return elementSpec;
-}
-
-/**
  * Minifies the HTML document and returns a JSON string representation.
  * @returns {string} JSON string representation of the minified HTML.
  */
 function minifyHTML() {
 	const root = document.documentElement || document.body;
-	return JSON.stringify(buildElementTree(root));
+	return JSON.stringify(createElementSpec(root));
 }
 
 /**
@@ -551,26 +539,10 @@ function isEquivalentStyle(style1, style2) {
 	return true;
 }
 
-function scrollToLocator(locator) {
-	const element = document.querySelector(locator);
-	if (element === null) {
-		return false
-	}
-	element.scrollIntoView({
-		block: 'center',
-		inline: 'nearest'
-	})
-	return true
-}
-
-function scrollToPosition(x, y) {
-    window.scrollTo(x, y)    
-}
-
-function verifyScrollPosition(x, y) {
-  return Math.round(window.scrollX) == Math.round(x) && Math.round(window.scrollY) == Math.round(y)
-}
-
+/**
+ * Waits for the scroll to complete.
+ * @returns {Promise<boolean>} true if the scroll is complete, false otherwise.
+ */
 function waitForScrollCompletion() {
     return new Promise(resolve => {
       // Store initial position for both vertical and horizontal scrolling
@@ -593,26 +565,50 @@ function waitForScrollCompletion() {
     });
 }
 
-function getScrollPosition() { 
-    return {x: window.scrollX, y: window.scrollY}
+/**
+ * Gets the locators from a location.
+ * @param {number} point_x - The x-coordinate of the point.
+ * @param {number} point_y - The y-coordinate of the point.
+ * @param {number} scroll_position_x - The horizontal scroll position.
+ * @param {number} scroll_position_y - The vertical scroll position.
+ * @returns {string} A JSON string of CSS locators.
+ */
+function getLocators(point_x, point_y, scroll_position_x, scroll_position_y) {
+	window.scrollTo(scroll_position_x, scroll_position_y);
+	waitForScrollCompletion();
+
+	const element = document.elementFromPoint(point_x, point_y);
+	if (element === null) {
+		return "[]";
+	}
+	return JSON.stringify(generateCssSelectors(element), null, 2);
 }
 
-function getLocatorsFromPoint(x, y) {
-	let element = document.elementFromPoint(x, y);
+
+/**
+ * Gets the location of an element.
+ * @param {string} locator - The locator of the element to get the location from.
+ * @returns {string | null} A JSON string of the location object containing the point and scroll position of the element.
+ */
+async function getLocation(locator) {
+	const element = document.querySelector(locator);
 	if (element === null) {
-		return ["bro"];
+		return null;
 	}
-    return generateCssSelectors(element);
+	element.scrollIntoView({block: 'center', inline: 'nearest'});
+	await waitForScrollCompletion();
+
+	const bbox = element.getBoundingClientRect();
+	return JSON.stringify({
+		point: {x: bbox.left + bbox.width / 2, y: bbox.top + bbox.height / 2},
+		scroll_position: {x: window.scrollX, y: window.scrollY}
+	}, null, 2);
 }
 
 window.minifyHTML = minifyHTML;
 window.createLocatorMap = createLocatorMap;
 window.isLocatorValid = isLocatorValid;
-window.scrollToLocator = scrollToLocator;
-window.scrollToPosition = scrollToPosition;
-window.verifyScrollPosition = verifyScrollPosition;
-window.waitForScrollCompletion = waitForScrollCompletion;
-window.getScrollPosition = getScrollPosition;
-window.getLocatorsFromPoint = getLocatorsFromPoint;
+window.getLocators = getLocators;
+window.getLocation = getLocation;
 
 window.locatrScriptAttached = true;

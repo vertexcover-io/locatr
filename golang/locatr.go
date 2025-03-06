@@ -1,35 +1,30 @@
 package locatr
 
 import (
+	"bytes"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"log"
 
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/golang/constants"
 	"github.com/vertexcover-io/locatr/golang/llm"
+	"github.com/vertexcover-io/locatr/golang/options"
 	playwrightPlugin "github.com/vertexcover-io/locatr/golang/plugins/playwright"
 	seleniumPlugin "github.com/vertexcover-io/locatr/golang/plugins/selenium"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/golang/utils"
 	"github.com/vertexcover-io/selenium"
 )
-
-// Options configures the behavior of the Locatr instance.
-type Options struct {
-	// LLMClient handles interactions with the Language Learning Model
-	LLMClient *llm.LLMClient
-	// ReRanker provides document re-ranking capabilities
-	ReRanker types.ReRankerInterface
-	// CachePath specifies the file location for persisting locator cache
-	CachePath string
-	// UseCache enables caching of locator results
-	UseCache bool
-}
 
 // Locatr is the main orchestrator for finding UI elements based on natural language descriptions.
 // It combines browser automation, LLM-based element identification, and caching capabilities.
 type Locatr struct {
 	plugin  types.PluginInterface
-	options *Options
+	options *options.LocatrOptions
 	cache   map[string][]types.CacheEntry
 }
 
@@ -40,36 +35,36 @@ type Locatr struct {
 //   - options: Configuration options for the Locatr instance
 //
 // Returns the initialized Locatr instance and any error that occurred during setup.
-func NewLocatr(plugin types.PluginInterface, options *Options) (*Locatr, error) {
-	if options == nil {
-		options = &Options{}
+func NewLocatr(plugin types.PluginInterface, opts *options.LocatrOptions) (*Locatr, error) {
+	if opts == nil {
+		opts = &options.LocatrOptions{}
 	}
-	if options.LLMClient == nil {
+	if opts.LLMClient == nil {
 		log.Println("LLM client not provided, creating from env")
 		llmClient, err := llm.CreateLLMClientFromEnv()
 		if err != nil {
 			return nil, err
 		}
-		options.LLMClient = llmClient
+		opts.LLMClient = llmClient
 	}
 
-	if options.ReRanker == nil {
+	if opts.ReRanker == nil {
 		log.Println("Reranker not provided, creating from env")
 		reRanker, err := reranker.CreateCohereClientFromEnv()
 		if err != nil {
 			return nil, err
 		}
-		options.ReRanker = reRanker
+		opts.ReRanker = reRanker
 	}
 
 	instance := &Locatr{
 		plugin:  plugin,
-		options: options,
+		options: opts,
 		cache:   make(map[string][]types.CacheEntry),
 	}
 
 	if instance.options.UseCache {
-		if options.CachePath == "" {
+		if opts.CachePath == "" {
 			log.Printf("Cache path not provided, using %v\n", constants.DEFAULT_CACHE_PATH)
 			instance.options.CachePath = constants.DEFAULT_CACHE_PATH
 		}
@@ -87,12 +82,8 @@ func NewLocatr(plugin types.PluginInterface, options *Options) (*Locatr, error) 
 //   - options: Configuration options for the Locatr instance
 //
 // Returns the initialized Locatr instance and any error that occurred during setup.
-func NewPlaywrightLocatr(page *playwright.Page, options *Options) (*Locatr, error) {
-	plugin, err := playwrightPlugin.New(page)
-	if err != nil {
-		return nil, err
-	}
-	return NewLocatr(plugin, options)
+func NewPlaywrightLocatr(page *playwright.Page, options *options.LocatrOptions) (*Locatr, error) {
+	return NewLocatr(playwrightPlugin.New(page), options)
 }
 
 // NewSeleniumLocatr creates a Locatr instance configured to use Selenium for browser automation.
@@ -101,12 +92,8 @@ func NewPlaywrightLocatr(page *playwright.Page, options *Options) (*Locatr, erro
 //   - options: Configuration options for the Locatr instance
 //
 // Returns the initialized Locatr instance and any error that occurred during setup.
-func NewSeleniumLocatr(driver *selenium.WebDriver, options *Options) (*Locatr, error) {
-	plugin, err := seleniumPlugin.New(driver)
-	if err != nil {
-		return nil, err
-	}
-	return NewLocatr(plugin, options)
+func NewSeleniumLocatr(driver *selenium.WebDriver, options *options.LocatrOptions) (*Locatr, error) {
+	return NewLocatr(seleniumPlugin.New(driver), options)
 }
 
 // Locate finds UI elements matching the provided natural language description.
@@ -179,4 +166,55 @@ func (l *Locatr) Locate(userRequest string, useGrounding bool) (types.LocatrComp
 		return *completion, l.persistCache()
 	}
 	return *completion, nil
+}
+
+// Highlight takes a locator and returns a screenshot of the element with a highlight overlay.
+// Parameters:
+//   - locator: The locator of the element to highlight
+//   - opts: Configuration options for the highlight
+//
+// Returns:
+//   - screenshot: The screenshot of the element with a highlight overlay in PNG bytes format
+//   - error if element location fails
+func (l *Locatr) Highlight(locator string, opts *options.HighlightOptions) ([]byte, error) {
+	if err := l.plugin.SetViewportSize(1280, 800); err != nil {
+		return nil, err
+	}
+
+	location, err := l.plugin.GetLocation(locator)
+	if err != nil {
+		return nil, err
+	}
+
+	screenshot, err := l.plugin.TakeScreenshot()
+	if err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(bytes.NewReader(screenshot))
+	if err != nil {
+		return nil, err
+	}
+	// Convert to RGBA for drawing
+	rgbaImg := image.NewRGBA(img.Bounds())
+	draw.Draw(rgbaImg, img.Bounds(), img, image.Point{}, draw.Src)
+
+	if opts == nil {
+		opts = &options.HighlightOptions{}
+	}
+	if opts.Color == nil {
+		opts.Color = &color.RGBA{255, 0, 0, 255}
+	}
+	if opts.Radius == 0 {
+		opts.Radius = 10
+	}
+	if opts.Opacity == 0 {
+		opts.Opacity = 0.5
+	}
+	utils.HighlightPoint(&location.Point, rgbaImg, opts)
+
+	buf := new(bytes.Buffer)
+	if err := png.Encode(buf, rgbaImg); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

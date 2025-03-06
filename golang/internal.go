@@ -13,6 +13,7 @@ import (
 	"github.com/vertexcover-io/locatr/golang/constants"
 	"github.com/vertexcover-io/locatr/golang/reranker/splitters"
 	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/golang/utils"
 )
 
 // loadCache reads and deserializes the cache file into memory.
@@ -118,7 +119,10 @@ func (l *Locatr) processCacheRequest(completion *types.LocatrCompletion, userReq
 // Returns error if no matching elements are found.
 // Updates completion with token usage and timing metrics.
 func (l *Locatr) processIdRequest(completion *types.LocatrCompletion, userRequest string, dom *types.DOM) error {
-	domChunks, err := l.getRerankedChunks(dom.RootElement.Repr(), userRequest)
+	domStr := dom.RootElement.Repr()
+	// os.WriteFile(fmt.Sprintf("dom-%d.html", time.Now().Unix()), []byte(domStr), 0644)
+
+	domChunks, err := l.getRerankedChunks(domStr, userRequest)
 	if err != nil {
 		return err
 	}
@@ -178,16 +182,16 @@ func (l *Locatr) processPointRequest(completion *types.LocatrCompletion, userReq
 
 	locatorMap := dom.Metadata.LocatorMap
 	for _, chunk := range domChunks {
-		id, err := extractFirstUniqueID(chunk)
+		id, err := utils.ExtractFirstUniqueID(chunk)
 		if err != nil {
 			continue
 		}
 		l.plugin.SetViewportSize(1280, 800)
 
 		locator := locatorMap[id][0]
-		scrollPosition, err := l.plugin.ScrollToLocator(locator)
+		chunkLocation, err := l.plugin.GetLocation(locator)
 		if err != nil {
-			log.Printf("couldn't scroll to locator: %v\n", err)
+			log.Printf("couldn't find chunk on the page: %v\n", err)
 			continue
 		}
 		screenshot, err := l.plugin.TakeScreenshot()
@@ -208,7 +212,10 @@ func (l *Locatr) processPointRequest(completion *types.LocatrCompletion, userReq
 			log.Printf("error getting relevant point: %v\n", pointCompletion.ErrorMessage)
 			continue
 		}
-		locators, err := l.plugin.GetLocatorsFromPoint(&pointCompletion.Point, scrollPosition)
+		locators, err := l.plugin.GetLocators(&types.Location{
+			Point:          pointCompletion.Point,
+			ScrollPosition: chunkLocation.ScrollPosition,
+		})
 		if err != nil {
 			log.Println(err)
 			continue
@@ -240,5 +247,5 @@ func (l *Locatr) getRerankedChunks(dom string, userRequest string) ([]string, er
 	if err != nil {
 		return nil, err
 	}
-	return sortRerankChunks(chunks, results), nil
+	return utils.SortRerankChunks(chunks, results), nil
 }
