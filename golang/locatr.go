@@ -76,24 +76,24 @@ func NewLocatr(plugin types.PluginInterface, opts *options.LocatrOptions) (*Loca
 	return instance, nil
 }
 
-// NewPlaywrightLocatr creates a Locatr instance configured to use Playwright for browser automation.
+// NewPlaywrightLocatr creates a Locatr instance from Playwright plugin.
 // Parameters:
 //   - page: Initialized Playwright page instance
 //   - options: Configuration options for the Locatr instance
 //
 // Returns the initialized Locatr instance and any error that occurred during setup.
 func NewPlaywrightLocatr(page *playwright.Page, options *options.LocatrOptions) (*Locatr, error) {
-	return NewLocatr(playwrightPlugin.New(page), options)
+	return NewLocatr(playwrightPlugin.New(page, options.PluginOptions), options)
 }
 
-// NewSeleniumLocatr creates a Locatr instance configured to use Selenium for browser automation.
+// NewSeleniumLocatr creates a Locatr instance from Selenium plugin.
 // Parameters:
 //   - driver: Initialized Selenium WebDriver instance
 //   - options: Configuration options for the Locatr instance
 //
 // Returns the initialized Locatr instance and any error that occurred during setup.
 func NewSeleniumLocatr(driver *selenium.WebDriver, options *options.LocatrOptions) (*Locatr, error) {
-	return NewLocatr(seleniumPlugin.New(driver), options)
+	return NewLocatr(seleniumPlugin.New(driver, options.PluginOptions), options)
 }
 
 // Locate finds UI elements matching the provided natural language description.

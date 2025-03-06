@@ -7,15 +7,20 @@ import (
 	"time"
 
 	"github.com/vertexcover-io/locatr/golang/constants"
+	"github.com/vertexcover-io/locatr/golang/options"
 	"github.com/vertexcover-io/locatr/golang/types"
 	"github.com/vertexcover-io/locatr/golang/utils"
 	"github.com/vertexcover-io/selenium"
 )
 
 // seleniumPlugin encapsulates browser automation functionality using the Selenium WebDriver.
-// It maintains a reference to a WebDriver instance for performing browser operations.
 type seleniumPlugin struct {
+	// Selenium WebDriver instance
 	driver *selenium.WebDriver
+	// Plugin options
+	opts *options.PluginOptions
+	// Cached DOM
+	cachedDOM *types.DOM
 }
 
 // New initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
@@ -23,8 +28,14 @@ type seleniumPlugin struct {
 //   - driver: Pointer to a configured Selenium WebDriver instance
 //
 // Returns the initialized plugin.
-func New(driver *selenium.WebDriver) *seleniumPlugin {
-	return &seleniumPlugin{driver: driver}
+func New(driver *selenium.WebDriver, opts *options.PluginOptions) *seleniumPlugin {
+	if opts == nil {
+		opts = &options.PluginOptions{}
+	}
+	if opts.OnContextChangeSleep == 0 {
+		opts.OnContextChangeSleep = 3000 // Default to 3 seconds
+	}
+	return &seleniumPlugin{driver: driver, opts: opts}
 }
 
 // evaluateExpression executes a JavaScript expression in the context of the current page.
@@ -38,11 +49,12 @@ func (plugin *seleniumPlugin) evaluateExpression(expression string, args ...any)
 	// Check if script is already attached
 	isAttached, err := (*plugin.driver).ExecuteScript("return window.locatrScriptAttached === true", []any{})
 	if err != nil || isAttached == nil || !isAttached.(bool) {
-		// Inject the script if not already present
+		time.Sleep(time.Duration(plugin.opts.OnContextChangeSleep) * time.Millisecond)
 		_, err := (*plugin.driver).ExecuteScript(constants.JS_CONTENT, []any{})
 		if err != nil {
 			return nil, fmt.Errorf("could not add JS content: %v", err)
 		}
+		plugin.cachedDOM = nil // Remove the cached DOM as it not valid anymore
 	}
 
 	result, err := (*plugin.driver).ExecuteScript(fmt.Sprintf("return %s", expression), args)
@@ -103,8 +115,7 @@ func (plugin *seleniumPlugin) waitForExpression(expression string, args []any, t
 // WaitForLoadEvent waits for the page's document.readyState to become 'complete'.
 // This ensures that the page and all its resources have finished loading.
 // Parameters:
-//   - timeout: Timeout in milliseconds
-//   - interval: Interval in milliseconds
+//   - timeout: Timeout in milliseconds. Default is 30000ms.
 //
 // Returns an error if the page doesn't load within the specified timeout.
 func (plugin *seleniumPlugin) WaitForLoadEvent(timeout *float64) error {
@@ -166,6 +177,10 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 //
 // Returns the processed DOM structure and any error that occurred during extraction.
 func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
+	if plugin.cachedDOM != nil {
+		return plugin.cachedDOM, nil
+	}
+
 	result, err := plugin.evaluateExpression("minifyHTML()")
 	if err != nil {
 		return nil, err
@@ -186,12 +201,14 @@ func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
 		return nil, err
 	}
 
-	return &types.DOM{
+	dom := &types.DOM{
 		RootElement: rootElement,
 		Metadata: &types.DOMMetadata{
 			LocatorType: types.CssSelectorType, LocatorMap: locatorMap,
 		},
-	}, nil
+	}
+	plugin.cachedDOM = dom
+	return dom, nil
 }
 
 // GetLocators retrieves the locators for the element at the given point and scroll position.

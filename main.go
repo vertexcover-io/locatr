@@ -87,7 +87,6 @@ func testPlaywrightOverCDP(url, query string, useGrounding, useCache bool) {
 	}
 
 	// Connect to browser over CDP
-
 	browser, err := pw.Chromium.ConnectOverCDP("http://localhost:9222")
 	if err != nil {
 		log.Fatalf("could not connect to browser: %v", err)
@@ -191,7 +190,7 @@ func main() {
 	query := "Button to close the login popup"
 	useCache := false
 
-	// testPlaywright(url, query, false, useCache)
-	testPlaywrightOverCDP(url, query, true, useCache)
+	testPlaywright(url, query, false, useCache)
+	// testPlaywrightOverCDP(url, query, true, useCache)
 	// testSelenium(url, query, false, useCache)
 }

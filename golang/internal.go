@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/vertexcover-io/locatr/golang/constants"
 	"github.com/vertexcover-io/locatr/golang/reranker/splitters"
@@ -67,32 +66,23 @@ func (l *Locatr) persistCache() error {
 	return nil
 }
 
-// processCacheRequest attempts to find matching locators in the cache.
+// processCacheRequest attempts to find locators associated with the user request and current context in the cache.
 // Parameters:
 //   - completion: Output structure to populate with cache results
 //   - userRequest: Natural language description to look up
 //
 // Returns error if no valid cached locators are found.
-// Includes retry logic for elements that may need time to appear in DOM.
 func (l *Locatr) processCacheRequest(completion *types.LocatrCompletion, userRequest string) error {
 	if entries, ok := l.cache[l.plugin.GetCurrentContext()]; ok {
-		retry := false
 		for _, entry := range entries {
 			if entry.UserRequest != userRequest {
 				continue
 			}
 
 			validLocators := []string{}
-		retryLoop:
-			for i, locator := range entry.Locators {
+			for _, locator := range entry.Locators {
 				ok, err := l.plugin.IsLocatorValid(locator)
 				if err != nil || !ok {
-					if i == 0 && !retry {
-						log.Println("Elements may not be available yet, retrying in 2 seconds")
-						retry = true
-						time.Sleep(2 * time.Second)
-						goto retryLoop
-					}
 					continue
 				}
 				validLocators = append(validLocators, locator)
@@ -119,10 +109,7 @@ func (l *Locatr) processCacheRequest(completion *types.LocatrCompletion, userReq
 // Returns error if no matching elements are found.
 // Updates completion with token usage and timing metrics.
 func (l *Locatr) processIdRequest(completion *types.LocatrCompletion, userRequest string, dom *types.DOM) error {
-	domStr := dom.RootElement.Repr()
-	// os.WriteFile(fmt.Sprintf("dom-%d.html", time.Now().Unix()), []byte(domStr), 0644)
-
-	domChunks, err := l.getRerankedChunks(domStr, userRequest)
+	domChunks, err := l.getRerankedChunks(dom.RootElement.Repr(), userRequest)
 	if err != nil {
 		return err
 	}

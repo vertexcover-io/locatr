@@ -3,26 +3,39 @@ package playwrightPlugin
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/playwright-community/playwright-go"
 	"github.com/vertexcover-io/locatr/golang/constants"
+	"github.com/vertexcover-io/locatr/golang/options"
 	"github.com/vertexcover-io/locatr/golang/types"
 	"github.com/vertexcover-io/locatr/golang/utils"
 )
 
 // playwrightPlugin encapsulates browser automation functionality using the Playwright framework.
-// It maintains a reference to a Playwright page instance for performing browser operations.
 type playwrightPlugin struct {
+	// Playwright page instance
 	page *playwright.Page
+	// Plugin options
+	opts *options.PluginOptions
+	// Cached DOM
+	cachedDOM *types.DOM
 }
 
 // New initializes a new playwrightPlugin instance with the provided Playwright page.
 // Parameters:
 //   - page: Pointer to a configured Playwright page instance
-//
+//   - opts: Options for the plugin
+
 // Returns the initialized plugin.
-func New(page *playwright.Page) *playwrightPlugin {
-	return &playwrightPlugin{page: page}
+func New(page *playwright.Page, opts *options.PluginOptions) *playwrightPlugin {
+	if opts == nil {
+		opts = &options.PluginOptions{}
+	}
+	if opts.OnContextChangeSleep == 0 {
+		opts.OnContextChangeSleep = 3000 // Default to 3 seconds
+	}
+	return &playwrightPlugin{page: page, opts: opts}
 }
 
 // evaluateExpression executes a JavaScript expression in the context of the current page.
@@ -36,12 +49,14 @@ func (plugin *playwrightPlugin) evaluateExpression(expression string, args ...an
 	// Check if script is already attached
 	isAttached, err := (*plugin.page).Evaluate("() => window.locatrScriptAttached === true")
 	if err != nil || isAttached == nil || !isAttached.(bool) {
+		time.Sleep(time.Duration(plugin.opts.OnContextChangeSleep) * time.Millisecond)
 		_, err := (*plugin.page).AddScriptTag(playwright.PageAddScriptTagOptions{
 			Content: &constants.JS_CONTENT,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("could not add JS content: %v", err)
 		}
+		plugin.cachedDOM = nil // Remove the cached DOM as it not valid anymore
 	}
 
 	result, err := (*plugin.page).Evaluate(expression, args...)
@@ -54,7 +69,7 @@ func (plugin *playwrightPlugin) evaluateExpression(expression string, args ...an
 // WaitForLoadEvent waits for the page's load event to fire.
 // This ensures that all resources (images, stylesheets, etc.) have been loaded.
 // Parameters:
-//   - timeout: Timeout in milliseconds
+//   - timeout: Timeout in milliseconds. Default is 30000ms.
 //
 // Returns an error if the wait operation times out or fails.
 func (plugin *playwrightPlugin) WaitForLoadEvent(timeout *float64) error {
@@ -90,6 +105,10 @@ func (plugin *playwrightPlugin) SetViewportSize(width, height int) error {
 //
 // Returns the processed DOM structure and any error that occurred during extraction.
 func (plugin *playwrightPlugin) GetMinifiedDOM() (*types.DOM, error) {
+	if plugin.cachedDOM != nil {
+		return plugin.cachedDOM, nil
+	}
+
 	result, err := plugin.evaluateExpression("minifyHTML()")
 	if err != nil {
 		return nil, err
@@ -110,12 +129,14 @@ func (plugin *playwrightPlugin) GetMinifiedDOM() (*types.DOM, error) {
 		return nil, err
 	}
 
-	return &types.DOM{
+	dom := &types.DOM{
 		RootElement: rootElement,
 		Metadata: &types.DOMMetadata{
 			LocatorType: types.CssSelectorType, LocatorMap: locatorMap,
 		},
-	}, nil
+	}
+	plugin.cachedDOM = dom
+	return dom, nil
 }
 
 // GetLocators retrieves the locators for the element at the given point and scroll position.

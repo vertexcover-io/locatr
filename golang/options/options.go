@@ -7,6 +7,14 @@ import (
 	"github.com/vertexcover-io/locatr/golang/types"
 )
 
+// PluginOptions are options for the plugin
+type PluginOptions struct {
+	// OnContextChangeSleep is the amount of time (in milliseconds) to sleep
+	// after a context change (e.g., navigation, refresh) to ensure full loading.
+	// Default is 3000ms.
+	OnContextChangeSleep int64
+}
+
 // LocatrOptions configures the behavior of the Locatr instance.
 type LocatrOptions struct {
 	// LLMClient handles interactions with the Language Learning Model
@@ -17,6 +25,8 @@ type LocatrOptions struct {
 	CachePath string
 	// UseCache enables caching of locator results
 	UseCache bool
+	// PluginOptions are options for the plugin
+	PluginOptions *PluginOptions
 }
 
 // HighlightOptions defines the options for highlighting a locator on a screenshot.
