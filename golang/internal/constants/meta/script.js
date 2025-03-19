@@ -595,7 +595,7 @@ async function getLocation(locator) {
 	if (element === null) {
 		return null;
 	}
-	element.scrollIntoView({block: 'center', inline: 'nearest'});
+	element.scrollIntoView({behavior: "smooth", block: 'nearest', inline: 'nearest'});
 	await waitForScrollCompletion();
 
 	const bbox = element.getBoundingClientRect();

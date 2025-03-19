@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vertexcover-io/locatr/golang/constants"
+	"github.com/vertexcover-io/locatr/golang/internal/constants"
 )
 
 // splitWithSeparator splits text into chunks using a regular expression separator.
@@ -126,7 +126,7 @@ func mergeSplits(splits []string, separator string, maxChunkSize int) []string {
 
 		if currentSize+splitLength+additionalSeparatorLength > maxChunkSize {
 			if currentSize > maxChunkSize {
-				log.Println("Created chunk size of ", currentSize, " is greater than ", maxChunkSize)
+				log.Printf("Created chunk size of %d is greater than %d", currentSize, maxChunkSize)
 			}
 			if len(currentChunks) > 0 {
 				mergedDoc := joinDocs(currentChunks, separator, false)
@@ -141,7 +141,7 @@ func mergeSplits(splits []string, separator string, maxChunkSize int) []string {
 					} else {
 						additionalSeparatorLength = 0
 					}
-					if !((currentSize > constants.CHUNK_OVERLAP) ||
+					if !((currentSize > constants.DEFAULT_CHUNK_OVERLAP) ||
 						(currentSize+splitLength+additionalSeparatorLength > maxChunkSize) && (currentSize > 0)) {
 						break
 					}

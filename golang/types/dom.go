@@ -2,7 +2,15 @@ package types
 
 import "fmt"
 
-// ElementSpec represents the specification of an HTML element.
+type locatorType = string
+
+// Constants for different types of locators.
+const (
+	CssSelectorType locatorType = "css selector"
+	XPathType       locatorType = "xpath"
+)
+
+// ElementSpec represents the specification of an element.
 type ElementSpec struct {
 	Id         string            `json:"id" validate:"required"`       // Unique identifier of the element
 	TagName    string            `json:"tag_name" validate:"required"` // Tag name of the element (e.g., div, span)
@@ -21,12 +29,24 @@ func (e *ElementSpec) Repr() string {
 
 	openingTag := fmt.Sprintf("<%s%s>", e.TagName, attributes)
 
-	childrenHTML := ""
+	children := ""
 	for _, child := range e.Children {
-		childrenHTML += child.Repr()
+		children += child.Repr()
 	}
 
 	closingTag := fmt.Sprintf("</%s>", e.TagName)
 
-	return fmt.Sprintf("%s%s%s%s", openingTag, e.Text, childrenHTML, closingTag)
+	return fmt.Sprintf("%s%s%s%s", openingTag, e.Text, children, closingTag)
+}
+
+// DOMMetadata holds metadata information about a DOM, including locator types and mappings.
+type DOMMetadata struct {
+	LocatorType locatorType         // Type of the locators in the map
+	LocatorMap  map[string][]string // Mapping of element IDs to their locators
+}
+
+// DOM represents the structure of a Document Object Model (DOM).
+type DOM struct {
+	RootElement *ElementSpec // The root element of the DOM
+	Metadata    *DOMMetadata // Metadata associated with the DOM
 }

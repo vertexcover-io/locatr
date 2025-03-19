@@ -1,4 +1,4 @@
-package seleniumPlugin
+package plugins
 
 import (
 	"errors"
@@ -6,10 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/vertexcover-io/locatr/golang/constants"
-	"github.com/vertexcover-io/locatr/golang/options"
+	"github.com/vertexcover-io/locatr/golang/internal/constants"
+	"github.com/vertexcover-io/locatr/golang/internal/utils"
 	"github.com/vertexcover-io/locatr/golang/types"
-	"github.com/vertexcover-io/locatr/golang/utils"
 	"github.com/vertexcover-io/selenium"
 )
 
@@ -17,28 +16,18 @@ import (
 type seleniumPlugin struct {
 	// Selenium WebDriver instance
 	driver *selenium.WebDriver
-	// Plugin options
-	opts *options.PluginOptions
-	// Cached DOM
-	cachedDOM *types.DOM
 }
 
-// New initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
+// NewSeleniumPlugin initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
 // Parameters:
 //   - driver: Pointer to a configured Selenium WebDriver instance
 //
 // Returns the initialized plugin.
-func New(driver *selenium.WebDriver, opts *options.PluginOptions) *seleniumPlugin {
-	if opts == nil {
-		opts = &options.PluginOptions{}
-	}
-	if opts.OnContextChangeSleep == 0 {
-		opts.OnContextChangeSleep = 3000 // Default to 3 seconds
-	}
-	return &seleniumPlugin{driver: driver, opts: opts}
+func NewSeleniumPlugin(driver *selenium.WebDriver) *seleniumPlugin {
+	return &seleniumPlugin{driver: driver}
 }
 
-// evaluateExpression executes a JavaScript expression in the context of the current page.
+// evaluateExpression executes a JavaScript expression in the current context.
 // If the script is not attached, it will be attached first.
 // Parameters:
 //   - expression: The JavaScript code to execute
@@ -49,12 +38,10 @@ func (plugin *seleniumPlugin) evaluateExpression(expression string, args ...any)
 	// Check if script is already attached
 	isAttached, err := (*plugin.driver).ExecuteScript("return window.locatrScriptAttached === true", []any{})
 	if err != nil || isAttached == nil || !isAttached.(bool) {
-		time.Sleep(time.Duration(plugin.opts.OnContextChangeSleep) * time.Millisecond)
 		_, err := (*plugin.driver).ExecuteScript(constants.JS_CONTENT, []any{})
 		if err != nil {
 			return nil, fmt.Errorf("could not add JS content: %v", err)
 		}
-		plugin.cachedDOM = nil // Remove the cached DOM as it not valid anymore
 	}
 
 	result, err := (*plugin.driver).ExecuteScript(fmt.Sprintf("return %s", expression), args)
@@ -120,20 +107,71 @@ func (plugin *seleniumPlugin) waitForExpression(expression string, args []any, t
 // Returns an error if the page doesn't load within the specified timeout.
 func (plugin *seleniumPlugin) WaitForLoadEvent(timeout *float64) error {
 	if timeout == nil {
-		defaultTimeout := 30000.0
-		timeout = &defaultTimeout
+		timeout = types.Ptr(constants.DEFAULT_LOAD_EVENT_TIMEOUT)
 	}
 	return plugin.waitForExpression("document.readyState === 'complete'", nil, int(*timeout), 100)
 }
 
 // GetCurrentContext returns the current page URL.
 // Returns an empty string if the URL cannot be retrieved.
-func (plugin *seleniumPlugin) GetCurrentContext() string {
+func (plugin *seleniumPlugin) GetCurrentContext() (*string, error) {
 	value, err := (*plugin.driver).CurrentURL()
 	if err != nil {
-		return ""
+		return nil, err
 	}
-	return value
+	return &value, nil
+}
+
+// GetMinifiedDOM returns a simplified representation of the current page's DOM structure.
+// The DOM is processed to include only relevant information and includes:
+//   - A tree structure of elements with their properties
+//   - A mapping of elements to their CSS selectors
+//
+// Returns the processed DOM structure and any error that occurred during extraction.
+func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
+	result, err := plugin.evaluateExpression("minifyHTML()")
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get minified DOM: %v", err)
+	}
+
+	rootElement, err := utils.ParseElementSpec(result)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err = plugin.evaluateExpression("createLocatorMap()")
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get locator map: %v", err)
+	}
+
+	locatorMap, err := utils.ParseLocatorMap(result)
+	if err != nil {
+		return nil, err
+	}
+
+	dom := &types.DOM{
+		RootElement: rootElement,
+		Metadata: &types.DOMMetadata{
+			LocatorType: types.CssSelectorType, LocatorMap: locatorMap,
+		},
+	}
+	return dom, nil
+}
+
+// IsLocatorValid checks if a given CSS selector matches any elements on the page.
+// Parameters:
+//   - locator: The CSS selector to validate
+//
+// Returns:
+//   - bool: true if the selector matches at least one element, false otherwise
+//   - error: any error that occurred during validation
+func (plugin *seleniumPlugin) IsLocatorValid(locator string) (bool, error) {
+	value, err := plugin.evaluateExpression("isLocatorValid(arguments[0])", locator)
+	if err != nil {
+		return false, err
+	}
+
+	return utils.ParseLocatorValidationResult(value)
 }
 
 // SetViewportSize adjusts the browser window size to achieve the desired viewport dimensions.
@@ -170,53 +208,22 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 	return nil
 }
 
-// GetMinifiedDOM returns a simplified representation of the current page's DOM structure.
-// The DOM is processed to include only relevant information and includes:
-//   - A tree structure of elements with their properties
-//   - A mapping of elements to their CSS selectors
-//
-// Returns the processed DOM structure and any error that occurred during extraction.
-func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
-	if plugin.cachedDOM != nil {
-		return plugin.cachedDOM, nil
-	}
-
-	result, err := plugin.evaluateExpression("minifyHTML()")
+// TakeScreenshot captures the current viewport as a PNG image using Selenium's Screenshot API.
+// Returns the screenshot as a byte array and any error that occurred during capture.
+func (plugin *seleniumPlugin) TakeScreenshot() ([]byte, error) {
+	bytes, err := (*plugin.driver).Screenshot()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not take screenshot: %v", err)
 	}
-
-	rootElement, err := utils.ParseElementSpec(result)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err = plugin.evaluateExpression("createLocatorMap()")
-	if err != nil {
-		return nil, err
-	}
-
-	locatorMap, err := utils.ParseLocatorMap(result)
-	if err != nil {
-		return nil, err
-	}
-
-	dom := &types.DOM{
-		RootElement: rootElement,
-		Metadata: &types.DOMMetadata{
-			LocatorType: types.CssSelectorType, LocatorMap: locatorMap,
-		},
-	}
-	plugin.cachedDOM = dom
-	return dom, nil
+	return bytes, nil
 }
 
-// GetLocators retrieves the locators for the element at the given point and scroll position.
+// GetElementLocators retrieves the locators for the element at the given point and scroll position.
 // Parameters:
 //   - location: The location of the element to get the locators from
 //
 // Returns an array of CSS selectors for elements found at the specified point.
-func (plugin *seleniumPlugin) GetLocators(location *types.Location) ([]string, error) {
+func (plugin *seleniumPlugin) GetElementLocators(location *types.Location) ([]string, error) {
 	if location == nil {
 		return nil, errors.New("location is required")
 	}
@@ -231,12 +238,12 @@ func (plugin *seleniumPlugin) GetLocators(location *types.Location) ([]string, e
 	return utils.ParseLocators(result)
 }
 
-// GetLocation retrieves the location of the element identified by the given locator.
+// GetElementLocation retrieves the location of the element identified by the given locator.
 // Parameters:
 //   - locator: The CSS selector identifying the target element
 //
 // Returns the location of the element and any error that occurred during retrieval.
-func (plugin *seleniumPlugin) GetLocation(locator string) (*types.Location, error) {
+func (plugin *seleniumPlugin) GetElementLocation(locator string) (*types.Location, error) {
 	result, err := plugin.evaluateExpression(
 		"getLocation(arguments[0])", locator,
 	)
@@ -245,30 +252,4 @@ func (plugin *seleniumPlugin) GetLocation(locator string) (*types.Location, erro
 	}
 
 	return utils.ParseLocation(result)
-}
-
-// TakeScreenshot captures the current viewport as a PNG image using Selenium's Screenshot API.
-// Returns the screenshot as a byte array and any error that occurred during capture.
-func (plugin *seleniumPlugin) TakeScreenshot() ([]byte, error) {
-	bytes, err := (*plugin.driver).Screenshot()
-	if err != nil {
-		return nil, fmt.Errorf("could not take screenshot: %v", err)
-	}
-	return bytes, nil
-}
-
-// IsLocatorValid checks if a given CSS selector matches any elements on the page.
-// Parameters:
-//   - locator: The CSS selector to validate
-//
-// Returns:
-//   - bool: true if the selector matches at least one element, false otherwise
-//   - error: any error that occurred during validation
-func (plugin *seleniumPlugin) IsLocatorValid(locator string) (bool, error) {
-	value, err := plugin.evaluateExpression("isLocatorValid(arguments[0])", locator)
-	if err != nil {
-		return false, err
-	}
-
-	return utils.ParseLocatorValidationResult(value)
 }

@@ -8,11 +8,18 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/vertexcover-io/locatr/golang/options"
+	"github.com/kaptinlin/jsonrepair"
 	"github.com/vertexcover-io/locatr/golang/types"
 	"golang.org/x/net/html"
 )
 
+// ParseElementSpec parses the result of a minified DOM into an ElementSpec.
+// Parameters:
+//   - result: The result of a minified DOM
+//
+// Returns:
+//   - *types.ElementSpec: The parsed element spec
+//   - error: Any error that occurred during the parsing
 func ParseElementSpec(result any) (*types.ElementSpec, error) {
 	if resultStr, ok := result.(string); ok {
 		elementSpec := &types.ElementSpec{}
@@ -24,6 +31,13 @@ func ParseElementSpec(result any) (*types.ElementSpec, error) {
 	return nil, fmt.Errorf("unexpected type for minified DOM result: %T", result)
 }
 
+// ParseLocatorMap parses the result of a locator map into a map of string slices.
+// Parameters:
+//   - result: The result of a locator map
+//
+// Returns:
+//   - map[string][]string: The parsed locator map
+//   - error: Any error that occurred during the parsing
 func ParseLocatorMap(result any) (map[string][]string, error) {
 	if resultStr, ok := result.(string); ok {
 		locatorMap := map[string][]string{}
@@ -35,6 +49,13 @@ func ParseLocatorMap(result any) (map[string][]string, error) {
 	return nil, fmt.Errorf("unexpected type for locator map result: %T", result)
 }
 
+// ParseLocators parses the result of a locators into a slice of strings.
+// Parameters:
+//   - result: The result of a locators
+//
+// Returns:
+//   - []string: The parsed locators
+//   - error: Any error that occurred during the parsing
 func ParseLocators(result any) ([]string, error) {
 	if resultStr, ok := result.(string); ok {
 		var locators []string
@@ -46,6 +67,13 @@ func ParseLocators(result any) ([]string, error) {
 	return nil, fmt.Errorf("unexpected type for locators result: %T", result)
 }
 
+// ParseLocation parses the result of a location into a Location.
+// Parameters:
+//   - result: The result of a location
+//
+// Returns:
+//   - *types.Location: The parsed location
+//   - error: Any error that occurred during the parsing
 func ParseLocation(result any) (*types.Location, error) {
 	if resultStr, ok := result.(string); ok {
 		location := &types.Location{}
@@ -76,13 +104,13 @@ func ParseLocatorValidationResult(result any) (bool, error) {
 // SortRerankChunks reorders a list of text chunks based on their relevance scores.
 // Parameters:
 //   - chunks: Original array of text chunks to be sorted
-//   - results: Array of ReRankResult containing relevance scores and indices
+//   - results: Array of RerankResult containing relevance scores and indices
 //
 // Returns a new array containing only the valid chunks, ordered by their relevance scores.
 // If no valid results are found, returns the original chunks array unchanged.
-func SortRerankChunks(chunks []string, results []types.ReRankResult) []string {
+func SortRerankChunks(chunks []string, results []types.RerankResult) []string {
 	// Filter out results with indices out of range
-	validResults := []types.ReRankResult{}
+	validResults := []types.RerankResult{}
 	for _, result := range results {
 		if result.Index < len(chunks) {
 			validResults = append(validResults, result)
@@ -189,19 +217,39 @@ func GetFloatValue(v any) float64 {
 	}
 }
 
-func HighlightPoint(point *types.Point, img *image.RGBA, opts *options.HighlightOptions) {
+// ParseJSON parses a JSON string from a text string and repairs it if possible.
+// Parameters:
+//   - text: The text to parse
+//
+// Returns:
+//   - string: The parsed JSON
+//   - error: Any error that occurred during the parsing
+func ParseJSON(text string) (string, error) {
+	text = strings.TrimPrefix(text, "```")
+	text = strings.TrimPrefix(text, "json")
+	text = strings.TrimSuffix(text, "```")
+
+	return jsonrepair.JSONRepair(text)
+}
+
+// DrawPoint draws a point on an image.
+// Parameters:
+//   - img: The image to draw on
+//   - point: The point to draw
+//   - opts: The options for the draw
+func DrawPoint(img *image.RGBA, point *types.Point, config *types.HighlightConfig) {
 	// Adjust the color's alpha based on the opacity
-	alpha := uint8(opts.Opacity * 255)
+	alpha := uint8(config.Opacity * 255)
 	highlightColor := color.RGBA{
-		R: opts.Color.R,
-		G: opts.Color.G,
-		B: opts.Color.B,
+		R: config.Color.R,
+		G: config.Color.G,
+		B: config.Color.B,
 		A: alpha,
 	}
 
-	for dx := -opts.Radius; dx <= opts.Radius; dx++ {
-		for dy := -opts.Radius; dy <= opts.Radius; dy++ {
-			if dx*dx+dy*dy <= opts.Radius*opts.Radius { // Circle formula
+	for dx := -config.Radius; dx <= config.Radius; dx++ {
+		for dy := -config.Radius; dy <= config.Radius; dy++ {
+			if dx*dx+dy*dy <= config.Radius*config.Radius { // Circle formula
 				X := int(point.X) + dx
 				Y := int(point.Y) + dy
 				if image.Pt(X, Y).In(img.Bounds()) {

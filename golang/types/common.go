@@ -1,23 +1,13 @@
 package types
 
-type locatorType = string
-
-// Constants for different types of locators.
-const (
-	CssSelectorType locatorType = "css-selector"
-	XPathType       locatorType = "xpath"
+import (
+	"image/color"
+	"math"
 )
 
-// DOMMetadata holds metadata information about a DOM, including locator types and mappings.
-type DOMMetadata struct {
-	LocatorType locatorType         // Type of the locators in the map
-	LocatorMap  map[string][]string // Mapping of element IDs to their locators
-}
-
-// DOM represents the structure of a Document Object Model (DOM).
-type DOM struct {
-	RootElement *ElementSpec // The root element of the DOM
-	Metadata    *DOMMetadata // Metadata associated with the DOM
+// Ptr returns a pointer to a value.
+func Ptr[T any](v T) *T {
+	return &v
 }
 
 // Point represents a coordinate point in a 2D space.
@@ -26,12 +16,25 @@ type Point struct {
 	Y float64 `json:"y"` // Y-coordinate
 }
 
-// LLMProvider is a string alias representing a language model provider.
-type LLMProvider = string
+// Equals checks if two points are equal within a small tolerance.
+func (p1 Point) Equals(p2 Point) bool {
+	return math.Abs(p1.X-p2.X) < 1e-9 && math.Abs(p1.Y-p2.Y) < 1e-9
+}
 
-// CacheEntry represents a cache entry for storing locator information.
-type CacheEntry struct {
-	UserRequest string      `json:"locatr_name"`   // User's request or query name
-	Locators    []string    `json:"locatrs"`       // List of locators associated with the request
-	LocatorType locatorType `json:"selector_type"` // Type of locator used
+// Resolution represents the resolution of a viewport/window.
+type Resolution struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+// HighlightConfig defines the configuration for highlighting a locator.
+type HighlightConfig struct {
+	// Color is the color to use for the highlight. Defaults to red.
+	Color *color.RGBA
+	// Radius is the radius to use for the highlight. Defaults to 10.
+	Radius int
+	// Opacity is the opacity to use for the highlight. Defaults to 0.5.
+	Opacity float64
+	// Resolution is the resolution to use for the screenshot. Defaults to 1280x800.
+	Resolution *Resolution
 }
