@@ -1,0 +1,126 @@
+name: "evals for flipkart.com"
+url: "https://www.flipkart.com/"
+
+config:
+  resultsFilePath: "flipkart_locatr_results.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Flight Booking Button"
+    userRequest: "Flight Bookings button"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > div > div > div > div > div > div > div > div > a:nth-of-type(4)
+
+  - name: "Click Flight Booking Button"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Inputable Departure City Search Input"
+    userRequest: "Input field to search for departure city"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div > div > div > input
+
+  - name: "Fill Departure City Search Input"
+    action: "fill"
+    fillText: "Bangalore"
+    timeout: 2
+
+  - name: "Locate Bangalore Airport Option"
+    userRequest: "Bangalore Airport option"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div > div > div:nth-of-type(2)
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div > div > div:nth-of-type(2) > div
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div > div > div:nth-of-type(2) > div > div
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div > div > div:nth-of-type(2) > div > div > div
+
+  - name: "Click Bangalore Airport Option"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Inputable Arrival City Search Input"
+    userRequest: "Input field to search for arrival city"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div:nth-of-type(3) > div > div > input
+
+  - name: "Fill Arrival City Search Input"
+    action: "fill"
+    fillText: "Nepal"
+    timeout: 2
+
+  - name: "Locate Kathmandu Airport Option"
+    userRequest: "Kathmandu Airport option"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div:nth-of-type(3)
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div:nth-of-type(3) > div
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div:nth-of-type(3) > div > div > span
+
+  - name: "Click Kathmandu Airport Option"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Departure Date Selector"
+    userRequest: "Departure date selector"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div:nth-of-type(2) > div
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div:nth-of-type(2) > div > input
+
+  - name: "Locate day 28 of the month as departure date"
+    userRequest: "day 28 of the month as departure date"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > table > tbody > tr:nth-of-type(5) > td:nth-of-type(6)
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > table > tbody > tr:nth-of-type(5) > td:nth-of-type(6) > div
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > table > tbody > tr:nth-of-type(5) > td:nth-of-type(6) > div > button
+
+  - name: "Click on the day 28 of the month"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Travellers & Class Selector"
+    userRequest: "Travellers & Class selector"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div:nth-of-type(2) > input
+
+  - name: "Click Travellers & Class Selector"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Business Class Option"
+    userRequest: "Business class option"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(2) > div > label:nth-of-type(3)
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(2) > div > label:nth-of-type(3) > input
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div > div > div:nth-of-type(2) > div > label:nth-of-type(3) > div
+
+  - name: "Click Business Class Option"
+    action: "click"
+    timeout: 2
+
+  - name: "Locate Search Flights Button"
+    userRequest: "Search button to submit the form"
+    expectedLocatrs:
+      - >-
+        html > body > div > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div:nth-of-type(2) > form > div > button
+
+
+  - name: "Click Search Flights Button"
+    action: "click"
+    timeout: 5

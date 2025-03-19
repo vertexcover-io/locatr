@@ -1,0 +1,48 @@
+name: "evals for Hacker News (news.ycombinator.com)"
+url: "https://news.ycombinator.com/"
+
+config:
+  resultsFilePath: "hackernews_locatr_results.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Submit Link"
+    userRequest: "Submit link"
+    expectedLocatrs:
+      - >-
+        html > body > center > table > tbody > tr > td > table > tbody > tr > td:nth-of-type(2) > span > a:nth-of-type(7)
+
+  - name: "Click Submit Link"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Login Username Field"
+    userRequest: "Username input field on login form"
+    expectedLocatrs:
+      - >-
+        html > body > form > table > tbody > tr > td:nth-of-type(2) > input
+
+  - name: "Fill Username Field"
+    action: "fill"
+    fillText: "your_username"  
+    timeout: 3
+
+  - name: "Locate Login Password Field"
+    userRequest: "Password input field on login form"
+    expectedLocatrs:
+      - >-
+        html > body > form > table > tbody > tr:nth-of-type(2) > td:nth-of-type(2) > input
+
+  - name: "Fill Password Field"
+    action: "fill"
+    fillText: "your_password" 
+    timeout: 3
+
+  - name: "Locate Login Button"
+    userRequest: "Button to login"
+    expectedLocatrs:
+      - 'html > body > form > input'
+
+  - name: "Click Login Button"
+    action: "click"
+    timeout: 5

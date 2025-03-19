@@ -1,9 +1,0 @@
-https://www.amazon.com/
-https://github.com/vertexcover-io/locatr
-https://www.youtube.com/playlist?list=PLS01nW3RtgopsNLeM936V4TNSsvvVglLc
-https://docs.astral.sh/uv/guides/tools/
-https://medium.com/@damithadayananda/image-processing-with-golang-8f20d2d243a2
-https://creators.spotify.com/pod/show/hnasr/episodes/How-Shopifys-engineering-improved-writes-by-50-with-ULID--The-Backend-Engineering-Show-e1sk3tv
-https://www.hackerone.com/
-https://www.shein.co.uk/
-https://www.temu.com/

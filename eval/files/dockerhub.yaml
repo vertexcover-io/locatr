@@ -1,0 +1,47 @@
+name: "evals for docker hub"
+url: "https://hub.docker.com/"
+
+config:
+  resultsFilePath: "dockerhub_locatr_results.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Search Bar"
+    userRequest: "Search Docker Hub input field"
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(3) > div > div > header > div > div > div:nth-of-type(2) > form > div > div > div
+      - >-
+        html > body > div:nth-of-type(3) > div > div > header > div > div > div:nth-of-type(2) > form > div > div > div > input
+
+  - name: "Fill Search Bar"
+    action: "fill"
+    fillText: "Python"
+    timeout: 5
+
+  - name: "Press Enter in Search Bar"
+    action: "press"
+    key: "Enter"
+    timeout: 5
+
+  - name: "Locate Python Link"
+    userRequest: "Link to python docker image"
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(3) > div > div > div:nth-of-type(3) > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > a
+
+
+  - name: "Click Python Link"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Tags Tab"
+    userRequest: "Link to tags tab"
+    expectedLocatrs:
+     - >-
+        html > body > div:nth-of-type(3) > div > div > div:nth-of-type(3) > div > div:nth-of-type(2) > div > div > div:nth-of-type(2) > div > div > a:nth-of-type(2)
+
+  - name: "Click Tags Locator"
+    action: "click"
+    elementNo: 2  
+    timeout: 3

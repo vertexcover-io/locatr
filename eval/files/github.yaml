@@ -1,0 +1,49 @@
+name: "evals for locatr repository on GitHub"
+url: "https://github.com/vertexcover-io/locatr"
+
+config:
+  resultsFilePath: "github_locatr_results.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Pull Requests Tab"
+    userRequest: "Pull Requests tab"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(4) > div > main > div > nav > ul > li:nth-of-type(3) > a
+
+  - name: "Click Pull Requests Tab"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate New Pull Request Button"
+    userRequest: "New Pull Request button"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(4) > div > main > turbo-frame > div > div > div:nth-of-type(2) > a
+
+  - name: "Click New Pull Request Button"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate Compare Branch Selector"
+    userRequest: "Compare branch selector"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(4) > div > main > turbo-frame > div > div > div:nth-of-type(2) > div:nth-of-type(3) > details:nth-of-type(2)
+      - >-
+        html > body > div > div:nth-of-type(4) > div > main > turbo-frame > div > div > div:nth-of-type(2) > div:nth-of-type(3) > details:nth-of-type(2) > summary
+
+  - name: "Click Compare Branch Selector"
+    action: "click"
+    timeout: 3
+
+  - name: "Select Branch: fix/evals"
+    userRequest: "Find fix/evals branch"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(4) > div > main > turbo-frame > div > div > div:nth-of-type(2) > div:nth-of-type(3) > details:nth-of-type(2) > div > div > input-demux > tab-container > div:nth-of-type(2) > ref-selector > div > div > div > a:nth-of-type(2)
+
+  - name: "Click Branch: fix/evals"
+    action: "click"
+    timeout: 3

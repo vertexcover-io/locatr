@@ -1,0 +1,69 @@
+name: "evals for 99bikes.com"
+url: "https://www.99bikes.com.au/"
+
+config:
+  resultsFilePath: "eval_99bikes.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate popup close button"
+    userRequest: "popup close button"
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(9) > div:nth-of-type(3) > div > div > div > button
+      - >-
+        html > body > div:nth-of-type(9) > div:nth-of-type(3) > div > div > div > button > svg
+
+  - name: "Click popup close button"
+    action: "click"
+    timeout: 3
+
+  - name: "Locate electric bikes option in the navbar." 
+    userRequest: "electric bikes option in the navbar."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2)
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > a
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > a > span
+      
+  - name: "Click Electric bikes option"
+    action: "click"
+    timeout: 3
+
+  - name: "Locate Electric Mountain Bikes"
+    userRequest: "Link to Electric Mountain Bikes only."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > div > ul > li:nth-of-type(7)
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > div > ul > li:nth-of-type(7) > a
+      - >-
+        html > body > div:nth-of-type(5) > div > div > div:nth-of-type(2) > nav > div > div > div:nth-of-type(2) > ul > li:nth-of-type(2) > div > ul > li:nth-of-type(7) > a > span
+
+  - name: "Click Electric Mountain Bikes"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate the first mountain bike on the list"
+    userRequest: "Link to the first electric mountain bike on the page."
+    expectedLocatrs:
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div > a
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div > a > span
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div > div
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div > div > strong
+      - >-
+        html > body > div:nth-of-type(6) > main > div:nth-of-type(2) > div > div:nth-of-type(9) > ol > li > div > div > strong > a
+
+  - name: "Click on the first electric mountain bike"
+    action: "click"
+    timeout: 1
