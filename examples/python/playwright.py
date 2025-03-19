@@ -8,9 +8,9 @@ from locatr import LlmProvider, LlmSettings, Locatr, LocatrCdpSettings
 
 def setup_locatr() -> Locatr:
     llm_settings = LlmSettings(
-        llm_provider=LlmProvider.OPENAI,
-        llm_api_key=os.environ.get("LLM_API_KEY"),
-        model_name=os.environ.get("LLM_MODEL"),
+        llm_provider=LlmProvider.ANTHROPIC,
+        llm_api_key=os.environ.get("ANTHROPIC_API_KEY"),
+        model_name="claude-3-5-sonnet-latest",
         reranker_api_key=os.environ.get("COHERE_API_KEY"),
     )
     locatr_settings_playwright = LocatrCdpSettings(

@@ -6,12 +6,13 @@ Example on how to use locatr without passing the llm client.
 */
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
+	"github.com/vertexcover-io/locatr/golang/plugins"
 )
 
 func main() {
@@ -40,14 +41,15 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	options := locatr.BaseLocatrOptions{
-		UseCache: true,
-	} // llm client is created by default by reading the environment variables.
+	plugin := plugins.NewPlaywrightPlugin(&page)
+	locatr, err := locatr.NewLocatr(plugin, locatr.EnableCache(nil))
+	if err != nil {
+		log.Fatal("failed creating playwright locatr locatr", err)
+	}
 
-	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
-
-	_, err = playWrightLocatr.GetLocatr("Search Docker Hub input field")
+	completion, err := locatr.Locate("Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
+	fmt.Println(completion)
 }

@@ -7,13 +7,11 @@ Example on how to use locatr with playwright to interact with github.
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
+	"github.com/vertexcover-io/locatr/golang/plugins"
 )
 
 func main() {
@@ -42,34 +40,28 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := llm.NewLlmClient(
-		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL_NAME"),
-		os.Getenv("LLM_API_KEY"),
-	)
+	plugin := plugins.NewPlaywrightPlugin(&page)
+	locatr, err := locatr.NewLocatr(plugin)
 	if err != nil {
-		log.Fatalf("could not create llm client: %v", err)
+		log.Fatalf("could not create locatr: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
 
-	locatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
-
-	cDropDownLoc, err := locatr.GetLocatr("<> Code dropdown")
+	cDropDownCompletion, err := locatr.Locate("<> Code dropdown")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
 	}
-	if err := page.Locator(cDropDownLoc.Selectors[0]).Click(); err != nil {
+	if err := page.Locator(cDropDownCompletion.Locators[0]).Click(); err != nil {
 		log.Fatalf("could not click on code dropdown: %v", err)
 		return
 	}
 
-	dZipLoc, err := locatr.GetLocatr("Download ZIP button on the opened dropdown")
+	dZipCompletion, err := locatr.Locate("Download ZIP button on the opened dropdown")
 	if err != nil {
 		log.Fatalf("could not get download ZIP locator: %v", err)
 		return
 	}
-	fmt.Println(page.Locator(dZipLoc.Selectors[0]).InnerHTML())
+	fmt.Println(page.Locator(dZipCompletion.Locators[0]).InnerHTML())
 	time.Sleep(5 * time.Second)
 
 }

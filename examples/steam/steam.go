@@ -8,13 +8,11 @@ Example on how to use locatr with playwright to interact with steam.
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/playwrightLocatr"
+	"github.com/vertexcover-io/locatr/golang/plugins"
 )
 
 func main() {
@@ -26,11 +24,9 @@ func main() {
 
 	browser, err := pw.Chromium.Launch(
 		playwright.BrowserTypeLaunchOptions{
-			Headless: playwright.Bool(false),
-			Args:     []string{"--disable-blink-features=AutomationControlled"},
-			IgnoreDefaultArgs: []string{
-				"--enable-automation",
-			},
+			Headless:          playwright.Bool(false),
+			Args:              []string{"--disable-blink-features=AutomationControlled"},
+			IgnoreDefaultArgs: []string{"--enable-automation"},
 		},
 	)
 	if err != nil {
@@ -47,48 +43,42 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	llmClient, err := llm.NewLlmClient(
-		llm.OpenAI, // (openai | anthropic),
-		os.Getenv("LLM_MODEL_NAME"),
-		os.Getenv("LLM_API_KEY"),
-	)
+	plugin := plugins.NewPlaywrightPlugin(&page)
+	locatr, err := locatr.NewLocatr(plugin, locatr.EnableCache(nil))
 	if err != nil {
-		log.Fatalf("could not create llm client: %v", err)
+		log.Fatalf("could not create locatr: %v", err)
 	}
-	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
 
-	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
-
-	sBarLoc, err := playWrightLocatr.GetLocatr("Search input bar on the steam store.")
+	sBarCompletion, err := locatr.Locate("Search input bar on the steam store.")
 	if err != nil {
 		log.Fatalf("could not get search bar locator: %v", err)
 	}
-	if err := page.Locator(sBarLoc.Selectors[0]).Fill("Counter Strike 2"); err != nil {
+	if err := page.Locator(sBarCompletion.Locators[0]).Fill("Counter Strike 2"); err != nil {
 		log.Fatalf("could not fill search bar: %v", err)
 		return
 	}
-	if err := page.Locator(sBarLoc.Selectors[0]).Press("Enter"); err != nil {
+	if err := page.Locator(sBarCompletion.Locators[0]).Press("Enter"); err != nil {
 		log.Fatalf("could not press enter: %v", err)
 		return
 	}
 	time.Sleep(5 * time.Second)
 
-	cStrikeLoc, err := playWrightLocatr.GetLocatr("Counter Strike 2 game on the list")
+	cStrikeCompletion, err := locatr.Locate("Counter Strike 2 game on the list")
 	if err != nil {
 		log.Fatalf("could not get Counter Strike 2 locator: %v", err)
 		return
 	}
-	if err := page.Locator(cStrikeLoc.Selectors[0]).Click(); err != nil {
+	if err := page.Locator(cStrikeCompletion.Locators[0]).Click(); err != nil {
 		log.Fatalf("could not click Counter Strike 2: %v", err)
 		return
 	}
 	time.Sleep(5 * time.Second)
 
-	sysReqLoc, err := playWrightLocatr.GetLocatr("System Requirements section on the game page.")
+	sysReqCompletion, err := locatr.Locate("System Requirements section on the game page.")
 	if err != nil {
 		log.Fatalf("could not get system requirements locator: %v", err)
 		return
 	}
-	fmt.Println(page.Locator(sysReqLoc.Selectors[0]).InnerHTML())
+	fmt.Println(page.Locator(sysReqCompletion.Locators[0]).InnerHTML())
 
 }
