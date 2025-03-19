@@ -6,117 +6,107 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 
 	"net"
-	"net/url"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
+	"github.com/playwright-community/playwright-go"
 	locatr "github.com/vertexcover-io/locatr/golang"
-	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
-	cdpLocatr "github.com/vertexcover-io/locatr/golang/cdp"
 	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logger"
-	"github.com/vertexcover-io/locatr/golang/reranker"
-	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
+	"github.com/vertexcover-io/locatr/golang/logging"
+	"github.com/vertexcover-io/locatr/golang/plugins"
+	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/selenium"
 )
 
 var VERSION = []uint8{0, 0, 1}
 
-var clientAndLocatrs = make(map[string]locatr.LocatrInterface)
+var clientAndLocatrs = make(map[string]*locatr.Locatr)
 
-func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, error) {
-	opts := locatr.BaseLocatrOptions{}
-	llmConfig := message.Settings.LlmSettings
-
-	if llmConfig.ReRankerApiKey != "" {
-		opts.ReRankClient = reranker.NewCohereClient(llmConfig.ReRankerApiKey)
-	} else {
-		opts.ReRankClient = reranker.CreateCohereClientFromEnv()
-	}
-
-	opts.CachePath = message.Settings.CachePath
-	opts.UseCache = message.Settings.UseCache
-
-	opts.ResultsFilePath = message.Settings.ResultsFilePath
-
-	llmClient, err := llm.NewLlmClient(
-		llm.LlmProvider(llmConfig.LlmProvider),
-		llmConfig.ModelName,
-		llmConfig.LlmApiKey,
-	)
-	if err != nil {
-		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
-	}
-	opts.LlmClient = llmClient
-
-	return opts, nil
-}
-
-func handleLocatrRequest(message incomingMessage) (*locatr.LocatrOutput, error) {
-	baseLocatr, ok := clientAndLocatrs[message.ClientId]
+func handleLocatrRequest(message incomingMessage) (*types.LocatrCompletion, error) {
+	locatr, ok := clientAndLocatrs[message.ClientId]
 	if !ok {
 		return nil, fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
 	}
-	locatr, err := baseLocatr.GetLocatrStr(message.UserRequest)
+	completion, err := locatr.Locate(message.UserRequest)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
 	}
-	return locatr, nil
+	return &completion, nil
 
 }
 
-func handleInitialHandshake(message incomingMessage) error {
-	baseLocatrOpts, err := createLocatrOptions(message)
-	if err != nil {
-		return err
-	}
-	switch message.Settings.PluginType {
+func handleInitialHandshake(message incomingMessage, logger *slog.Logger) error {
+	var (
+		plugin types.PluginInterface
+		err    error
+	)
+	settings := message.Settings
+	switch settings.PluginType {
 	case "cdp":
-		parsedUrl, _ := url.Parse(message.Settings.CdpURl)
-		port, _ := strconv.Atoi(parsedUrl.Port())
-		connectionOpts := cdpLocatr.CdpConnectionOptions{
-			Port:     port,
-			HostName: parsedUrl.Hostname(),
-		}
-		connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
+		pw, err := playwright.Run()
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrCdpConnectionCreation, err)
+			return fmt.Errorf("could not start Playwright: %v", err)
 		}
-		cdpLocatr, err := cdpLocatr.NewCdpLocatr(connection, baseLocatrOpts)
+		browser, err := pw.Chromium.ConnectOverCDP(settings.CdpURl)
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrCdpLocatrCreation, err)
+			return fmt.Errorf("could not connect to browser: %v", err)
 		}
-		clientAndLocatrs[message.ClientId] = cdpLocatr
+		plugin = plugins.NewPlaywrightPlugin(&browser.Contexts()[0].Pages()[0])
 	case "selenium":
-		settings := message.Settings
-		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
+		driver, err := selenium.ConnectRemote(settings.SeleniumUrl, settings.SeleniumSessionId)
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
+			return fmt.Errorf("unable to connect to remote selenium instance: %w", err)
 		}
-		clientAndLocatrs[message.ClientId] = seleniumLocatr
+		plugin = plugins.NewSeleniumPlugin(&driver)
 	case "appium":
-		settings := message.Settings
-		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(settings.AppiumUrl, settings.AppiumSessionId, baseLocatrOpts)
+		plugin, err = plugins.NewAppiumPlugin(settings.AppiumUrl, settings.AppiumSessionId)
 		if err != nil {
-			return fmt.Errorf("%w: %w", ErrAppiumLocatrCreation, err)
+			return fmt.Errorf("unable to create appium plugin: %w", err)
 		}
-		clientAndLocatrs[message.ClientId] = appiumLocatr
 	}
+	llmSettings := settings.LlmSettings
+	llmClient, err := llm.NewLLMClient(
+		llm.WithProvider(types.LLMProvider(llmSettings.LlmProvider)),
+		llm.WithModel(llmSettings.ModelName),
+		llm.WithAPIKey(llmSettings.LlmApiKey),
+	)
+	if err != nil {
+		return fmt.Errorf("unable to create llm client: %w", err)
+	}
+	if llmSettings.ReRankerApiKey != "" {
+		os.Setenv("COHERE_API_KEY", llmSettings.ReRankerApiKey)
+	}
+
+	options := []locatr.Option{
+		locatr.WithLLMClient(llmClient), locatr.WithLogger(logger),
+	}
+	if settings.UseCache {
+		options = append(
+			options, locatr.EnableCache(types.Ptr(settings.CachePath)),
+		)
+	}
+	locatr, err := locatr.NewLocatr(plugin, options...)
+	if err != nil {
+		return fmt.Errorf("unable to create locatr instance: %w", err)
+	}
+
+	clientAndLocatrs[message.ClientId] = locatr
 	return nil
 }
 
-func acceptConnection(fd net.Conn) {
+func acceptConnection(fd net.Conn, logger *slog.Logger) {
 	lengthBuf := make([]byte, 4)
 	versionBuf := make([]byte, 3)
 	for {
 		sum := 0
 		count, err := fd.Read(versionBuf)
 		if err != nil {
-			handleReadError(err)
+			handleReadError(err, logger)
 			return
 		}
 		sum += count
@@ -125,13 +115,13 @@ func acceptConnection(fd net.Conn) {
 				Status: "error",
 				Error: fmt.Sprintf(
 					"%v client version: %s, server version: %s",
-					ClientAndServerVersionMisMatch,
+					ErrClientAndServerVersionMisMatch,
 					getVersionString(convertVersionToUint8(versionBuf)),
 					getVersionString(VERSION),
 				),
 			}
-			if err := writeResponse(fd, msg); err != nil {
-				logger.Logger.Error("Failed to send error response to client",
+			if err := writeResponse(fd, msg, logger); err != nil {
+				logger.Error("Failed to send error response to client",
 					"error", err)
 			}
 			return
@@ -139,7 +129,7 @@ func acceptConnection(fd net.Conn) {
 
 		count, err = fd.Read(lengthBuf)
 		if err != nil {
-			handleReadError(err)
+			handleReadError(err, logger)
 			return
 		}
 		msgLength := binary.BigEndian.Uint32(lengthBuf)
@@ -148,16 +138,16 @@ func acceptConnection(fd net.Conn) {
 		message := make([]byte, msgLength)
 		count, err = fd.Read(message)
 		if err != nil {
-			handleReadError(err)
+			handleReadError(err, logger)
 			return
 		}
 		sum += count
 
-		logger.Logger.Debug("Read bytes from client", slog.Int("count", sum))
+		logger.Debug("Read bytes from client", slog.Int("count", sum))
 
 		var clientMessage incomingMessage
 		if err := json.Unmarshal(message, &clientMessage); err != nil {
-			logger.Logger.Error("Error parsing JSON",
+			logger.Error("Error parsing JSON",
 				"error", err,
 				"message", string(message))
 			msg := outgoingMessage{
@@ -166,8 +156,8 @@ func acceptConnection(fd net.Conn) {
 				ClientId: "00000000-0000-0000-0000-000000000000",
 				Error:    err.Error(),
 			}
-			if err := writeResponse(fd, msg); err != nil {
-				logger.Logger.Error("Failed to send error response to client",
+			if err := writeResponse(fd, msg, logger); err != nil {
+				logger.Error("Failed to send error response to client",
 					"error", err)
 				return
 			}
@@ -181,8 +171,8 @@ func acceptConnection(fd net.Conn) {
 				ClientId: clientMessage.ClientId,
 				Error:    err.Error(),
 			}
-			if err := writeResponse(fd, errResp); err != nil {
-				logger.Logger.Error("Failed to send validation error response to client",
+			if err := writeResponse(fd, errResp, logger); err != nil {
+				logger.Error("Failed to send validation error response to client",
 					"error", err)
 				return
 			}
@@ -193,7 +183,7 @@ func acceptConnection(fd net.Conn) {
 
 		switch clientMessage.Type {
 		case "initial_handshake":
-			err := handleInitialHandshake(clientMessage)
+			err := handleInitialHandshake(clientMessage, logger)
 			if err != nil {
 				errResp := outgoingMessage{
 					Type:     clientMessage.Type,
@@ -201,8 +191,8 @@ func acceptConnection(fd net.Conn) {
 					Error:    err.Error(),
 					ClientId: clientMessage.ClientId,
 				}
-				if err := writeResponse(fd, errResp); err != nil {
-					logger.Logger.Error("Failed to send error response to client during handshake",
+				if err := writeResponse(fd, errResp, logger); err != nil {
+					logger.Error("Failed to send error response to client during handshake",
 						"error", err,
 						"clientId", clientMessage.ClientId)
 					return
@@ -214,13 +204,13 @@ func acceptConnection(fd net.Conn) {
 				Status:   "ok",
 				ClientId: clientMessage.ClientId,
 			}
-			if err := writeResponse(fd, successResp); err != nil {
-				logger.Logger.Error("Failed to send success response to client during handshake",
+			if err := writeResponse(fd, successResp, logger); err != nil {
+				logger.Error("Failed to send success response to client during handshake",
 					"error", err,
 					"clientId", clientMessage.ClientId)
 				return
 			}
-			logger.Logger.Info("Initial handshake successful with client",
+			logger.Info("Initial handshake successful with client",
 				"clientId", clientMessage.ClientId)
 		case "locatr_request":
 			locatrOutput, err := handleLocatrRequest(clientMessage)
@@ -232,8 +222,8 @@ func acceptConnection(fd net.Conn) {
 					Error:     err.Error(),
 					ClientId:  clientMessage.ClientId,
 				}
-				if err := writeResponse(fd, errResp); err != nil {
-					logger.Logger.Error("Failed to send error response to client during locatr request",
+				if err := writeResponse(fd, errResp, logger); err != nil {
+					logger.Error("Failed to send error response to client during locatr request",
 						"error", err,
 						"clientId", clientMessage.ClientId)
 					return
@@ -244,11 +234,11 @@ func acceptConnection(fd net.Conn) {
 				Type:         clientMessage.Type,
 				Status:       "ok",
 				ClientId:     clientMessage.ClientId,
-				Selectors:    locatrOutput.Selectors,
-				SelectorType: string(locatrOutput.SelectorType),
+				Selectors:    locatrOutput.Locators,
+				SelectorType: string(locatrOutput.LocatorType),
 			}
-			if err := writeResponse(fd, successResp); err != nil {
-				logger.Logger.Error("Failed to send success response to client during locatr request",
+			if err := writeResponse(fd, successResp, logger); err != nil {
+				logger.Error("Failed to send success response to client during locatr request",
 					"error", err,
 					"clientId", clientMessage.ClientId)
 				return
@@ -267,16 +257,21 @@ func main() {
 	if _, err := os.Stat(socketFilePath); !errors.Is(err, os.ErrNotExist) {
 		os.Remove(socketFilePath)
 	}
+	var logger *slog.Logger
 	if (logLevel == int(slog.LevelDebug)) ||
 		(logLevel == int(slog.LevelInfo)) ||
 		(logLevel == int(slog.LevelWarn)) ||
 		(logLevel == int(slog.LevelError)) {
-		logger.Level.Set(slog.Level(logLevel))
+		logFile, err := os.Create("locatr-logs.jsonl")
+		if err != nil {
+			log.Fatalf("unable to create log file: %v", err)
+		}
+		logger = logging.NewLogger(slog.Level(logLevel), logFile)
 	}
 
 	socket, err := net.Listen("unix", socketFilePath)
 	if err != nil {
-		logger.Logger.Error("Failed connecting to socket", "error", err)
+		logger.Error("Failed connecting to socket", "error", err)
 		os.Exit(1)
 	}
 	defer socket.Close()
@@ -286,25 +281,25 @@ func main() {
 
 	go func() {
 		sig := <-sigChan
-		logger.Logger.Info("Received signal, shutting down...", "signal", sig)
+		logger.Info("Received signal, shutting down...", "signal", sig)
 
 		if err := os.Remove(socketFilePath); err != nil {
-			logger.Logger.Error("Failed to remove socket file", "error", err)
+			logger.Error("Failed to remove socket file", "error", err)
 		}
 		os.Exit(0)
 	}()
 
-	logger.Logger.Info("Ready to accept connections", "socketFilePath", socketFilePath)
+	logging.DefaultLogger.Info("Ready to accept connections", "socketFilePath", socketFilePath)
 	defer os.Remove(socketFilePath)
 
 	for {
 		client, err := socket.Accept()
 		if err != nil {
-			logger.Logger.Error("Failed accepting socket", "error", err)
+			logger.Error("Failed accepting socket", "error", err)
 			continue
 		}
 		go func() {
-			acceptConnection(client)
+			acceptConnection(client, logger)
 			client.Close()
 		}()
 	}

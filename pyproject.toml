@@ -65,5 +65,3 @@ exclude_lines = [
     "raise ImportError",
 ]
 
-[tool.uv.workspace]
-members = ["benchmarking"]
