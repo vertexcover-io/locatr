@@ -4,8 +4,8 @@ import os
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 
-from locatr import LlmProvider, LlmSettings, Locatr
-from python_client.locatr.schema import LocatrAppiumSettings
+from locatr import Locatr
+from locatr.schema import LocatrAppiumSettings, LlmProvider, LlmSettings
 
 capabilities = dict(
     platformName="Android",
