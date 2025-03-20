@@ -11,7 +11,7 @@ type CacheEntry struct {
 
 // LocatrCompletion represents the completion result of Locate method.
 type LocatrCompletion struct {
-	Locators    []string    `json:"locators"`     // List of locators found
+	Locators    []string    `json:"locators"`     // List of locators found, all of them point to the same element
 	LocatorType locatorType `json:"locator_type"` // Type of locators in the list
 	CacheHit    bool        `json:"cache_hit"`    // Indicates if the result was a cache hit
 	LLMCompletionMeta
@@ -23,7 +23,7 @@ type LocatrMode interface {
 		request string,
 		plugin PluginInterface,
 		llmClient LLMClientInterface,
-		rerankClient RerankerClientInterface,
+		rerankerClient RerankerClientInterface,
 		logger *slog.Logger,
 		completion *LocatrCompletion,
 	) error

@@ -160,11 +160,6 @@ func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
 		},
 	}
 
-	l.config.logger.Info("Waiting for page to load")
-	if err := l.plugin.WaitForLoadEvent(nil); err != nil {
-		return *completion, err
-	}
-
 	if l.config.useCache {
 		if err := l.processCacheRequest(request, completion); err == nil {
 			return *completion, nil

@@ -4,16 +4,12 @@ package types
 type Location struct {
 	// Point is the position of the element on the viewport.
 	Point Point `json:"point"`
-
 	// ScrollPosition is the position of the scroll on the page.
 	ScrollPosition Point `json:"scroll_position"`
 }
 
 // PluginInterface defines the interface for a plugin that interacts with a web page.
 type PluginInterface interface {
-
-	// WaitForLoadEvent waits for the page load event to complete.
-	WaitForLoadEvent(timeout *float64) error
 
 	// GetCurrentContext retrieves the current context of the plugin.
 	GetCurrentContext() (*string, error)

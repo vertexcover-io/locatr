@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/vertexcover-io/locatr/golang/internal/constants"
 	"github.com/vertexcover-io/locatr/golang/internal/utils"
@@ -49,67 +48,6 @@ func (plugin *seleniumPlugin) evaluateExpression(expression string, args ...any)
 		return nil, fmt.Errorf("error evaluating `%v` expression: %v", expression, err)
 	}
 	return result, nil
-}
-
-// waitForExpression polls a JavaScript expression until it evaluates to true or times out.
-// Parameters:
-//   - expression: The JavaScript expression to evaluate
-//   - args: Arguments to pass to the expression
-//   - timeout: Timeout in milliseconds
-//   - interval: Interval in milliseconds
-//
-// Returns an error if the condition is not met within the timeout period or if evaluation fails.
-func (plugin *seleniumPlugin) waitForExpression(expression string, args []any, timeout int, interval int) error {
-	startTime := time.Now()
-	deadline := startTime.Add(time.Duration(timeout) * time.Millisecond)
-
-	for time.Now().Before(deadline) {
-		// Evaluate the expression directly using evaluateExpression
-		result, err := plugin.evaluateExpression(expression, args...)
-		if err != nil {
-			return fmt.Errorf("error evaluating condition expression '%s': %v", expression, err)
-		}
-
-		// Check if the result is truthy
-		// Handle different types that could be returned from JavaScript
-		isTruthy := false
-
-		switch v := result.(type) {
-		case bool:
-			isTruthy = v
-		case string:
-			isTruthy = v != ""
-		case float64, int:
-			isTruthy = v != 0
-		case nil:
-			isTruthy = false
-		default:
-			// For objects, arrays, etc., their existence is truthy
-			isTruthy = true
-		}
-
-		if isTruthy {
-			return nil // Condition met, return success
-		}
-
-		// Wait for the interval before trying again
-		time.Sleep(time.Duration(interval) * time.Millisecond)
-	}
-
-	return fmt.Errorf("condition not met within specified timeout of %dms", timeout)
-}
-
-// WaitForLoadEvent waits for the page's document.readyState to become 'complete'.
-// This ensures that the page and all its resources have finished loading.
-// Parameters:
-//   - timeout: Timeout in milliseconds. Default is 30000ms.
-//
-// Returns an error if the page doesn't load within the specified timeout.
-func (plugin *seleniumPlugin) WaitForLoadEvent(timeout *float64) error {
-	if timeout == nil {
-		timeout = types.Ptr(constants.DEFAULT_LOAD_EVENT_TIMEOUT)
-	}
-	return plugin.waitForExpression("document.readyState === 'complete'", nil, int(*timeout), 100)
 }
 
 // GetCurrentContext returns the current page URL.

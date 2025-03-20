@@ -40,10 +40,8 @@ Be precise in your coordinate estimation as these will be used for automated int
 `
 
 type VisualAnalysisMode struct {
-
 	// Resolution to use for viewport size, defaults to 1280x800
 	Resolution *types.Resolution `json:"resolution"`
-
 	// Maximum number of relevant screenshots to use for analysis. Defaults to constants.DEFAULT_TOP_N
 	MaxAttempts int `json:"max_attempts"`
 }
@@ -93,7 +91,10 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		if err != nil {
 			continue
 		}
-		plugin.SetViewportSize(m.Resolution.Width, m.Resolution.Height)
+		if err := plugin.SetViewportSize(m.Resolution.Width, m.Resolution.Height); err != nil {
+			logger.Error("couldn't set viewport size", "error", err)
+			continue
+		}
 
 		locator := locatorMap[id][0]
 		chunkLocation, err := plugin.GetElementLocation(locator)

@@ -3,7 +3,7 @@ import time
 
 from playwright.sync_api import sync_playwright
 
-from locatr import LlmProvider, LlmSettings, Locatr, LocatrCdpSettings
+from locatr import LlmProvider, LlmSettings, Locatr, LocatrCdpSettings, LogLevel
 
 
 def setup_locatr() -> Locatr:
@@ -17,7 +17,7 @@ def setup_locatr() -> Locatr:
         llm_settings=llm_settings,
         cdp_url="http://localhost:9222",
     )
-    return Locatr(locatr_settings_playwright)
+    return Locatr(locatr_settings_playwright, log_level=LogLevel.DEBUG)
 
 
 def main(cdp_locatr: Locatr):

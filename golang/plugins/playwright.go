@@ -50,24 +50,6 @@ func (plugin *playwrightPlugin) evaluateExpression(expression string, args ...an
 	return result, nil
 }
 
-// WaitForLoadEvent waits for the page's load event to fire.
-// This ensures that all resources (images, stylesheets, etc.) have been loaded.
-// Parameters:
-//   - timeout: Timeout in milliseconds. Default is 30000ms.
-//
-// Returns an error if the wait operation times out or fails.
-func (plugin *playwrightPlugin) WaitForLoadEvent(timeout *float64) error {
-	stateOpts := playwright.PageWaitForLoadStateOptions{
-		State: playwright.LoadStateLoad,
-	}
-	if timeout != nil {
-		stateOpts.Timeout = timeout
-	} else {
-		stateOpts.Timeout = types.Ptr(constants.DEFAULT_LOAD_EVENT_TIMEOUT)
-	}
-	return (*plugin.page).WaitForLoadState(stateOpts)
-}
-
 // GetCurrentContext returns the current page URL.
 // This can be used to track the current navigation state of the browser.
 func (plugin *playwrightPlugin) GetCurrentContext() (*string, error) {

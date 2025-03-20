@@ -101,10 +101,6 @@ func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
 	return dom, nil
 }
 
-func (plugin *appiumPlugin) WaitForLoadEvent(timeout *float64) error {
-	return nil
-}
-
 func (plugin *appiumPlugin) GetCurrentContext() (*string, error) {
 	caps, err := plugin.client.GetCapabilities()
 	if err != nil {
