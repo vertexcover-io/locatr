@@ -95,3 +95,4 @@ class InitialHandshakeMessage(Message):
 
 class UserRequestMessage(Message):
     user_request: str
+    otel_parent_trace_id: Optional[str]

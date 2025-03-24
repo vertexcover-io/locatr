@@ -135,10 +135,15 @@ class Locatr:
             self._socket.close()
             raise e
 
-    def get_locatr(self, user_req: str) -> LocatrOutput:
+    def get_locatr(
+        self, user_req: str, otel_parent_trace: Optional[str] = None
+    ) -> LocatrOutput:
         self._initialize_process_and_socket()
         message = UserRequestMessage(
-            user_request=user_req, id=self._id, type=MessageType.LOCATR_REQUEST
+            user_request=user_req,
+            otel_parent_trace=otel_parent_trace,
+            id=self._id,
+            type=MessageType.LOCATR_REQUEST,
         )
         message_str = message.model_dump_json(exclude_none=True)
         packed_data = create_packed_message(message_str)

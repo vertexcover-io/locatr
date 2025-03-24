@@ -26,6 +26,7 @@ import (
 	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
 	"github.com/vertexcover-io/locatr/golang/tracing"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var VERSION = []uint8{0, 0, 1}
@@ -240,10 +241,17 @@ func acceptConnection(fd net.Conn) {
 
 		defer delete(clientAndLocatrs, clientMessage.ClientId)
 
-		ctx := context.Background()
-		tracer := tracing.GetTracer()
+		var ctx context.Context
+		if clientMessage.OtelParentTraceId != "" {
+			carrier := propagation.MapCarrier{"traceparent": clientMessage.OtelParentTraceId}
 
-		ctx, span := tracer.Start(ctx, "locator-reqest")
+			propagator := propagation.TraceContext{}
+			ctx = propagator.Extract(context.Background(), carrier)
+		} else {
+			ctx = context.Background()
+		}
+
+		ctx, span := tracing.StartSpan(ctx, "locator-reqest")
 		defer span.End()
 
 		switch clientMessage.Type {

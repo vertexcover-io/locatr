@@ -21,10 +21,11 @@ type locatrSettings struct {
 }
 
 type incomingMessage struct {
-	Type        string         `json:"type" binding:"required,oneof=initial_handshake locatr_request error"`
-	UserRequest string         `json:"user_request"`
-	ClientId    string         `json:"id" binding:"required"`
-	Settings    locatrSettings `json:"locatr_settings"`
+	Type              string         `json:"type" binding:"required,oneof=initial_handshake locatr_request error"`
+	UserRequest       string         `json:"user_request"`
+	ClientId          string         `json:"id" binding:"required"`
+	OtelParentTraceId string         `json:"otel_parent_trace_id"`
+	Settings          locatrSettings `json:"locatr_settings"`
 }
 
 type outgoingMessage struct {
