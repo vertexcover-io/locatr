@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -22,6 +23,7 @@ import (
 	"github.com/vertexcover-io/locatr/golang/logger"
 	"github.com/vertexcover-io/locatr/golang/reranker"
 	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
+	"github.com/vertexcover-io/locatr/golang/tracing"
 )
 
 var VERSION = []uint8{0, 0, 1}
@@ -259,24 +261,61 @@ func acceptConnection(fd net.Conn) {
 	}
 }
 
+type Config struct {
+	SocketFilePath string
+	LogLevel       int
+
+	Tracing struct {
+		Endpoint    string
+		ServiceName string
+		Insecure    bool
+	}
+}
+
 func main() {
-	var socketFilePath string
-	var logLevel int
-	flag.StringVar(&socketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socket file to listen at.")
-	flag.IntVar(&logLevel, "logLevel", int(slog.LevelError), "log level for the server")
+	var cfg Config
+	flag.StringVar(&cfg.SocketFilePath, "socketFilePath", "/tmp/locatr.sock", "path to the socket file to listen at.")
+	flag.IntVar(&cfg.LogLevel, "logLevel", int(slog.LevelError), "log level for the server")
+	flag.StringVar(&cfg.Tracing.Endpoint, "tracing.endpoint", tracing.DEFAULT_ENDPOINT, "gRPC endpoint for otel receiver")
+	flag.StringVar(&cfg.Tracing.ServiceName, "tracing.svcName", tracing.DEFAULT_SVC_NAME, "name for service to use in Open Telemetry Logs")
+	flag.BoolVar(&cfg.Tracing.Insecure, "tracing.insecure", tracing.DEFAULT_INSECURE, "is gRPC endpoint insecure")
+
 	flag.Parse()
 
-	if _, err := os.Stat(socketFilePath); !errors.Is(err, os.ErrNotExist) {
-		os.Remove(socketFilePath)
+	shutdown, err := tracing.SetupOtelSDK(
+		context.Background(),
+		tracing.WithEndpoint(cfg.Tracing.Endpoint),
+		tracing.WithSVCName(cfg.Tracing.ServiceName),
+		tracing.WithInsecure(cfg.Tracing.Insecure),
+	)
+	if err != nil {
+		logger.Logger.Error(
+			"Failed to setup Open Telemetry SDK",
+			slog.String("error", err.Error()),
+		)
+		os.Exit(1)
 	}
-	if (logLevel == int(slog.LevelDebug)) ||
-		(logLevel == int(slog.LevelInfo)) ||
-		(logLevel == int(slog.LevelWarn)) ||
-		(logLevel == int(slog.LevelError)) {
-		logger.Level.Set(slog.Level(logLevel))
+	defer func() {
+		if sErr := shutdown(context.Background()); sErr != nil {
+			err = errors.Join(err, sErr)
+			logger.Logger.Error(
+				"Error while shutting down Open Telemetry service",
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
+
+	if _, err := os.Stat(cfg.SocketFilePath); !errors.Is(err, os.ErrNotExist) {
+		os.Remove(cfg.SocketFilePath)
+	}
+	if (cfg.LogLevel == int(slog.LevelDebug)) ||
+		(cfg.LogLevel == int(slog.LevelInfo)) ||
+		(cfg.LogLevel == int(slog.LevelWarn)) ||
+		(cfg.LogLevel == int(slog.LevelError)) {
+		logger.Level.Set(slog.Level(cfg.LogLevel))
 	}
 
-	socket, err := net.Listen("unix", socketFilePath)
+	socket, err := net.Listen("unix", cfg.SocketFilePath)
 	if err != nil {
 		logger.Logger.Error("Failed connecting to socket", "error", err)
 		os.Exit(1)
@@ -290,16 +329,14 @@ func main() {
 		sig := <-sigChan
 		logger.Logger.Info("Received signal, shutting down...", "signal", sig)
 
-		if err := os.Remove(socketFilePath); err != nil {
+		if err := os.Remove(cfg.SocketFilePath); err != nil {
 			logger.Logger.Error("Failed to remove socket file", "error", err)
 		}
 		os.Exit(0)
 	}()
 
-	logger.Logger.Info("Ready to accept connections", "socketFilePath", socketFilePath)
-	defer os.Remove(socketFilePath)
-
-	logger.Logger.Info("Version: 2025/03/05")
+	logger.Logger.Info("Ready to accept connections", "socketFilePath", cfg.SocketFilePath)
+	defer os.Remove(cfg.SocketFilePath)
 
 	for {
 		client, err := socket.Accept()
