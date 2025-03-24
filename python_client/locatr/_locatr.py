@@ -47,11 +47,17 @@ class Locatr:
         locatr_settings: Union[
             LocatrCdpSettings, LocatrSeleniumSettings, LocatrAppiumSettings
         ],
+        tracing_endpoint: str,
+        tracing_svcname: str,
+        tracing_insecure: bool,
         log_level: LogLevel | None = LogLevel.ERROR,
     ) -> None:
         self._settings = locatr_settings
         self._id = uuid.uuid4()
         self._log_level = log_level
+        self._tracing_endpoint = tracing_endpoint
+        self._tracing_svcname = tracing_svcname
+        self._tracing_insecure = tracing_insecure
         self._socket = None
 
     def _initialize_process_and_socket(self):
@@ -66,6 +72,9 @@ class Locatr:
                 SocketFilePath.path = change_socket_file()
             args = [
                 f"-socketFilePath={SocketFilePath.path}",
+                f"-tracing.endpoint={self._tracing_endpoint}",
+                f"-tracing.svcName={self._tracing_svcname}",
+                f"-tracing.insecure={self._tracing_insecure}",
             ]
             if self._log_level is not None:
                 args.append(f"-logLevel={self._log_level.value}")
