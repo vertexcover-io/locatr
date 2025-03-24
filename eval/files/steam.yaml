@@ -1,0 +1,65 @@
+name: "evals for Steam Store"
+url: "https://store.steampowered.com/"
+
+config:
+  resultsFilePath: "steam_locatr_results.json"
+  pageLoadTimeout: 5
+
+steps:
+  - name: "Locate Search Input Bar"
+    userRequest: "Search input bar"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(2) > div > div > div > div:nth-of-type(2) > div:nth-of-type(2) > div > div:nth-of-type(9) > div > form > div > input
+
+  - name: "Fill Search Input Bar"
+    action: "fill"
+    fillText: "Counter Strike 2"
+    timeout: 5
+
+  - name: "Press Enter in Search Input Bar"
+    action: "press"
+    key: "Enter"
+    timeout: 5
+
+  - name: "Locate Counter Strike 2"
+    userRequest: "Counter Strike 2 option in search results"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2)
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2) > div
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2) > div > div
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2) > div > div > span
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2) > div > div > span:nth-of-type(2)
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div:nth-of-type(2) > div > span
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > form > div > div > div > div:nth-of-type(3) > div > div:nth-of-type(3) > a > div > img
+
+  - name: "Click Counter Strike 2 Game Link"
+    action: "click"
+    timeout: 5
+
+  - name: "Locate System Requirements Section"
+    userRequest: "System requirements section"
+    expectedLocatrs:
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8)
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8) > div > h2
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8) > div > div:nth-of-type(2)
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8) > div > div:nth-of-type(2) > div
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8) > div > div:nth-of-type(2) > div > div
+      - >-
+        html > body > div > div:nth-of-type(7) > div:nth-of-type(6) > div:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(5) > div:nth-of-type(2) > div:nth-of-type(8) > div > div:nth-of-type(2) > div > div > ul

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 
-	"github.com/vertexcover-io/locatr/golang/logger"
 	"gopkg.in/validator.v2"
 )
 
@@ -58,7 +58,7 @@ func dumpJson(inputStruct interface{}) []byte {
 	return bytesString
 }
 
-func generateBytesMessage(outputMessage outgoingMessage) []byte {
+func generateBytesMessage(outputMessage outgoingMessage, logger *slog.Logger) []byte {
 	buf := new(bytes.Buffer)
 	bytesString := dumpJson(outputMessage)
 	length := len(bytesString)
@@ -66,40 +66,38 @@ func generateBytesMessage(outputMessage outgoingMessage) []byte {
 	for _, val := range VERSION {
 		err := binary.Write(buf, binary.BigEndian, val)
 		if err != nil {
-			logger.Logger.Error("Error writing version to buffer",
-				"error", err)
+			logger.Error("Error writing version to buffer", "error", err)
 			break
 		}
 	}
 
 	err := binary.Write(buf, binary.BigEndian, int32(length))
 	if err != nil {
-		logger.Logger.Error("Error writing length to buffer",
+		logger.Error("Error writing length to buffer",
 			"error", err)
 	}
 	buf.Write(bytesString)
 	return buf.Bytes()
 }
 
-func handleReadError(err error) {
+func handleReadError(err error, logger *slog.Logger) {
 	if err == io.EOF {
-		logger.Logger.Info("Connection closed by client")
+		logger.Info("Connection closed by client")
 	} else {
-		logger.Logger.Error("Failed to read message",
-			"error", err)
+		logger.Error("Failed to read message", "error", err)
 	}
 }
 
-func writeResponse(fd net.Conn, msg outgoingMessage) error {
-	data := generateBytesMessage(msg)
+func writeResponse(fd net.Conn, msg outgoingMessage, logger *slog.Logger) error {
+	data := generateBytesMessage(msg, logger)
 	_, err := fd.Write(data)
 	if err != nil {
-		logger.Logger.Error("Error writing response",
+		logger.Error("Error writing response",
 			"error", err,
 			"clientId", msg.ClientId) // Assuming msg has ClientId
 		return err
 	}
-	logger.Logger.Info("Response written to client",
+	logger.Info("Response written to client",
 		"clientId", msg.ClientId, // Assuming msg has ClientId
 		"status", msg.Status,
 		"type", msg.Type)

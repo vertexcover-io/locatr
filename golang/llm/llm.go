@@ -2,147 +2,217 @@ package llm
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"log/slog"
 	"os"
-	"time"
+	"strings"
 
-	"github.com/liushuangls/go-anthropic/v2"
+	"github.com/anthropics/anthropic-sdk-go"
+	anthropicOption "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/openai/openai-go"
-	openai_option "github.com/openai/openai-go/option"
-	"github.com/vertexcover-io/locatr/golang/logger"
-	"gopkg.in/validator.v2"
+	openaiOption "github.com/openai/openai-go/option"
+	"github.com/vertexcover-io/locatr/golang/internal/utils"
+	"github.com/vertexcover-io/locatr/golang/logging"
+	"github.com/vertexcover-io/locatr/golang/types"
 )
 
-type LlmProvider string
-
-type LlmWebInputDto struct {
-	HtmlDom string `json:"html_dom"`
-	UserReq string `json:"user_req"`
-}
-
-type llmClient struct {
-	apiKey          string      `validate:"required"`
-	provider        LlmProvider `validate:"required,regexp=(openai|anthropic|open-router|groq)"`
-	model           string      `validate:"required,min=2,max=50"`
-	openaiClient    *openai.Client
-	anthropicClient *anthropic.Client
-}
-
-type LlmClientInterface interface {
-	ChatCompletion(prompt string) (*ChatCompletionResponse, error)
-	GetProvider() LlmProvider
-	GetModel() string
-}
-
-type ChatCompletionResponse struct {
-	Prompt       string      `json:"prompt"`
-	Completion   string      `json:"completion"`
-	TotalTokens  int         `json:"total_tokens"`
-	InputTokens  int         `json:"input_tokens"`
-	OutputTokens int         `json:"output_tokens"`
-	TimeTaken    int         `json:"time_taken"`
-	Provider     LlmProvider `json:"provider"`
-}
-
+// LLMProvider constants define the supported Language Model service providers
 const (
-	OpenAI     LlmProvider = "openai"
-	Anthropic  LlmProvider = "anthropic"
-	OpenRouter LlmProvider = "open-router"
-	Groq       LlmProvider = "groq"
+	OpenAI     types.LLMProvider = "openai"      // OpenAI API provider (e.g., GPT-4, GPT-3.5)
+	Anthropic  types.LLMProvider = "anthropic"   // Anthropic API provider (e.g., Claude models)
+	Groq       types.LLMProvider = "groq"        // Groq API provider
+	OpenRouter types.LLMProvider = "open-router" // OpenRouter API aggregation service
 )
 
-var ErrInvalidProviderForLlm = errors.New("invalid provider for llm")
-var ErrInvalidModelName = errors.New("model name must be between 2 and 50 characters")
-var ErrInvalidApiKey = errors.New("API key is required")
+type config struct {
+	provider types.LLMProvider
+	model    string
+	apiKey   string
+	logger   *slog.Logger
+}
 
-const MAX_TOKENS int = 256
+type Option func(*config)
 
-// NewLlmClient creates a new LLM client based on the specified provider, model, and API key.
-// The `provider` parameter specifies the LLM provider (options: "openai" or "anthropic").
-// The `model` parameter is the name of the model to use for the completion (e.g., "gpt-4o").
-// The `apiKey` is the API key associated with the chosen provider.
-// Returns an initialized *llmClient or an error if validation or provider initialization fails.
-func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient, error) {
-
-	client := &llmClient{
-		apiKey:   apiKey,
-		provider: provider,
-		model:    model,
+// WithProvider sets the LLM provider for the configuration.
+func WithProvider(provider types.LLMProvider) Option {
+	return func(c *config) {
+		c.provider = provider
 	}
-	validate := validator.NewValidator()
-	if err := validate.Validate(client); err != nil {
-		return nil, err
+}
+
+// WithModel sets the LLM model for the configuration.
+func WithModel(model string) Option {
+	return func(c *config) {
+		c.model = model
+	}
+}
+
+// WithAPIKey sets the API key for the configuration.
+func WithAPIKey(apiKey string) Option {
+	return func(c *config) {
+		c.apiKey = apiKey
+	}
+}
+
+func WithLogger(logger *slog.Logger) Option {
+	return func(c *config) {
+		c.logger = logger
+	}
+}
+
+// llmClient represents a client for interacting with Language Model APIs.
+// It encapsulates the provider configuration and json completion request handler.
+type llmClient struct {
+	config  *config
+	handler func(prompt string, image []byte) (*types.JSONCompletion, error)
+}
+
+// NewLLMClient creates a new LLM client instance with the specified configuration.
+// Parameters:
+//   - opts: Configuration options for the LLM client
+//
+// Returns:
+//   - *llmClient: Configured client instance
+//   - error: Any initialization errors
+func NewLLMClient(opts ...Option) (*llmClient, error) {
+
+	cfg := &config{}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+	if cfg.provider == "" {
+		return nil, errors.New("llm provider is required")
+	}
+	if cfg.model == "" {
+		return nil, errors.New("llm model Id is required")
+	}
+	if cfg.logger == nil {
+		cfg.logger = logging.DefaultLogger
 	}
 
-	switch client.provider {
-	case OpenAI:
-		os.Setenv("OPENAI_API_KEY", client.apiKey)
-		client.openaiClient = openai.NewClient()
+	var handler func(prompt string, image []byte) (*types.JSONCompletion, error)
+	switch cfg.provider {
 	case Anthropic:
-		client.anthropicClient = anthropic.NewClient(client.apiKey)
-	case OpenRouter:
-		os.Setenv("OPENAI_API_KEY", client.apiKey)
-		client.openaiClient = openai.NewClient(openai_option.WithBaseURL("https://openrouter.ai/api/v1/"))
-	case Groq:
-		os.Setenv("OPENAI_API_KEY", client.apiKey)
-		client.openaiClient = openai.NewClient(openai_option.WithBaseURL("https://api.groq.com/openai/v1/"))
+		betas := []anthropic.AnthropicBeta{}
+		if strings.HasPrefix(cfg.model, "claude-3-5-sonnet") {
+			betas = append(betas, anthropic.AnthropicBetaComputerUse2024_10_22)
+		}
+		if strings.HasPrefix(cfg.model, "claude-3-7-sonnet") {
+			betas = append(betas, anthropic.AnthropicBetaComputerUse2025_01_24)
+		}
+		handler = func(prompt string, image []byte) (*types.JSONCompletion, error) {
+			client := anthropic.NewClient(anthropicOption.WithAPIKey(cfg.apiKey))
+			return requestAnthropic(
+				client, cfg.provider, cfg.model, prompt, image, &betas,
+			)
+		}
+
+	case OpenAI, Groq, OpenRouter:
+		options := []openaiOption.RequestOption{openaiOption.WithAPIKey(cfg.apiKey)}
+		if cfg.provider == Groq {
+			options = append(options, openaiOption.WithBaseURL("https://api.groq.com/openai/v1/"))
+		} else if cfg.provider == OpenRouter {
+			options = append(options, openaiOption.WithBaseURL("https://openrouter.ai/api/v1/"))
+		}
+		handler = func(prompt string, image []byte) (*types.JSONCompletion, error) {
+			return requestOpenAI(
+				openai.NewClient(options...), cfg.provider, cfg.model, prompt, image,
+			)
+		}
+
 	default:
-		return nil, ErrInvalidProviderForLlm
+		return nil, errors.New("invalid provider for llm")
 	}
-	return client, nil
+
+	return &llmClient{config: cfg, handler: handler}, nil
 }
 
-// ChatCompletion sends a prompt to the LLM model and returns the completion string or and error.
-func (c *llmClient) ChatCompletion(prompt string) (*ChatCompletionResponse, error) {
-	switch c.provider {
-	case OpenAI, OpenRouter, Groq:
-		return c.openaiRequest(prompt)
-	case Anthropic:
-		return c.anthropicRequest(prompt)
-	default:
-		return nil, ErrInvalidProviderForLlm
+var errDefaultLLMAPIKeyNotSet = errors.New("'LOCATR_ANTHROPIC_API_KEY' or 'ANTHROPIC_API_KEY' environment variable is not set")
+
+// DefaultLLMClient returns a default LLM client using Anthropic's Claude 3.5 Sonnet model.
+//
+// Parameters:
+//   - logger: The logger to use for logging
+//
+// Returns:
+//   - *llmClient: Configured client instance
+//   - error: Any initialization errors
+func DefaultLLMClient(logger *slog.Logger) (*llmClient, error) {
+	apiKey := os.Getenv("LOCATR_ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("ANTHROPIC_API_KEY")
+		if apiKey == "" {
+			return nil, errDefaultLLMAPIKeyNotSet
+		}
 	}
+	options := []Option{
+		WithProvider(Anthropic),
+		WithModel("claude-3-5-sonnet-latest"),
+		WithAPIKey(apiKey),
+	}
+	if logger != nil {
+		options = append(options, WithLogger(logger))
+	}
+	return NewLLMClient(options...)
 }
 
-func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, error) {
-	defer logger.GetTimeLogger("LLM: AnthropicCompletion")()
-
-	start := time.Now()
-	resp, err := c.anthropicClient.CreateMessages(
-		context.Background(),
-		anthropic.MessagesRequest{
-			Model: c.model,
-			Messages: []anthropic.Message{
-				anthropic.NewUserTextMessage(prompt),
-			},
-			MaxTokens: MAX_TOKENS,
-		})
-	if err != nil {
-		return nil, err
-	}
-	completionResponse := ChatCompletionResponse{
-		Prompt:       prompt,
-		Completion:   resp.Content[0].GetText(),
-		TotalTokens:  resp.Usage.OutputTokens + resp.Usage.InputTokens,
-		InputTokens:  resp.Usage.InputTokens,
-		OutputTokens: resp.Usage.OutputTokens,
-		TimeTaken:    int(time.Since(start).Seconds()),
-		Provider:     Anthropic,
-	}
-
-	return &completionResponse, nil
+// GetJSONCompletion returns the JSON completion for the given prompt.
+func (client *llmClient) GetJSONCompletion(prompt string, image []byte) (*types.JSONCompletion, error) {
+	topic := fmt.Sprintf(
+		"[LLM Completion] provider: %v, model: %v", client.config.provider, client.config.model,
+	)
+	defer logging.CreateTopic(topic, client.config.logger)()
+	return client.handler(prompt, image)
 }
 
-func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error) {
-	defer logger.GetTimeLogger("LLM: OpenAICompletion")()
+// GetProvider returns the configured LLM service provider for this client.
+func (client *llmClient) GetProvider() types.LLMProvider {
+	return client.config.provider
+}
 
-	start := time.Now()
-	resp, err := c.openaiClient.Chat.Completions.New(
+// GetModel returns the configured model name for this client.
+func (client *llmClient) GetModel() string {
+	return client.config.model
+}
+
+// requestOpenAI handles API requests to OpenAI-compatible endpoints (OpenAI, Groq, OpenRouter).
+//
+// Parameters:
+//   - client: Configured OpenAI API client
+//   - provider: The service provider being used
+//   - model: Model identifier
+//   - prompt: The input prompt
+//   - image: Optional image data for vision models
+//
+// Returns:
+//   - *types.JSONCompletion: The API response and metadata
+//   - error: Any API or processing errors
+func requestOpenAI(client *openai.Client, provider types.LLMProvider, model, prompt string, image []byte) (*types.JSONCompletion, error) {
+	completion := &types.JSONCompletion{
+		LLMCompletionMeta: types.LLMCompletionMeta{
+			InputTokens:  0,
+			OutputTokens: 0,
+			Provider:     provider,
+			Model:        model,
+		},
+	}
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.UserMessage(prompt),
+	}
+	if image != nil {
+		messages = append(messages, openai.UserMessageParts(
+			openai.ImagePart(fmt.Sprintf(
+				"data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(image),
+			)),
+		))
+	}
+
+	response, err := client.Chat.Completions.New(
 		context.Background(), openai.ChatCompletionNewParams{
-			Model: openai.F(c.model),
-			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-				openai.UserMessage(prompt),
-			}),
+			Model:    openai.F(model),
+			Messages: openai.F(messages),
 			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
 				openai.ResponseFormatJSONObjectParam{
 					Type: openai.F(openai.ResponseFormatJSONObjectTypeJSONObject),
@@ -151,41 +221,99 @@ func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error
 		},
 	)
 	if err != nil {
-		return nil, err
-	}
-	completionResponse := ChatCompletionResponse{
-		Prompt:       prompt,
-		Completion:   resp.Choices[0].Message.Content,
-		TotalTokens:  int(resp.Usage.TotalTokens),
-		InputTokens:  int(resp.Usage.PromptTokens),
-		OutputTokens: int(resp.Usage.CompletionTokens),
-		TimeTaken:    int(time.Since(start).Seconds()),
-		Provider:     OpenAI,
+		return completion, fmt.Errorf("failed to get completion from %v: %w", provider, err)
 	}
 
-	return &completionResponse, nil
+	completion.InputTokens = int(response.Usage.PromptTokens)
+	completion.OutputTokens = int(response.Usage.CompletionTokens)
+
+	jsonStr, err := utils.ParseJSON(response.Choices[0].Message.Content)
+	if err != nil {
+		return completion, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	completion.JSON = jsonStr
+	return completion, nil
 }
 
-func CreateLlmClientFromEnv() (*llmClient, error) {
-	provider := os.Getenv("LLM_PROVIDER")
-	if provider == "" {
-		return nil, ErrInvalidProviderForLlm
+// requestAnthropic handles API requests to Anthropic's Claude models.
+// Parameters:
+//   - client: Configured Anthropic API client
+//   - provider: The service provider (Anthropic)
+//   - model: Claude model identifier
+//   - prompt: The input prompt
+//   - image: Optional image data for vision models
+//   - betas: Optional beta features to enable
+//
+// Returns:
+//   - *types.JSONCompletion: The API response and metadata
+//   - error: Any API or processing errors
+func requestAnthropic(
+	client *anthropic.Client, provider types.LLMProvider, model, prompt string, image []byte, betas *[]anthropic.AnthropicBeta,
+) (*types.JSONCompletion, error) {
+	completion := &types.JSONCompletion{
+		LLMCompletionMeta: types.LLMCompletionMeta{
+			InputTokens:  0,
+			OutputTokens: 0,
+			Provider:     provider,
+			Model:        model,
+		},
 	}
-	model := os.Getenv("LLM_MODEL")
-	if model == "" {
-		return nil, ErrInvalidModelName
-	}
-	apiKey := os.Getenv("LLM_API_KEY")
-	if apiKey == "" {
-		return nil, ErrInvalidApiKey
-	}
-	return NewLlmClient(LlmProvider(provider), model, apiKey)
-}
 
-func (c *llmClient) GetProvider() LlmProvider {
-	return c.provider
-}
+	messageContent := []anthropic.BetaContentBlockParamUnion{
+		anthropic.BetaTextBlockParam{
+			Type: anthropic.F(anthropic.BetaTextBlockParamTypeText),
+			Text: anthropic.String(prompt),
+		},
+	}
+	if image != nil {
+		messageContent = append(messageContent, anthropic.BetaImageBlockParam{
+			Type: anthropic.F(anthropic.BetaImageBlockParamTypeImage),
+			Source: anthropic.F[anthropic.BetaImageBlockParamSourceUnion](
+				anthropic.BetaImageBlockParamSource{
+					Type:      anthropic.F(anthropic.BetaImageBlockParamSourceTypeBase64),
+					MediaType: anthropic.F(anthropic.BetaImageBlockParamSourceMediaTypeImagePNG),
+					Data:      anthropic.F(base64.StdEncoding.EncodeToString(image)),
+				},
+			),
+		})
+	}
 
-func (c *llmClient) GetModel() string {
-	return c.model
+	params := anthropic.BetaMessageNewParams{
+		Model:     anthropic.F(model),
+		MaxTokens: anthropic.F(int64(1024)),
+		Messages: anthropic.F([]anthropic.BetaMessageParam{
+			{
+				Role:    anthropic.F(anthropic.BetaMessageParamRoleUser),
+				Content: anthropic.F(messageContent),
+			},
+			{
+				Role: anthropic.F(anthropic.BetaMessageParamRoleAssistant),
+				Content: anthropic.F([]anthropic.BetaContentBlockParamUnion{
+					anthropic.BetaTextBlockParam{
+						Type: anthropic.F(anthropic.BetaTextBlockParamTypeText),
+						Text: anthropic.String("```json"), // This forces the assistant to respond with a JSON block
+					},
+				}),
+			},
+		}),
+		StopSequences: anthropic.F([]string{"```"}),
+	}
+	if betas != nil {
+		params.Betas = anthropic.F(*betas)
+	}
+
+	response, err := client.Beta.Messages.New(context.TODO(), params)
+	if err != nil {
+		return completion, fmt.Errorf("failed to get completion from %v: %w", provider, err)
+	}
+
+	completion.InputTokens = int(response.Usage.InputTokens)
+	completion.OutputTokens = int(response.Usage.OutputTokens)
+
+	jsonStr, err := utils.ParseJSON(response.Content[0].Text)
+	if err != nil {
+		return completion, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	completion.JSON = jsonStr
+	return completion, nil
 }
