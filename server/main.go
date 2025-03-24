@@ -86,9 +86,11 @@ func handleInitialHandshake(message incomingMessage, logger *slog.Logger) error 
 		locatr.WithLLMClient(llmClient), locatr.WithLogger(logger),
 	}
 	if settings.UseCache {
-		options = append(
-			options, locatr.EnableCache(types.Ptr(settings.CachePath)),
-		)
+		var path *string = nil // This will tell locatr to use the default cache path
+		if settings.CachePath != "" {
+			path = &settings.CachePath
+		}
+		options = append(options, locatr.EnableCache(path))
 	}
 	locatr, err := locatr.NewLocatr(plugin, options...)
 	if err != nil {
