@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
+	"github.com/vertexcover-io/locatr/golang/logger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -22,6 +24,8 @@ type OtelShutdownFunc func(context.Context) error
 func NewGRPCExporter(ctx context.Context, endpoint string, insecure bool) (*otlptrace.Exporter, error) {
 	var opts []otlptracegrpc.Option
 
+	logger.Logger.Debug("setting up GRPC exporter")
+
 	opts = append(opts, otlptracegrpc.WithEndpoint(endpoint))
 	if insecure {
 		opts = append(opts, otlptracegrpc.WithInsecure())
@@ -32,6 +36,7 @@ func NewGRPCExporter(ctx context.Context, endpoint string, insecure bool) (*otlp
 		opts...,
 	)
 	if err != nil {
+		logger.Logger.Warn("failed to create OTLP gRPC exporter")
 		return nil, fmt.Errorf("failed to create: %w: %w", ErrOtelGRPCExporter, err)
 	}
 
@@ -47,6 +52,7 @@ func NewTraceProvider(exp sdktrace.SpanExporter, svcName string) (*sdktrace.Trac
 		),
 	)
 	if err != nil {
+		logger.Logger.Warn("failed to create Otel Trace Provider")
 		return nil, fmt.Errorf("failed to create resource: %w: %w", ErrOtelTraceProvider, err)
 	}
 
@@ -62,6 +68,13 @@ func SetupOtelSDK(ctx context.Context, opts ...Option) (OtelShutdownFunc, error)
 
 	cfg := getConfig(opts)
 
+	logger.Logger.Debug(
+		"setting up Open telemetry SDK",
+		slog.String("endpoint", cfg.endpoint),
+		slog.String("svc-name", cfg.svcName),
+		slog.Bool("insecure", cfg.insecure),
+	)
+
 	exp, err := NewGRPCExporter(ctx, cfg.endpoint, cfg.insecure)
 	if err != nil {
 		return shutdown, err
@@ -73,6 +86,10 @@ func SetupOtelSDK(ctx context.Context, opts ...Option) (OtelShutdownFunc, error)
 	}
 	otel.SetTracerProvider(tp)
 	shutdown = tp.Shutdown
+
+	logger.Logger.Info(
+		"Open Telemetry SDK setup complete",
+	)
 
 	return shutdown, err
 }
