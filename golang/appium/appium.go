@@ -1,6 +1,7 @@
 package appiumLocatr
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -8,6 +9,9 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"github.com/vertexcover-io/locatr/golang/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type appiumPlugin struct {
@@ -18,11 +22,23 @@ type appiumLocatr struct {
 	locatr *locatr.BaseLocatr
 }
 
-func NewAppiumLocatr(serverUrl string, sessionId string, opts locatr.BaseLocatrOptions) (*appiumLocatr, error) {
-	apC, err := appiumClient.NewAppiumClient(serverUrl, sessionId)
+func NewAppiumLocatr(
+	ctx context.Context,
+	serverUrl string,
+	sessionId string,
+	opts locatr.BaseLocatrOptions,
+) (*appiumLocatr, error) {
+	span := trace.SpanFromContext(ctx)
+
+	span.AddEvent("Connecting to remote appium instance")
+
+	apC, err := appiumClient.NewAppiumClient(ctx, serverUrl, sessionId)
 	if err != nil {
 		return nil, err
 	}
+
+	span.AddEvent("Connected to remote appium instance")
+
 	plugin := &appiumPlugin{
 		client: apC,
 	}
@@ -33,29 +49,33 @@ func NewAppiumLocatr(serverUrl string, sessionId string, opts locatr.BaseLocatrO
 	return locatr, nil
 }
 
-func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap() (
+func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap(ctx context.Context) (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
 	locatr.SelectorType,
 	error,
 ) {
-	if apPlugin.client.IsWebView() {
-		return apPlugin.htmlMinification()
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(ctx, "GetMinifiedDomAndLocatorMap")
+	defer span.End()
+
+	if apPlugin.client.IsWebView(ctx) {
+		return apPlugin.htmlMinification(ctx)
 	}
-	return apPlugin.xmlMinification()
+	return apPlugin.xmlMinification(ctx)
 }
 
-func (apPlugin *appiumPlugin) evaluateJsScript(script string) error {
-	_, err := apPlugin.client.ExecuteScript(script, nil)
+func (apPlugin *appiumPlugin) evaluateJsScript(ctx context.Context, script string) error {
+	_, err := apPlugin.client.ExecuteScript(ctx, script, nil)
 	if err != nil {
 		return fmt.Errorf("failed to evaluate JS script: %w", err)
 	}
 	return nil
 }
 
-func (apPlugin *appiumPlugin) evaluateJsFunction(function string) (string, error) {
+func (apPlugin *appiumPlugin) evaluateJsFunction(ctx context.Context, function string) (string, error) {
 	rFunction := "return " + function
-	result, err := apPlugin.client.ExecuteScript(rFunction, nil)
+	result, err := apPlugin.client.ExecuteScript(ctx, rFunction, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to evaluate JS function: %w", err)
 	}
@@ -73,11 +93,11 @@ func (apPlugin *appiumPlugin) evaluateJsFunction(function string) (string, error
 	}
 }
 
-func (apPlugin *appiumPlugin) htmlMinification() (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
-	if err := apPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+func (apPlugin *appiumPlugin) htmlMinification(ctx context.Context) (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
+	if err := apPlugin.evaluateJsScript(ctx, locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
 		return nil, nil, "", fmt.Errorf("%v", err)
 	}
-	result, err := apPlugin.evaluateJsFunction("minifyHTML()")
+	result, err := apPlugin.evaluateJsFunction(ctx, "minifyHTML()")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -90,7 +110,7 @@ func (apPlugin *appiumPlugin) htmlMinification() (*elementSpec.ElementSpec, *ele
 		)
 	}
 
-	result, _ = apPlugin.evaluateJsFunction("mapElementsToJson()")
+	result, _ = apPlugin.evaluateJsFunction(ctx, "mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, "", fmt.Errorf(
@@ -102,12 +122,14 @@ func (apPlugin *appiumPlugin) htmlMinification() (*elementSpec.ElementSpec, *ele
 	return elementsSpec, idLocatorMap, "css selector", nil
 }
 
-func (apPlugin *appiumPlugin) xmlMinification() (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
-	pageSource, err := apPlugin.client.GetPageSource()
+func (apPlugin *appiumPlugin) xmlMinification(ctx context.Context) (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
+	span := trace.SpanFromContext(ctx)
+
+	pageSource, err := apPlugin.client.GetPageSource(ctx)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	capabilities, err := apPlugin.client.GetCapabilities()
+	capabilities, err := apPlugin.client.GetCapabilities(ctx)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -115,10 +137,12 @@ func (apPlugin *appiumPlugin) xmlMinification() (*elementSpec.ElementSpec, *elem
 	if platFormName == "" {
 		platFormName = capabilities.Value.Cap.PlatformName
 	}
+	span.AddEvent("minifying source")
 	eSpec, err := minifySource(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, "", err
 	}
+	span.AddEvent("mapping elements to json")
 	locatrMap, err := mapElementsToJson(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, "", err
@@ -126,35 +150,51 @@ func (apPlugin *appiumPlugin) xmlMinification() (*elementSpec.ElementSpec, *elem
 	return eSpec, locatrMap, "xpath", nil
 }
 
-func (apPlugin *appiumPlugin) GetCurrentContext() string {
-	capabilities, err := apPlugin.client.GetCapabilities()
+func (apPlugin *appiumPlugin) GetCurrentContext(ctx context.Context) string {
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(ctx, "GetCurrentContext")
+	defer span.End()
+
+	capabilities, err := apPlugin.client.GetCapabilities(ctx)
 	if err != nil {
 		return ""
 	}
+
+	span.SetAttributes(attribute.String("platform", capabilities.Value.PlatformName))
+
 	if strings.ToLower(capabilities.Value.PlatformName) != "andriod" {
 		return ""
 	}
-	if currentActivity, err := apPlugin.client.GetCurrentActivity(); err != nil {
+	if currentActivity, err := apPlugin.client.GetCurrentActivity(ctx); err != nil {
 		return currentActivity
 	}
 	return ""
 }
 
-func (apPlugin *appiumPlugin) IsValidLocator(locatr string) (bool, error) {
+func (apPlugin *appiumPlugin) IsValidLocator(ctx context.Context, locatr string) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "IsValidLocator")
+	defer span.End()
+
 	locator_type := "xpath"
-	if apPlugin.client.IsWebView() {
+	if apPlugin.client.IsWebView(ctx) {
 		locator_type = "css selector"
 	}
 
-	if err := apPlugin.client.FindElement(locatr, locator_type); err == nil {
+	span.SetAttributes(attribute.String("locator_type", locator_type))
+
+	if err := apPlugin.client.FindElement(ctx, locatr, locator_type); err == nil {
 		return true, nil
 	} else {
 		return false, err
 	}
 }
 
-func (apLocatr *appiumLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
-	locatrOutput, err := apLocatr.locatr.GetLocatorStr(userReq)
+func (apLocatr *appiumLocatr) GetLocatrStr(ctx context.Context, userReq string) (*locatr.LocatrOutput, error) {
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(ctx, "GetLocatrStr")
+	defer span.End()
+
+	locatrOutput, err := apLocatr.locatr.GetLocatorStr(ctx, userReq)
 	if err != nil {
 		return nil, err
 	}

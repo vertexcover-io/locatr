@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
@@ -31,6 +32,7 @@ func getAllYamlFiles(folder string) ([]string, error) {
 		"folder", folder, "fileCount", len(res))
 	return res, nil
 }
+
 func contains(locatrs []string, loc string) bool {
 	for _, l := range locatrs {
 		if l == loc {
@@ -48,6 +50,7 @@ func compareSlices(yamlLocatrs []string, locatrs []string) bool {
 	}
 	return false
 }
+
 func readYamlFile(filePath string) (*evalConfigYaml, error) {
 	yamlFile, err := os.ReadFile(filePath)
 	if err != nil {
@@ -81,7 +84,7 @@ func getLocatrFromYamlConfig(evalConfig *evalConfigYaml, page playwright.Page) *
 		reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 		locatrOptions.ReRankClient = reRankClient
 	}
-	return playwrightLocatr.NewPlaywrightLocatr(page, locatrOptions)
+	return playwrightLocatr.NewPlaywrightLocatr(context.Background(), page, locatrOptions)
 }
 
 func writeEvalResultToCsv(results []evalResult, fileName string) {

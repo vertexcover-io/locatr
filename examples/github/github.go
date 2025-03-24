@@ -5,6 +5,7 @@ package main
 Example on how to use locatr with playwright to interact with github.
 */
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -51,10 +52,11 @@ func main() {
 		log.Fatalf("could not create llm client: %v", err)
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
+	ctx := context.Background()
 
-	locatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
+	locatr := playwrightLocatr.NewPlaywrightLocatr(ctx, page, options)
 
-	cDropDownLoc, err := locatr.GetLocatr("<> Code dropdown")
+	cDropDownLoc, err := locatr.GetLocatr(ctx, "<> Code dropdown")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
@@ -64,7 +66,7 @@ func main() {
 		return
 	}
 
-	dZipLoc, err := locatr.GetLocatr("Download ZIP button on the opened dropdown")
+	dZipLoc, err := locatr.GetLocatr(ctx, "Download ZIP button on the opened dropdown")
 	if err != nil {
 		log.Fatalf("could not get download ZIP locator: %v", err)
 		return

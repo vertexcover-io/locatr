@@ -14,6 +14,8 @@ import (
 	"github.com/mafredri/cdp/rpcc"
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"github.com/vertexcover-io/locatr/golang/tracing"
+	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/validator.v2"
 )
 
@@ -34,8 +36,9 @@ type CdpConnectionOptions struct {
 
 var ErrUnableToLoadJsScriptsThroughCdp = errors.New("unable to load js script through cdp")
 
-func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
-	ctx := context.Background()
+func CreateCdpConnection(ctx context.Context, options CdpConnectionOptions) (*rpcc.Conn, error) {
+	span := trace.SpanFromContext(ctx)
+
 	if len(options.HostName) == 0 {
 		options.HostName = "localhost"
 	}
@@ -43,14 +46,20 @@ func CreateCdpConnection(options CdpConnectionOptions) (*rpcc.Conn, error) {
 	if err := optionValidator.Validate(options); err != nil {
 		return nil, err
 	}
-	wsUrl, err := getWebsocketDebugUrl(fmt.Sprintf("http://%s:%d", options.HostName, options.Port), 0, ctx)
+	url := fmt.Sprintf("http://%s:%d", options.HostName, options.Port)
+	wsUrl, err := getWebsocketDebugUrl(ctx, url, 0)
 	if err != nil {
 		return nil, err
 	}
+
+	span.AddEvent("Dailing cdp")
+
 	conn, err := rpcc.DialContext(ctx, wsUrl, rpcc.WithWriteBufferSize(1048576))
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to cdp server: %s, err: %w", wsUrl, err)
 	}
+
+	span.AddEvent("CDP connected")
 	return conn, nil
 }
 
@@ -64,16 +73,22 @@ func NewCdpLocatr(connection *rpcc.Conn, locatrOptions locatr.BaseLocatrOptions)
 	}, nil
 }
 
-func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
+func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap(ctx context.Context) (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
 	locatr.SelectorType,
 	error,
 ) {
-	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+	ctx, span := tracing.StartSpan(ctx, "GetMinifiedDomAndLocatorMap")
+	defer span.End()
+
+	span.AddEvent("inject HTML minifier script")
+	if err := cPlugin.evaluateJsScript(ctx, locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
 		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
 	}
-	result, err := cPlugin.evaluateJsFunction("minifyHTML()")
+
+	span.AddEvent("evaluate minifyHTML function")
+	result, err := cPlugin.evaluateJsFunction(ctx, "minifyHTML()")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -86,7 +101,8 @@ func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
 		)
 	}
 
-	result, _ = cPlugin.evaluateJsFunction("mapElementsToJson()")
+	span.AddEvent("evaluate mapElementsToJson")
+	result, _ = cPlugin.evaluateJsFunction(ctx, "mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, "", fmt.Errorf(
@@ -98,9 +114,9 @@ func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
 	return elementsSpec, idLocatorMap, "css selector", nil
 }
 
-func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) {
+func (cdpPlugin *cdpPlugin) evaluateJsFunction(ctx context.Context, function string) (string, error) {
 	pageRuntime := cdpPlugin.client.Runtime
-	result, err := pageRuntime.Evaluate(context.Background(), &runtime.EvaluateArgs{
+	result, err := pageRuntime.Evaluate(ctx, &runtime.EvaluateArgs{
 		Expression: function,
 	})
 	if err != nil {
@@ -116,9 +132,9 @@ func (cdpPlugin *cdpPlugin) evaluateJsFunction(function string) (string, error) 
 
 }
 
-func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
+func (cdpPlugin *cdpPlugin) evaluateJsScript(ctx context.Context, scriptContent string) error {
 	pageRuntime := cdpPlugin.client.Runtime
-	_, err := pageRuntime.Evaluate(context.Background(), &runtime.EvaluateArgs{
+	_, err := pageRuntime.Evaluate(ctx, &runtime.EvaluateArgs{
 		Expression: scriptContent,
 	})
 	if err != nil {
@@ -127,8 +143,11 @@ func (cdpPlugin *cdpPlugin) evaluateJsScript(scriptContent string) error {
 	return nil
 }
 
-func (cdpLocatr *cdpLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
-	locatrOutput, err := cdpLocatr.locatr.GetLocatorStr(userReq)
+func (cdpLocatr *cdpLocatr) GetLocatrStr(ctx context.Context, userReq string) (*locatr.LocatrOutput, error) {
+	ctx, span := tracing.StartSpan(ctx, "GetLocatrStr")
+	defer span.End()
+
+	locatrOutput, err := cdpLocatr.locatr.GetLocatorStr(ctx, userReq)
 	if err != nil {
 		return nil, fmt.Errorf("error getting locator string: %w", err)
 	}
@@ -153,7 +172,7 @@ func filterTargets(pages []*devtool.Target) []*devtool.Target {
 	return newTargets
 }
 
-func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string, error) {
+func getWebsocketDebugUrl(ctx context.Context, url string, tabIndex int) (string, error) {
 	devt := devtool.New(url)
 	targets, err := devt.List(ctx)
 	if err != nil {
@@ -167,18 +186,29 @@ func getWebsocketDebugUrl(url string, tabIndex int, ctx context.Context) (string
 	}
 	return "", fmt.Errorf("tab with index %d not present in the browser", tabIndex)
 }
-func (cPlugin *cdpPlugin) GetCurrentContext() string {
-	if value, err := cPlugin.evaluateJsFunction("window.location.href"); err == nil {
+
+func (cPlugin *cdpPlugin) GetCurrentContext(ctx context.Context) string {
+	ctx, span := tracing.StartSpan(ctx, "GetCurrentContext")
+	defer span.End()
+
+	span.AddEvent("fetching window location")
+	if value, err := cPlugin.evaluateJsFunction(ctx, "window.location.href"); err == nil {
 		return value
 	} else {
 		return ""
 	}
 }
-func (cPlugin *cdpPlugin) IsValidLocator(locatrString string) (bool, error) {
-	if err := cPlugin.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+
+func (cPlugin *cdpPlugin) IsValidLocator(ctx context.Context, locatrString string) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "IsValidLocator")
+	defer span.End()
+
+	span.AddEvent("injecting HTML minifier script")
+	if err := cPlugin.evaluateJsScript(ctx, locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
 		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptsThroughCdp, err)
 	}
-	value, err := cPlugin.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
+	span.AddEvent("evaluating valid locator check")
+	value, err := cPlugin.evaluateJsFunction(ctx, fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
 		return true, nil
 	} else {

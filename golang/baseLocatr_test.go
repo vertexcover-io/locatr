@@ -1,6 +1,7 @@
 package locatr // baseLocator_test.go
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,18 +21,18 @@ type MockPlugin struct {
 	invalidLocators map[string]bool
 }
 
-func (m *MockPlugin) GetCurrentContext() string {
+func (m *MockPlugin) GetCurrentContext(context.Context) string {
 	return "test_url"
 }
 
-func (m *MockPlugin) IsValidLocator(locatr string) (bool, error) {
+func (m *MockPlugin) IsValidLocator(ctx context.Context, locatr string) (bool, error) {
 	if m.invalidLocators == nil {
 		return true, nil
 	}
 	return !m.invalidLocators[locatr], nil
 }
 
-func (m *MockPlugin) GetMinifiedDomAndLocatorMap() (
+func (m *MockPlugin) GetMinifiedDomAndLocatorMap(context.Context) (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
 	SelectorType,
@@ -45,7 +46,7 @@ type MockLlmClient struct {
 	returnError  bool
 }
 
-func (m *MockLlmClient) ChatCompletion(prompt string) (*llm.ChatCompletionResponse, error) {
+func (m *MockLlmClient) ChatCompletion(ctx context.Context, prompt string) (*llm.ChatCompletionResponse, error) {
 	if m.returnError {
 		return nil, errors.New("mock llm client error")
 	}
@@ -904,7 +905,7 @@ func TestGetValidLocator(t *testing.T) {
 
 	// Test case 1: All locators are valid
 	locators := []string{"locator1", "locator2", "locator3"}
-	validLocators, err := baseLocatr.getValidLocator(locators)
+	validLocators, err := baseLocatr.getValidLocator(context.TODO(), locators)
 	assert.NoError(t, err)
 	assert.Equal(t, locators, validLocators)
 
@@ -919,7 +920,7 @@ func TestGetValidLocator(t *testing.T) {
 	}
 
 	locatorsWithInvalid := []string{"locator1", "locator2", "locator3"}
-	validLocators, err = baseLocatrInvalid.getValidLocator(locatorsWithInvalid)
+	validLocators, err = baseLocatrInvalid.getValidLocator(context.TODO(), locatorsWithInvalid)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"locator1", "locator3"}, validLocators)
 
@@ -935,7 +936,7 @@ func TestGetValidLocator(t *testing.T) {
 		plugin: mockPluginNoValid,
 	}
 
-	validLocators, err = baseLocatrNoValid.getValidLocator(locators)
+	validLocators, err = baseLocatrNoValid.getValidLocator(context.TODO(), locators)
 	assert.Error(t, err)
 	assert.Nil(t, validLocators)
 }
@@ -957,7 +958,7 @@ func TestLlmGetElementId(t *testing.T) {
 	htmlDom := "<html>test dom</html>"
 	userReq := "find element"
 
-	result, err := baseLocatr.llmGetElementId(htmlDom, userReq)
+	result, err := baseLocatr.llmGetElementId(context.TODO(), htmlDom, userReq)
 	assert.NoError(t, err)
 	assert.Equal(t, "test_id", result.LocatorID)
 
@@ -969,7 +970,7 @@ func TestLlmGetElementId(t *testing.T) {
 		llmClient: mockLlmClientError,
 	}
 
-	_, err = baseLocatrError.llmGetElementId(htmlDom, userReq)
+	_, err = baseLocatrError.llmGetElementId(context.TODO(), htmlDom, userReq)
 	assert.Error(t, err)
 }
 
@@ -990,7 +991,7 @@ func TestGetLocatrOutput(t *testing.T) {
 	htmlDom := "<html>test dom</html>"
 	userReq := "find element"
 
-	result, err := baseLocatr.getLocatrOutput(htmlDom, userReq)
+	result, err := baseLocatr.getLocatrOutput(context.TODO(), htmlDom, userReq)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "test_id", result.LocatorID)
@@ -1005,6 +1006,6 @@ func TestGetLocatrOutput(t *testing.T) {
 		llmClient: mockLlmClientError,
 	}
 
-	_, err = baseLocatrError.getLocatrOutput(htmlDom, userReq)
+	_, err = baseLocatrError.getLocatrOutput(context.TODO(), htmlDom, userReq)
 	assert.Error(t, err)
 }

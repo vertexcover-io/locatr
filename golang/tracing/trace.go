@@ -89,10 +89,15 @@ func getConfig(opts []Option) config {
 	return cfg
 }
 
-func GetTraceProvider() trace.TracerProvider {
+func GetTracer() trace.Tracer {
 	tp := otel.GetTracerProvider()
 	if tp == nil {
 		panic("ensure setup is called before fetching trace provider")
 	}
-	return tp
+	return tp.Tracer(DEFAULT_TRACE_NAME)
+}
+
+func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	tracer := GetTracer()
+	return tracer.Start(ctx, name, opts...)
 }

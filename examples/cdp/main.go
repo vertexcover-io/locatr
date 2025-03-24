@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
 	options := locatr.BaseLocatrOptions{
@@ -22,7 +25,7 @@ func main() {
 	connectionOpts := cdpLocatr.CdpConnectionOptions{
 		Port: 9222,
 	}
-	connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
+	connection, err := cdpLocatr.CreateCdpConnection(ctx, connectionOpts)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -36,7 +39,7 @@ func main() {
 		return
 	}
 
-	newsItem, err := cdpLocatr.GetLocatrStr("First news link")
+	newsItem, err := cdpLocatr.GetLocatrStr(ctx, "First news link")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return

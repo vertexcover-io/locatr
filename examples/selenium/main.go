@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -22,13 +23,15 @@ func main() {
 	caps := selenium.Capabilities{}
 	caps.AddChrome(chrome.Capabilities{Args: []string{}})
 
-	defer service.Stop()
+	defer func() {
+		_ = service.Stop()
+	}()
 	driver, err := selenium.NewRemote(caps, "")
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	driver.Get("https://news.ycombinator.com/")
+	_ = driver.Get("https://news.ycombinator.com/")
 
 	reRankClient := reranker.NewCohereClient(os.Getenv("COHERE_API_KEY"))
 
@@ -40,8 +43,13 @@ func main() {
 	// wait for page to load
 	time.Sleep(3 * time.Second)
 
+	ctx := context.Background()
 	seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(
-		"http://localhost:4444/wd/hub", "ca0d56a6a3dcfc51eb0110750f0abab7", options) // the path must end with /wd/hub
+		ctx,
+		"http://localhost:4444/wd/hub",
+		"ca0d56a6a3dcfc51eb0110750f0abab7",
+		options,
+	) // the path must end with /wd/hub
 
 	/*
 		or: directly pass the driver
@@ -51,7 +59,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	newsLocatr, err := seleniumLocatr.GetLocatrStr("First news link in the site..")
+	newsLocatr, err := seleniumLocatr.GetLocatrStr(ctx, "First news link in the site..")
 	if err != nil {
 		log.Fatal(err)
 		return

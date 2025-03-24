@@ -10,6 +10,7 @@ import (
 	"github.com/openai/openai-go"
 	openai_option "github.com/openai/openai-go/option"
 	"github.com/vertexcover-io/locatr/golang/logger"
+	"github.com/vertexcover-io/locatr/golang/tracing"
 	"gopkg.in/validator.v2"
 )
 
@@ -29,7 +30,7 @@ type llmClient struct {
 }
 
 type LlmClientInterface interface {
-	ChatCompletion(prompt string) (*ChatCompletionResponse, error)
+	ChatCompletion(ctx context.Context, prompt string) (*ChatCompletionResponse, error)
 	GetProvider() LlmProvider
 	GetModel() string
 }
@@ -93,23 +94,30 @@ func NewLlmClient(provider LlmProvider, model string, apiKey string) (*llmClient
 }
 
 // ChatCompletion sends a prompt to the LLM model and returns the completion string or and error.
-func (c *llmClient) ChatCompletion(prompt string) (*ChatCompletionResponse, error) {
+func (c *llmClient) ChatCompletion(ctx context.Context, prompt string) (*ChatCompletionResponse, error) {
 	switch c.provider {
 	case OpenAI, OpenRouter, Groq:
-		return c.openaiRequest(prompt)
+		return c.openaiRequest(ctx, prompt)
 	case Anthropic:
-		return c.anthropicRequest(prompt)
+		return c.anthropicRequest(ctx, prompt)
 	default:
 		return nil, ErrInvalidProviderForLlm
 	}
 }
 
-func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, error) {
+func (c *llmClient) anthropicRequest(ctx context.Context, prompt string) (*ChatCompletionResponse, error) {
 	defer logger.GetTimeLogger("LLM: AnthropicCompletion")()
 
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(ctx, "anthropic completion request")
+	defer span.End()
+
 	start := time.Now()
+
+	span.AddEvent("Message created")
+
 	resp, err := c.anthropicClient.CreateMessages(
-		context.Background(),
+		ctx,
 		anthropic.MessagesRequest{
 			Model: c.model,
 			Messages: []anthropic.Message{
@@ -117,9 +125,11 @@ func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, er
 			},
 			MaxTokens: MAX_TOKENS,
 		})
+	span.AddEvent("Response Received")
 	if err != nil {
 		return nil, err
 	}
+
 	completionResponse := ChatCompletionResponse{
 		Prompt:       prompt,
 		Completion:   resp.Content[0].GetText(),
@@ -133,12 +143,21 @@ func (c *llmClient) anthropicRequest(prompt string) (*ChatCompletionResponse, er
 	return &completionResponse, nil
 }
 
-func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error) {
+func (c *llmClient) openaiRequest(ctx context.Context, prompt string) (*ChatCompletionResponse, error) {
 	defer logger.GetTimeLogger("LLM: OpenAICompletion")()
 
+	tracer := tracing.GetTracer()
+
+	ctx, span := tracer.Start(ctx, "openai completion request")
+	defer span.End()
+
 	start := time.Now()
+
+	span.AddEvent("chat completion request")
+
 	resp, err := c.openaiClient.Chat.Completions.New(
-		context.Background(), openai.ChatCompletionNewParams{
+		ctx,
+		openai.ChatCompletionNewParams{
 			Model: openai.F(c.model),
 			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 				openai.UserMessage(prompt),
@@ -150,9 +169,11 @@ func (c *llmClient) openaiRequest(prompt string) (*ChatCompletionResponse, error
 			),
 		},
 	)
+	span.AddEvent("chat completion response")
 	if err != nil {
 		return nil, err
 	}
+
 	completionResponse := ChatCompletionResponse{
 		Prompt:       prompt,
 		Completion:   resp.Choices[0].Message.Content,

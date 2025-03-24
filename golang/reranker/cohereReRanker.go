@@ -6,6 +6,7 @@ import (
 
 	cohere "github.com/cohere-ai/cohere-go/v2"
 	cohereclient "github.com/cohere-ai/cohere-go/v2/client"
+	"github.com/vertexcover-io/locatr/golang/tracing"
 )
 
 var TOP_N_CHUNKS int = 8
@@ -13,7 +14,7 @@ var TOP_N_CHUNKS int = 8
 const COHERE_RERANK_MODEL = "rerank-english-v3.0"
 
 type ReRankInterface interface {
-	ReRank(request ReRankRequest) (*[]ReRankResult, error)
+	ReRank(ctx context.Context, request ReRankRequest) (*[]ReRankResult, error)
 }
 
 type cohereClient struct {
@@ -32,15 +33,21 @@ type ReRankRequest struct {
 	Documents []string
 }
 
-func (c *cohereClient) ReRank(request ReRankRequest) (*[]ReRankResult, error) {
+func (c *cohereClient) ReRank(ctx context.Context, request ReRankRequest) (*[]ReRankResult, error) {
+	ctx, span := tracing.StartSpan(ctx, "ReRank")
+	defer span.End()
+
+	span.AddEvent("generating request documents")
 	rerankDocs := []*cohere.RerankRequestDocumentsItem{}
 	for _, doc := range request.Documents {
 		rerankDocs = append(rerankDocs, &cohere.RerankRequestDocumentsItem{
 			String: doc,
 		})
 	}
+
+	span.AddEvent("initiating rerank")
 	response, err := c.client.Rerank(
-		context.Background(),
+		ctx,
 		&cohere.RerankRequest{
 			Query:     request.Query,
 			Model:     &c.model,
@@ -51,6 +58,8 @@ func (c *cohereClient) ReRank(request ReRankRequest) (*[]ReRankResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	span.AddEvent("reading result")
 	results := []ReRankResult{}
 	for _, doc := range response.Results {
 		results = append(results, ReRankResult{

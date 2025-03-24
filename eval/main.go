@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"time"
@@ -79,7 +80,9 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 			continue
 		}
 
-		locatrOutput, err := playWrightLocatr.GetLocatr(step.UserRequest)
+		ctx := context.Background()
+
+		locatrOutput, err := playWrightLocatr.GetLocatr(ctx, step.UserRequest)
 		if err != nil {
 			logger.Logger.Error("Error getting locator for step", "stepName", step.Name, "error", err)
 			results = append(results, evalResult{

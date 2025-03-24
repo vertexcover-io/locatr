@@ -25,6 +25,7 @@ import (
 	"github.com/vertexcover-io/locatr/golang/reranker"
 	"github.com/vertexcover-io/locatr/golang/seleniumLocatr"
 	"github.com/vertexcover-io/locatr/golang/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var VERSION = []uint8{0, 0, 1}
@@ -61,12 +62,17 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 	return opts, nil
 }
 
-func handleLocatrRequest(message incomingMessage) (*locatr.LocatrOutput, error) {
+func handleLocatrRequest(ctx context.Context, message incomingMessage) (*locatr.LocatrOutput, error) {
+	tracer := tracing.GetTracer()
+
+	ctx, span := tracer.Start(ctx, "locator-request")
+	defer span.End()
+
 	baseLocatr, ok := clientAndLocatrs[message.ClientId]
 	if !ok {
 		return nil, fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
 	}
-	locatr, err := baseLocatr.GetLocatrStr(message.UserRequest)
+	locatr, err := baseLocatr.GetLocatrStr(ctx, message.UserRequest)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
 	}
@@ -74,20 +80,34 @@ func handleLocatrRequest(message incomingMessage) (*locatr.LocatrOutput, error) 
 
 }
 
-func handleInitialHandshake(message incomingMessage) error {
+func handleInitialHandshake(ctx context.Context, message incomingMessage) error {
+	tracer := tracing.GetTracer()
+
+	ctx, span := tracer.Start(ctx, "initial-handshake")
+	defer span.End()
+
 	baseLocatrOpts, err := createLocatrOptions(message)
 	if err != nil {
 		return err
 	}
+
+	span.SetAttributes(
+		attribute.String("plugin-type", message.Settings.PluginType),
+	)
+
 	switch message.Settings.PluginType {
 	case "cdp":
+		span.SetAttributes(
+			attribute.String("cdp-url", message.Settings.CdpURl),
+		)
+
 		parsedUrl, _ := url.Parse(message.Settings.CdpURl)
 		port, _ := strconv.Atoi(parsedUrl.Port())
 		connectionOpts := cdpLocatr.CdpConnectionOptions{
 			Port:     port,
 			HostName: parsedUrl.Hostname(),
 		}
-		connection, err := cdpLocatr.CreateCdpConnection(connectionOpts)
+		connection, err := cdpLocatr.CreateCdpConnection(ctx, connectionOpts)
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrCdpConnectionCreation, err)
 		}
@@ -96,16 +116,40 @@ func handleInitialHandshake(message incomingMessage) error {
 			return fmt.Errorf("%w: %w", ErrCdpLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = cdpLocatr
+
 	case "selenium":
 		settings := message.Settings
-		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(settings.SeleniumUrl, settings.SeleniumSessionId, baseLocatrOpts)
+
+		span.SetAttributes(
+			attribute.String("selenium-url", settings.SeleniumUrl),
+			attribute.String("selenium-session-id", settings.SeleniumSessionId),
+		)
+
+		seleniumLocatr, err := seleniumLocatr.NewRemoteConnSeleniumLocatr(
+			ctx,
+			settings.SeleniumUrl,
+			settings.SeleniumSessionId,
+			baseLocatrOpts,
+		)
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrSeleniumLocatrCreation, err)
 		}
 		clientAndLocatrs[message.ClientId] = seleniumLocatr
+
 	case "appium":
 		settings := message.Settings
-		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(settings.AppiumUrl, settings.AppiumSessionId, baseLocatrOpts)
+
+		span.SetAttributes(
+			attribute.String("appium-url", settings.AppiumUrl),
+			attribute.String("appium-session-id", settings.AppiumSessionId),
+		)
+
+		appiumLocatr, err := appiumLocatr.NewAppiumLocatr(
+			ctx,
+			settings.AppiumUrl,
+			settings.AppiumSessionId,
+			baseLocatrOpts,
+		)
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrAppiumLocatrCreation, err)
 		}
@@ -196,9 +240,15 @@ func acceptConnection(fd net.Conn) {
 
 		defer delete(clientAndLocatrs, clientMessage.ClientId)
 
+		ctx := context.Background()
+		tracer := tracing.GetTracer()
+
+		ctx, span := tracer.Start(ctx, "locator-reqest")
+		defer span.End()
+
 		switch clientMessage.Type {
 		case "initial_handshake":
-			err := handleInitialHandshake(clientMessage)
+			err := handleInitialHandshake(ctx, clientMessage)
 			if err != nil {
 				errResp := outgoingMessage{
 					Type:     clientMessage.Type,
@@ -227,8 +277,9 @@ func acceptConnection(fd net.Conn) {
 			}
 			logger.Logger.Info("Initial handshake successful with client",
 				"clientId", clientMessage.ClientId)
+
 		case "locatr_request":
-			locatrOutput, err := handleLocatrRequest(clientMessage)
+			locatrOutput, err := handleLocatrRequest(ctx, clientMessage)
 			if err != nil {
 				errResp := outgoingMessage{
 					Type:      clientMessage.Type,
@@ -352,10 +403,10 @@ func main() {
 		}
 		wg.Add(1)
 		go func() {
+			defer client.Close()
 			defer wg.Done()
-			acceptConnection(client)
-			client.Close()
 
+			acceptConnection(client)
 		}()
 	}
 }

@@ -6,6 +6,7 @@ Example on how to use locatr without passing the llm client.
 */
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -48,9 +49,10 @@ func main() {
 		ReRankClient: reRankClient,
 	} // llm client is created by default by reading the environment variables.
 
-	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
+	ctx := context.Background()
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(ctx, page, options)
 
-	nItem, err := playWrightLocatr.GetLocatr("First news link")
+	nItem, err := playWrightLocatr.GetLocatr(ctx, "First news link")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}

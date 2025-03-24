@@ -6,6 +6,7 @@ Example on how to use locatr with playwright to interact with docker hub.
 */
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("could not start playwright: %v", err)
@@ -53,9 +56,9 @@ func main() {
 		ResultsFilePath: "docker_hub.json",
 	}
 
-	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(ctx, page, options)
 
-	sBarLoc, err := playWrightLocatr.GetLocatr("Search Docker Hub input field")
+	sBarLoc, err := playWrightLocatr.GetLocatr(ctx, "Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -70,7 +73,10 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 
-	pLink, err := playWrightLocatr.GetLocatr("Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'")
+	pLink, err := playWrightLocatr.GetLocatr(
+		ctx,
+		"Link to python repo on docker hub. It has the following description: 'Python is an interpreted, interactive, object-oriented, open-source programming language.'",
+	)
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}
@@ -81,7 +87,7 @@ func main() {
 	}
 	time.Sleep(3 * time.Second)
 
-	tagsLoc, err := playWrightLocatr.GetLocatr("Tags tab on the page. It is made up of anchor tag")
+	tagsLoc, err := playWrightLocatr.GetLocatr(ctx, "Tags tab on the page. It is made up of anchor tag")
 	playWrightLocatr.WriteResultsToFile()
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)

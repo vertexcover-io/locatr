@@ -6,6 +6,7 @@ Example on how to use locatr with playwright to interact with steam.
 */
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -56,10 +57,11 @@ func main() {
 		log.Fatalf("could not create llm client: %v", err)
 	}
 	options := locatr.BaseLocatrOptions{UseCache: true, LlmClient: llmClient}
+	ctx := context.Background()
 
-	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(page, options)
+	playWrightLocatr := playwrightLocatr.NewPlaywrightLocatr(ctx, page, options)
 
-	sBarLoc, err := playWrightLocatr.GetLocatr("Search input bar on the steam store.")
+	sBarLoc, err := playWrightLocatr.GetLocatr(ctx, "Search input bar on the steam store.")
 	if err != nil {
 		log.Fatalf("could not get search bar locator: %v", err)
 	}
@@ -73,7 +75,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 
-	cStrikeLoc, err := playWrightLocatr.GetLocatr("Counter Strike 2 game on the list")
+	cStrikeLoc, err := playWrightLocatr.GetLocatr(ctx, "Counter Strike 2 game on the list")
 	if err != nil {
 		log.Fatalf("could not get Counter Strike 2 locator: %v", err)
 		return
@@ -84,7 +86,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 
-	sysReqLoc, err := playWrightLocatr.GetLocatr("System Requirements section on the game page.")
+	sysReqLoc, err := playWrightLocatr.GetLocatr(ctx, "System Requirements section on the game page.")
 	if err != nil {
 		log.Fatalf("could not get system requirements locator: %v", err)
 		return

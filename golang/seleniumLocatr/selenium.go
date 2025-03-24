@@ -1,13 +1,16 @@
 package seleniumLocatr
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"github.com/vertexcover-io/locatr/golang/tracing"
 	"github.com/vertexcover-io/selenium"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type seleniumPlugin struct {
@@ -22,14 +25,22 @@ type seleniumLocatr struct {
 var ErrUnableToLoadJsScriptSelenium = errors.New("unable to load js script through selenium")
 
 // NewRemoteConnSeleniumLocatr Create a new selenium locatr with selenium session.
-func NewRemoteConnSeleniumLocatr(serverUrl string,
+func NewRemoteConnSeleniumLocatr(
+	ctx context.Context,
+	serverUrl string,
 	sessionId string,
 	opt locatr.BaseLocatrOptions,
 ) (*seleniumLocatr, error) {
+	span := trace.SpanFromContext(ctx)
+
+	span.AddEvent("Connecting to remote selenium")
+
 	wd, err := selenium.ConnectRemote(serverUrl, sessionId)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to remote selenium instance: %w", err)
 	}
+
+	span.AddEvent("Connection to remote selenium established")
 
 	seleniumPlugin := seleniumPlugin{driver: wd}
 	locatr := seleniumLocatr{
@@ -39,8 +50,14 @@ func NewRemoteConnSeleniumLocatr(serverUrl string,
 	return &locatr, nil
 }
 
-func NewSeleniumLocatr(driver selenium.WebDriver,
-	options locatr.BaseLocatrOptions) (*seleniumLocatr, error) {
+func NewSeleniumLocatr(
+	ctx context.Context,
+	driver selenium.WebDriver,
+	options locatr.BaseLocatrOptions,
+) (*seleniumLocatr, error) {
+	span := trace.SpanFromContext(ctx)
+
+	span.AddEvent("Connecting to selenium driver")
 	plugin := &seleniumPlugin{
 		driver: driver,
 	}
@@ -57,7 +74,7 @@ func (sl *seleniumLocatr) Close() error {
 	return sl.driver.Quit()
 }
 
-func (sl *seleniumPlugin) evaluateJsFunction(function string) (string, error) {
+func (sl *seleniumPlugin) evaluateJsFunction(ctx context.Context, function string) (string, error) {
 	rFunction := "return " + function
 	result, err := sl.driver.ExecuteScript(rFunction, nil)
 	if err != nil {
@@ -75,7 +92,7 @@ func (sl *seleniumPlugin) evaluateJsFunction(function string) (string, error) {
 	}
 }
 
-func (sl *seleniumPlugin) evaluateJsScript(script string) error {
+func (sl *seleniumPlugin) evaluateJsScript(ctx context.Context, script string) error {
 	_, err := sl.driver.ExecuteScript(script, nil)
 	if err != nil {
 		return fmt.Errorf("failed to evaluate JS script: %w", err)
@@ -83,8 +100,11 @@ func (sl *seleniumPlugin) evaluateJsScript(script string) error {
 	return nil
 }
 
-func (sl *seleniumLocatr) GetLocatrStr(userReq string) (*locatr.LocatrOutput, error) {
-	locatorOutput, err := sl.locatr.GetLocatorStr(userReq)
+func (sl *seleniumLocatr) GetLocatrStr(ctx context.Context, userReq string) (*locatr.LocatrOutput, error) {
+	ctx, span := tracing.StartSpan(ctx, "GetLocatrStr")
+	defer span.End()
+
+	locatorOutput, err := sl.locatr.GetLocatorStr(ctx, userReq)
 	if err != nil {
 		return nil, fmt.Errorf("error getting locator string: %w", err)
 	}
@@ -99,16 +119,22 @@ func (pl *seleniumLocatr) GetLocatrResults() []locatr.LocatrResult {
 	return pl.locatr.GetLocatrResults()
 }
 
-func (sl *seleniumPlugin) GetMinifiedDomAndLocatorMap() (
+func (sl *seleniumPlugin) GetMinifiedDomAndLocatorMap(ctx context.Context) (
 	*elementSpec.ElementSpec,
 	*elementSpec.IdToLocatorMap,
 	locatr.SelectorType,
 	error,
 ) {
-	if err := sl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+	ctx, span := tracing.StartSpan(ctx, "GetMinifiedDomAndLocatorMap")
+	defer span.End()
+
+	span.AddEvent("injecting HTML minifer script")
+	if err := sl.evaluateJsScript(ctx, locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
 		return nil, nil, "", fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptSelenium, err)
 	}
-	result, err := sl.evaluateJsFunction("minifyHTML()")
+
+	span.AddEvent("evaluating minifyHTML function")
+	result, err := sl.evaluateJsFunction(ctx, "minifyHTML()")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -121,7 +147,8 @@ func (sl *seleniumPlugin) GetMinifiedDomAndLocatorMap() (
 		)
 	}
 
-	result, _ = sl.evaluateJsFunction("mapElementsToJson()")
+	span.AddEvent("evaluating mapElementsToJson function")
+	result, _ = sl.evaluateJsFunction(ctx, "mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
 		return nil, nil, "", fmt.Errorf(
@@ -133,19 +160,29 @@ func (sl *seleniumPlugin) GetMinifiedDomAndLocatorMap() (
 	return elementsSpec, idLocatorMap, "css selector", nil
 }
 
-func (sl *seleniumPlugin) GetCurrentContext() string {
-	if value, err := sl.evaluateJsFunction("window.location.href"); err == nil {
+func (sl *seleniumPlugin) GetCurrentContext(ctx context.Context) string {
+	ctx, span := tracing.StartSpan(ctx, "GetCurrentContext")
+	defer span.End()
+
+	span.AddEvent("fetching current window location")
+	if value, err := sl.evaluateJsFunction(ctx, "window.location.href"); err == nil {
 		return value
 	} else {
 		return ""
 	}
 }
 
-func (sl *seleniumPlugin) IsValidLocator(locatrString string) (bool, error) {
-	if err := sl.evaluateJsScript(locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
+func (sl *seleniumPlugin) IsValidLocator(ctx context.Context, locatrString string) (bool, error) {
+	ctx, span := tracing.StartSpan(ctx, "IsValidLocator")
+	defer span.End()
+
+	span.AddEvent("injecting HTML minifier script")
+	if err := sl.evaluateJsScript(ctx, locatr.HTML_MINIFIER_JS_CONTENT); err != nil {
 		return false, fmt.Errorf("%v : %v", ErrUnableToLoadJsScriptSelenium, err)
 	}
-	value, err := sl.evaluateJsFunction(fmt.Sprintf("isValidLocator('%s')", locatrString))
+
+	span.AddEvent("evaluating isValidLocator function")
+	value, err := sl.evaluateJsFunction(ctx, fmt.Sprintf("isValidLocator('%s')", locatrString))
 	if value == "true" && err == nil {
 		return true, nil
 	} else {
