@@ -57,15 +57,17 @@ func NewTraceProvider(exp sdktrace.SpanExporter, svcName string) (*sdktrace.Trac
 	return tp, nil
 }
 
-func SetupOtelSDK(ctx context.Context, endpoint, svcName string, insecure bool) (OtelShutdownFunc, error) {
+func SetupOtelSDK(ctx context.Context, opts ...Option) (OtelShutdownFunc, error) {
 	var shutdown OtelShutdownFunc
 
-	exp, err := NewGRPCExporter(ctx, endpoint, insecure)
+	cfg := getConfig(opts)
+
+	exp, err := NewGRPCExporter(ctx, cfg.endpoint, cfg.insecure)
 	if err != nil {
 		return shutdown, err
 	}
 
-	tp, err := NewTraceProvider(exp, svcName)
+	tp, err := NewTraceProvider(exp, cfg.svcName)
 	if err != nil {
 		return shutdown, err
 	}
@@ -73,6 +75,18 @@ func SetupOtelSDK(ctx context.Context, endpoint, svcName string, insecure bool) 
 	shutdown = tp.Shutdown
 
 	return shutdown, err
+}
+
+func getConfig(opts []Option) config {
+	if len(opts) == 0 {
+		opts = append(opts, WithDefaults())
+	}
+
+	var cfg config
+	for _, opt := range opts {
+		cfg = *opt.applyOption(&cfg)
+	}
+	return cfg
 }
 
 func GetTraceProvider() trace.TracerProvider {
