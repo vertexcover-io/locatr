@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"time"
@@ -84,8 +85,13 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 	if err != nil {
 		return nil, err
 	}
+	// should be in milliseconds
 	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
 	client := CreateNewHttpClient(joinedUrl.String())
+
+	// added to test session still exists.
+	// TODO: consider a parameter to skip the test when interacting from python side
+	// todo: create a cached session, Make a stateful session.
 	resp, err := client.R().Get("/context")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
@@ -118,6 +124,13 @@ func (ac *AppiumClient) ExecuteScript(script string, args []any) (any, error) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(bodyJson).
 		Post("/execute/sync")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -136,6 +149,13 @@ func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetCurrentViewContext")()
 
 	response, err := ac.httpClient.R().Get("/context")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -143,9 +163,14 @@ func (ac *AppiumClient) GetCurrentViewContext() (string, error) {
 		return "", fmt.Errorf("%w: %s", ErrSessionNotActive, ac.sessionId)
 	}
 	var responseBody appiumGetCurrentContextResponse
-	err = json.Unmarshal(response.Body(), &responseBody)
+	body := response.Body()
+	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", fmt.Errorf(
+			"failed to unmarshal response: %w, expected json, received: %s",
+			err,
+			body,
+		)
 	}
 	return responseBody.Value, nil
 }
@@ -163,6 +188,13 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetPageSource")()
 
 	response, err := ac.httpClient.R().Get("source/")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
@@ -170,9 +202,14 @@ func (ac *AppiumClient) GetPageSource() (string, error) {
 		return "", fmt.Errorf("%w : %s ", ErrSessionNotActive, ac.sessionId)
 	}
 	var responseBody appiumPageSourceResponse
-	err = json.Unmarshal(response.Body(), &responseBody)
+	body := response.Body()
+	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+		return "", fmt.Errorf(
+			"failed to unmarshal response: %w, expected json, received: %s",
+			err,
+			body,
+		)
 	}
 	return responseBody.Value, nil
 }
@@ -189,14 +226,25 @@ func (ac *AppiumClient) FindElement(locator, locator_type string) error {
 		SetResult(&appiumGetElementResponse{}).
 		Post("element")
 
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	if response.StatusCode() != 200 {
 		var result appiumGetElementResponse
-		err = json.Unmarshal(response.Body(), &result)
+		body := response.Body()
+		err = json.Unmarshal(body, &result)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal response: %w", err)
+			return fmt.Errorf(
+				"failed to unmarshal response: %w, expected json, received: %s",
+				err,
+				body,
+			)
 		}
 		return fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
@@ -207,14 +255,26 @@ func (ac *AppiumClient) GetCapabilities() (*sessionResponse, error) {
 	defer logger.GetTimeLogger("Appium: GetCapabilities")()
 
 	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Get("/")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	var result sessionResponse
-	err = json.Unmarshal(response.Body(), &result)
+	body := response.Body()
+	err = json.Unmarshal(body, &result)
 	if response.StatusCode() != 200 {
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+			return nil, fmt.Errorf(
+				"failed to unmarshal response: %w, expected json, received: %s",
+				err,
+				body,
+			)
 		}
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
@@ -225,6 +285,13 @@ func (ac *AppiumClient) GetCurrentActivity() (string, error) {
 	defer logger.GetTimeLogger("Appium: GetCurrentActivity")()
 
 	response, err := ac.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")
+
+	logger.Logger.Debug(
+		"Request sent to Appium server",
+		slog.String("url", response.Request.URL),
+		slog.String("method", response.Request.Method),
+	)
+
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}

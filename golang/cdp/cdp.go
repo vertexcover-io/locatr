@@ -79,13 +79,21 @@ func (cPlugin *cdpPlugin) GetMinifiedDomAndLocatorMap() (
 	}
 	elementsSpec := &elementSpec.ElementSpec{}
 	if err := json.Unmarshal([]byte(result), elementsSpec); err != nil {
-		return nil, nil, "", fmt.Errorf("failed to unmarshal ElementSpec json: %v", err)
+		return nil, nil, "", fmt.Errorf(
+			"failed to unmarshal ElementSpec json: %v, expected json, received: %s",
+			err,
+			result,
+		)
 	}
 
 	result, _ = cPlugin.evaluateJsFunction("mapElementsToJson()")
 	idLocatorMap := &elementSpec.IdToLocatorMap{}
 	if err := json.Unmarshal([]byte(result), idLocatorMap); err != nil {
-		return nil, nil, "", fmt.Errorf("failed to unmarshal IdToLocatorMap json: %v", err)
+		return nil, nil, "", fmt.Errorf(
+			"failed to unmarshal IdToLocatorMap json: %v, expected json, received: %s",
+			err,
+			result,
+		)
 	}
 	return elementsSpec, idLocatorMap, "css selector", nil
 }

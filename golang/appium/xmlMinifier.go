@@ -266,6 +266,12 @@ func isValidElement(
 	if element.Data == "hierarchy" {
 		return true
 	}
+	// this check is essential, in iOS, there are cases where the parent heirarchy is marked as
+	// not visible, despite having children as visible. In case of iOS, we can't trust on
+	// element visibility.
+	if element.FirstChild != nil {
+		return true
+	}
 	visible := isElementVisible(element, platform)
 	return visible
 }
