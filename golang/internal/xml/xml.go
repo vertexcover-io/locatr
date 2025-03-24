@@ -120,7 +120,6 @@ func GetElementHierarchyXpath(element *xmlquery.Node) string {
 	}
 	// Return the XPath string
 	return "/" + strings.Join(parts, "/")
-
 }
 
 func GetElementLocatrs(element *xmlquery.Node) []string {

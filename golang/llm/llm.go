@@ -132,7 +132,6 @@ func NewLLMClient(opts ...Option) (*llmClient, error) {
 var errDefaultLLMAPIKeyNotSet = errors.New("'LOCATR_ANTHROPIC_API_KEY' or 'ANTHROPIC_API_KEY' environment variable is not set")
 
 // DefaultLLMClient returns a default LLM client using Anthropic's Claude 3.5 Sonnet model.
-// It uses the ANTHROPIC_API_KEY environment variable for authentication.
 //
 // Parameters:
 //   - logger: The logger to use for logging

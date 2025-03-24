@@ -64,6 +64,7 @@ type rerankerClient struct {
 }
 
 // NewRerankerClient creates a new instance of the reranker client.
+//
 // Parameters:
 //   - opts: Configuration options for the reranker client
 //
@@ -105,7 +106,7 @@ func NewRerankerClient(opts ...Option) (*rerankerClient, error) {
 var errDefaultRerankerAPIKeyNotSet = errors.New("'LOCATR_COHERE_API_KEY' or 'COHERE_API_KEY' environment variable is not set")
 
 // DefaultRerankerClient returns a default reranker client using Cohere's rerank-english-v3.0 model.
-// It uses the COHERE_API_KEY environment variable for authentication.
+//
 // Parameters:
 //   - logger: Logger instance for logging
 //
