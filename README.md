@@ -1,10 +1,16 @@
 # Locatr
 
-Find locators for UI elements on web pages using natural language.
+Find locators for UI elements in web applications using natural language.
+
+## Installation
+
+```bash
+go get github.com/vertexcover-io/locatr/golang
+```
 
 ## Usage
 
-Initialize an automation plugin of your choice.
+### Initialize an automation plugin of your choice.
 
 - Playwright
 	<details>
@@ -94,10 +100,25 @@ Initialize an automation plugin of your choice.
 	plugin := plugins.NewSeleniumPlugin(&driver)
 	```
 
-Create a Locatr instance.
+- Appium
+	
+	```go
+	import "github.com/vertexcover-io/locatr/golang/plugins"
+
+	plugin, err := plugins.NewAppiumPlugin("<appium-url>", "<appium-session-id>")
+	if err != nil {
+		log.Fatalf("failed to create appium plugin: %v", err)
+	}
+	```
+
+### Create a Locatr instance
 
 ```go
-import locatr "github.com/vertexcover-io/locatr/golang"
+import (
+	"log"
+
+	locatr "github.com/vertexcover-io/locatr/golang"
+)
 
 locatr, err := locatr.NewLocatr(plugin)
 if err != nil {
@@ -105,7 +126,100 @@ if err != nil {
 }
 ```
 
-Locate an element.
+> By default, anthropic's `claude-3-5-sonnet-latest` LLM and cohere's `rerank-english-v3.0` reranker are used.
+
+<details>
+<summary>Override Default Configuration</summary>
+
+---
+
+LLM Client
+
+```go
+import (
+	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/llm"
+)
+
+llmClient, err := llm.NewLLMClient(
+	llm.WithProvider(llm.OpenAI),
+	llm.WithModel("gpt-4o"),
+	llm.WithAPIKey("<openai-api-key>"),
+)
+
+locatr, err := locatr.NewLocatr(
+	plugin,
+	locatr.WithLLMClient(llmClient),
+)
+```
+
+---
+
+Reranker Client
+
+```go
+import (
+	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/reranker"
+)
+
+rerankerClient, err := reranker.NewRerankerClient(
+	reranker.WithProvider(reranker.Cohere),
+	reranker.WithModel("rerank-english-v3.0"),
+	reranker.WithAPIKey("<cohere-api-key>"),
+)
+
+locatr, err := locatr.NewLocatr(
+	plugin,
+	locatr.WithRerankerClient(rerankerClient),
+)
+```
+
+---
+
+Mode
+
+> By default, `mode.DOMAnalysisMode` is used.
+
+```go
+import (
+	locatr "github.com/vertexcover-io/locatr/golang"
+	"github.com/vertexcover-io/locatr/golang/mode"
+)
+
+mode := mode.VisualAnalysisMode{
+	MaxAttempts: 3,
+	Resolution: &types.Resolution{
+		Width:  1280,
+		Height: 800,
+	},
+}
+
+locatr, err := locatr.NewLocatr(
+	plugin,
+	locatr.WithMode(mode),
+)
+```
+
+---
+
+Enable Cache
+
+```go
+import (
+	locatr "github.com/vertexcover-io/locatr/golang"
+)
+
+locatr, err := locatr.NewLocatr(
+	plugin,
+	// defaults to .locatr.cache, pass a path to use a different cache file
+	locatr.EnableCache(nil),
+)
+```
+
+</details>
+
+### Locate an element
 
 ```go
 completion, err := locatr.Locate("Star button")
@@ -115,16 +229,15 @@ if err != nil {
 fmt.Println(completion.Locators[0])
 ```
 
-Calculate the cost of the completion.
+### Calculate the total cost of the completion
 
 ```go
-costPer1MInputTokens := 3.0
-costPer1MOutputTokens := 15.0
-cost := completion.CalculateCost(costPer1MInputTokens, costPer1MOutputTokens)
+// $1.0 per 1M input tokens, $1.0 per 1M output tokens
+cost := completion.CalculateCost(1.0, 1.0)
 fmt.Printf("Cost: %v\n", cost)
 ```
 
-Highlight the locator.
+### Highlight the locator
 
 ```go
 imageBytes, err := locatr.Highlight(completion.Locators[0])
