@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -211,12 +212,18 @@ func (l *BaseLocatr) GetLocatorStr(userReq string) (*LocatrOutput, error) {
 	}
 
 	locators, ok := (*locatorsMap)[llmOutputs[len(llmOutputs)-1].LocatorID]
+
+	slog.Debug("Locators generated", slog.Int("count", len(locators)))
+
 	if !ok {
 		logger.Logger.Error("Invalid element ID generated")
 		return nil, ErrInvalidElementIdGenerated
 	}
 
 	validLocator, err := l.getValidLocator(locators)
+
+	slog.Debug("Valid locators found", slog.String("valid_locator", strings.Join(validLocator, "\n")))
+
 	if err != nil {
 		logger.Logger.Error(fmt.Sprintf("Failed to find valid locator: %v", err))
 		return nil, ErrUnableToFindValidLocator

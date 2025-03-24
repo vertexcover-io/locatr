@@ -48,6 +48,8 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 		llmConfig.ModelName,
 		llmConfig.LlmApiKey,
 	)
+	slog.Debug("Using llm model", slog.String("model", llmConfig.ModelName))
+
 	if err != nil {
 		return locatr.BaseLocatrOptions{}, fmt.Errorf("%v : %v", FailedToCreateLlmClient, err)
 	}
@@ -296,6 +298,8 @@ func main() {
 
 	logger.Logger.Info("Ready to accept connections", "socketFilePath", socketFilePath)
 	defer os.Remove(socketFilePath)
+
+	logger.Logger.Info("Version: 2025/03/05")
 
 	for {
 		client, err := socket.Accept()

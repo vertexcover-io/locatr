@@ -85,8 +85,13 @@ func NewAppiumClient(serverUrl string, sessionId string) (*AppiumClient, error) 
 	if err != nil {
 		return nil, err
 	}
+	// should be in milliseconds
 	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
 	client := CreateNewHttpClient(joinedUrl.String())
+
+	// added to test session still exists.
+	// TODO: consider a parameter to skip the test when interacting from python side
+	// todo: create a cached session, Make a stateful session.
 	resp, err := client.R().Get("/context")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
