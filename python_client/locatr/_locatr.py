@@ -141,7 +141,7 @@ class Locatr:
         self._initialize_process_and_socket()
         message = UserRequestMessage(
             user_request=user_req,
-            otel_parent_trace=otel_parent_trace,
+            otel_parent_trace_id=otel_parent_trace,
             id=self._id,
             type=MessageType.LOCATR_REQUEST,
         )
@@ -157,8 +157,12 @@ class Locatr:
         except ValidationError as e:
             raise FailedToRetrieveLocatr(str(e.errors()))
 
-    async def get_locatr_async(self, user_req: str) -> LocatrOutput:
-        return await asyncio.to_thread(self.get_locatr, user_req)
+    async def get_locatr_async(
+        self, user_req: str, otel_parent_trace: Optional[str] = None
+    ) -> LocatrOutput:
+        return await asyncio.to_thread(
+            self.get_locatr, user_req, otel_parent_trace
+        )
 
     def __del__(self):
         if self._socket:
