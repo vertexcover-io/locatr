@@ -56,8 +56,7 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap(ctx context.Context) (
 	locatr.SelectorType,
 	error,
 ) {
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(ctx, "GetMinifiedDomAndLocatorMap")
+	ctx, span := tracing.StartSpan(ctx, "GetMinifiedDomAndLocatorMap")
 	defer span.End()
 
 	if apPlugin.client.IsWebView(ctx) {
@@ -152,8 +151,7 @@ func (apPlugin *appiumPlugin) xmlMinification(ctx context.Context) (*elementSpec
 }
 
 func (apPlugin *appiumPlugin) GetCurrentContext(ctx context.Context) string {
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(ctx, "GetCurrentContext")
+	ctx, span := tracing.StartSpan(ctx, "GetCurrentContext")
 	defer span.End()
 
 	capabilities, err := apPlugin.client.GetCapabilities(ctx)
@@ -191,8 +189,7 @@ func (apPlugin *appiumPlugin) IsValidLocator(ctx context.Context, locatr string)
 }
 
 func (apLocatr *appiumLocatr) GetLocatrStr(ctx context.Context, userReq string) (*locatr.LocatrOutput, error) {
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(ctx, "GetLocatrStr")
+	ctx, span := tracing.StartSpan(ctx, "GetLocatrStr")
 	defer span.End()
 
 	locatrOutput, err := apLocatr.locatr.GetLocatorStr(ctx, userReq)

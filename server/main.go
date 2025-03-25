@@ -64,9 +64,7 @@ func createLocatrOptions(message incomingMessage) (locatr.BaseLocatrOptions, err
 }
 
 func handleLocatrRequest(ctx context.Context, message incomingMessage) (*locatr.LocatrOutput, error) {
-	tracer := tracing.GetTracer()
-
-	ctx, span := tracer.Start(ctx, "locator-request")
+	ctx, span := tracing.StartSpan(ctx, "locator-request")
 	defer span.End()
 
 	baseLocatr, ok := clientAndLocatrs[message.ClientId]
@@ -82,9 +80,7 @@ func handleLocatrRequest(ctx context.Context, message incomingMessage) (*locatr.
 }
 
 func handleInitialHandshake(ctx context.Context, message incomingMessage) error {
-	tracer := tracing.GetTracer()
-
-	ctx, span := tracer.Start(ctx, "initial-handshake")
+	ctx, span := tracing.StartSpan(ctx, "initial-handshake")
 	defer span.End()
 
 	baseLocatrOpts, err := createLocatrOptions(message)

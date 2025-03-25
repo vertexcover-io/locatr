@@ -108,8 +108,7 @@ func (c *llmClient) ChatCompletion(ctx context.Context, prompt string) (*ChatCom
 func (c *llmClient) anthropicRequest(ctx context.Context, prompt string) (*ChatCompletionResponse, error) {
 	defer logger.GetTimeLogger("LLM: AnthropicCompletion")()
 
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(ctx, "anthropic completion request")
+	ctx, span := tracing.StartSpan(ctx, "anthropic completion request")
 	defer span.End()
 
 	start := time.Now()
@@ -146,9 +145,7 @@ func (c *llmClient) anthropicRequest(ctx context.Context, prompt string) (*ChatC
 func (c *llmClient) openaiRequest(ctx context.Context, prompt string) (*ChatCompletionResponse, error) {
 	defer logger.GetTimeLogger("LLM: OpenAICompletion")()
 
-	tracer := tracing.GetTracer()
-
-	ctx, span := tracer.Start(ctx, "openai completion request")
+	ctx, span := tracing.StartSpan(ctx, "openai completion request")
 	defer span.End()
 
 	start := time.Now()

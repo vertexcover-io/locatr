@@ -187,9 +187,7 @@ func (l *LocatrResult) MarshalJSON() ([]byte, error) {
 
 // GetLocatorStr returns the locator string for the given user request
 func (l *BaseLocatr) GetLocatorStr(ctx context.Context, userReq string) (*LocatrOutput, error) {
-	tracer := tracing.GetTracer()
-
-	ctx, span := tracer.Start(ctx, "GetLocatrStr")
+	ctx, span := tracing.StartSpan(ctx, "GetLocatrStr")
 	defer span.End()
 
 	span.AddEvent("initializing state")
@@ -373,8 +371,7 @@ func (l *BaseLocatr) getLocatrOutput(ctx context.Context, htmlDOM string, userRe
 }
 
 func (l *BaseLocatr) locateElementId(ctx context.Context, htmlDOM string, userReq string) ([]locatrOutputDto, error) {
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(ctx, "locateElementId")
+	ctx, span := tracing.StartSpan(ctx, "locateElementId")
 	defer span.End()
 
 	llmOutputs := []locatrOutputDto{}
@@ -539,9 +536,7 @@ func (l *BaseLocatr) getLocatrsFromState(key string, currentContext string) ([]s
 }
 
 func (l *BaseLocatr) loadLocatrsFromCache(ctx context.Context, userReq string) (*LocatrOutput, error) {
-	tracer := tracing.GetTracer()
-
-	ctx, span := tracer.Start(ctx, "loadLocatorsFromCache")
+	ctx, span := tracing.StartSpan(ctx, "loadLocatorsFromCache")
 	defer span.End()
 
 	requestInitiatedAt := time.Now()
