@@ -9,6 +9,7 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/appium/appiumClient"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
+	"github.com/vertexcover-io/locatr/golang/minifier"
 	"github.com/vertexcover-io/locatr/golang/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -138,12 +139,12 @@ func (apPlugin *appiumPlugin) xmlMinification(ctx context.Context) (*elementSpec
 		platFormName = capabilities.Value.Cap.PlatformName
 	}
 	span.AddEvent("minifying source")
-	eSpec, err := minifySource(pageSource, platFormName)
+	eSpec, err := minifier.MinifyXMLSource(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	span.AddEvent("mapping elements to json")
-	locatrMap, err := mapElementsToJson(pageSource, platFormName)
+	locatrMap, err := minifier.MapXMLElementsToJson(pageSource, platFormName)
 	if err != nil {
 		return nil, nil, "", err
 	}

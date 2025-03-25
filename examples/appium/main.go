@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,12 +11,49 @@ import (
 	appiumLocatr "github.com/vertexcover-io/locatr/golang/appium"
 	"github.com/vertexcover-io/locatr/golang/llm"
 	"github.com/vertexcover-io/locatr/golang/logger"
+	"github.com/vertexcover-io/locatr/golang/tracing"
 )
+
+type Config struct {
+	Tracing struct {
+		Endpoint    string
+		ServiceName string
+		Insecure    bool
+	}
+}
 
 func main() {
 	ctx := context.Background()
 
 	logger.Level.Set(slog.LevelDebug)
+
+	cfg := Config{}
+	cfg.Tracing.Endpoint = "localhost:4317"
+	cfg.Tracing.ServiceName = "locator"
+	cfg.Tracing.Insecure = true
+
+	shutdown, err := tracing.SetupOtelSDK(
+		context.Background(),
+		tracing.WithEndpoint(cfg.Tracing.Endpoint),
+		tracing.WithSVCName(cfg.Tracing.ServiceName),
+		tracing.WithInsecure(cfg.Tracing.Insecure),
+	)
+	if err != nil {
+		logger.Logger.Error(
+			"Failed to setup Open Telemetry SDK",
+			slog.String("error", err.Error()),
+		)
+		os.Exit(1)
+	}
+	defer func() {
+		if sErr := shutdown(context.Background()); sErr != nil {
+			err = errors.Join(err, sErr)
+			logger.Logger.Error(
+				"Error while shutting down Open Telemetry service",
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
 
 	llmClient, _ := llm.NewLlmClient(
 		llm.OpenAI, // (openai | anthropic),
@@ -28,13 +66,13 @@ func main() {
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		ctx,
 		"http://localhost:4723",
-		"640daa1b-afdc-45a3-83fd-d0c37cffb3de", bLocatr,
+		"e82076df-7186-4e53-b7bb-a7a5ac43332a", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)
 		return
 	}
-	desc := "This input element is designed for password entry, indicated by its type attribute set to \"password,\" which obscures the text entered for privacy. It requires user input, as denoted by the \"required\" attribute, ensuring that users do not submit the form without filling out this field. The placeholder text prompts users to \"Enter your password,\" guiding them on the expected input. This input is commonly used within forms where sensitive data is collected, such as registration or login forms."
+	desc := "This EditText element for 'Email' serves as the second interactive entry point for user input in a linear sequence, positioned directly below an ImageView-containing LinearLayout which implies a visual hierarchy. It follows a specific order that leads to it being the first editable text input provided in the context, indicating its primary role in user authentication workflows."
 	l, err := aLocatr.GetLocatrStr(ctx, desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)

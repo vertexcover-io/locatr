@@ -1,4 +1,4 @@
-package appiumLocatr
+package minifier
 
 import (
 	"crypto/md5"
@@ -353,7 +353,7 @@ func createElementSpec(
 	}, nil
 }
 
-func minifySource(source string, platform string) (*elementSpec.ElementSpec, error) {
+func MinifyXMLSource(source string, platform string) (*elementSpec.ElementSpec, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source is empty")
 	}
@@ -373,7 +373,7 @@ func minifySource(source string, platform string) (*elementSpec.ElementSpec, err
 	return spec, nil
 }
 
-func mapElementsToJson(source string, platform string) (*elementSpec.IdToLocatorMap, error) {
+func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLocatorMap, error) {
 	if source == "" {
 		return nil, fmt.Errorf("source is empty")
 	}

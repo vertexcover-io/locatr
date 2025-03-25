@@ -1,4 +1,4 @@
-package appiumLocatr
+package minifier
 
 import (
 	"encoding/xml"
@@ -635,14 +635,14 @@ func TestMinifySource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			if tt.xml == "" {
-				_, err := minifySource(tt.xml, tt.platform)
+				_, err := MinifyXMLSource(tt.xml, tt.platform)
 				if err == nil {
 					t.Error("Expected error for empty source")
 				}
 				return
 			}
 
-			spec, err := minifySource(tt.xml, tt.platform)
+			spec, err := MinifyXMLSource(tt.xml, tt.platform)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("Expected error, got none")
@@ -692,14 +692,14 @@ func TestMapElementsToJson(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.xml == "" {
-				_, err := mapElementsToJson(tt.xml, tt.platform)
+				_, err := MapXMLElementsToJson(tt.xml, tt.platform)
 				if err == nil {
 					t.Error("Expected error for empty source")
 				}
 				return
 			}
 
-			elementMap, err := mapElementsToJson(tt.xml, tt.platform)
+			elementMap, err := MapXMLElementsToJson(tt.xml, tt.platform)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("Expected error, got none")
