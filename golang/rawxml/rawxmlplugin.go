@@ -64,5 +64,11 @@ func (pl *rawtextPlugin) IsValidLocator(ctx context.Context, locatr string) (boo
 	if len(elem) > 0 {
 		return true, nil
 	}
+
+	locatr = "/" + locatr
+	elem = xmlquery.Find(pl.doc, locatr)
+	if len(elem) > 0 {
+		return true, nil
+	}
 	return false, errors.New("failed to find valid locator")
 }
