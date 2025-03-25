@@ -8,6 +8,8 @@ import (
 
 	"github.com/vertexcover-io/locatr/golang/logger"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -63,6 +65,8 @@ func NewTraceProvider(exp sdktrace.SpanExporter, svcName string) (*sdktrace.Trac
 	return tp, nil
 }
 
+var setupRun bool = false
+
 func SetupOtelSDK(ctx context.Context, opts ...Option) (OtelShutdownFunc, error) {
 	var shutdown OtelShutdownFunc
 
@@ -91,6 +95,8 @@ func SetupOtelSDK(ctx context.Context, opts ...Option) (OtelShutdownFunc, error)
 		"Open Telemetry SDK setup complete",
 	)
 
+	setupRun = true
+
 	return shutdown, err
 }
 
@@ -115,6 +121,39 @@ func GetTracer() trace.Tracer {
 }
 
 func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	tracer := GetTracer()
-	return tracer.Start(ctx, name, opts...)
+	if setupRun {
+		tracer := GetTracer()
+		return tracer.Start(ctx, name, opts...)
+	}
+	return ctx, &noopSpan{}
+}
+
+type noopSpan struct {
+	trace.Span
+}
+
+func (n *noopSpan) End(opt ...trace.SpanEndOption) {}
+
+func (n *noopSpan) AddEvent(name string, opt ...trace.EventOption) {}
+
+func (n *noopSpan) AddLink(link trace.Link) {}
+
+func (n *noopSpan) IsRecording() bool { return false }
+
+func (n *noopSpan) RecordError(err error, opt ...trace.EventOption) {}
+
+func (n *noopSpan) SpanContext() trace.SpanContext {
+	return trace.NewSpanContext(trace.SpanContextConfig{})
+}
+
+func (n *noopSpan) SetStatus(code codes.Code, description string) {}
+
+func (n *noopSpan) SetName(name string) {}
+
+func (n *noopSpan) SetAttributes(kv ...attribute.KeyValue) {}
+
+func (n *noopSpan) TracerProvider() trace.TracerProvider { return &noopTracerProvider{} }
+
+type noopTracerProvider struct {
+	trace.TracerProvider
 }
