@@ -5,7 +5,7 @@ import _ "embed"
 //go:embed meta/htmlMinifier.js
 var HTML_MINIFIER_JS_CONTENT string
 
-const LOCATR_PROMPT = `Your task is to identify the HTML element that matches a user's requirement from a given HTML DOM structure and return its unique_id in a JSON format. If the element is not found, provide an appropriate error message in the JSON output.
+const LOCATR_PROMPT = `Your task is to identify the HTML element that matches a user's requirement from a given HTML DOM structure and return its unique_id in a JSON format. The element may not match user's requirement exactly. If the element is not found, provide an appropriate error message in the JSON output.
 
 Each HTML element may contain an attribute called "data-supported-primitives" which indicates its supported interactions. The following attributes determine whether an element is "clickable", "hoverable", "inputable", or "selectable":
 
