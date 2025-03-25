@@ -2,6 +2,7 @@ package rawxml
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -60,6 +61,8 @@ func (pl *rawtextPlugin) GetCurrentContext(context.Context) string {
 
 func (pl *rawtextPlugin) IsValidLocator(ctx context.Context, locatr string) (bool, error) {
 	elem := xmlquery.Find(pl.doc, locatr)
-	exists := len(elem) > 0
-	return exists, nil
+	if len(elem) > 0 {
+		return true, nil
+	}
+	return false, errors.New("failed to find valid locator")
 }
