@@ -250,3 +250,5 @@ if err != nil {
 // Write the image to a file
 os.WriteFile("highlighted.png", imageBytes, 0644)
 ```
+
+![Highlighted Star Button](./assets/highlighted-star-button-github.png)
