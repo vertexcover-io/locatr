@@ -185,7 +185,7 @@ func getUniqueXPATH(doc Document, domNode Node, attrs []string) (valid bool, uni
 		}
 
 		if semiUniqueXPath == "" {
-			semiUniqueXPath = fmt.Sprintf("(%s)[%d]", xpath, idx+1)
+			semiUniqueXPath = fmt.Sprintf("(%s)[%d]", xpath, idx)
 		}
 	}
 
