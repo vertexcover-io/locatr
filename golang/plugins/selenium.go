@@ -3,7 +3,6 @@ package plugins
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/vertexcover-io/locatr/golang/internal/constants"
 	"github.com/vertexcover-io/locatr/golang/internal/utils"
@@ -18,6 +17,7 @@ type seleniumPlugin struct {
 }
 
 // NewSeleniumPlugin initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
+//
 // Parameters:
 //   - driver: Pointer to a configured Selenium WebDriver instance
 //
@@ -28,13 +28,13 @@ func NewSeleniumPlugin(driver *selenium.WebDriver) *seleniumPlugin {
 
 // evaluateExpression executes a JavaScript expression in the current context.
 // If the script is not attached, it will be attached first.
+//
 // Parameters:
 //   - expression: The JavaScript code to execute
 //   - args: Optional arguments to pass to the JavaScript expression
 //
 // Returns the result of the evaluation and any error that occurred during execution.
 func (plugin *seleniumPlugin) evaluateExpression(expression string, args ...any) (any, error) {
-	// Check if script is already attached
 	isAttached, err := (*plugin.driver).ExecuteScript("return window.locatrScriptAttached === true", []any{})
 	if err != nil || isAttached == nil || !isAttached.(bool) {
 		_, err := (*plugin.driver).ExecuteScript(constants.JS_CONTENT, []any{})
@@ -97,11 +97,12 @@ func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
 }
 
 // IsLocatorValid checks if a given CSS selector matches any elements on the page.
+//
 // Parameters:
 //   - locator: The CSS selector to validate
 //
 // Returns:
-//   - bool: true if the selector matches at least one element, false otherwise
+//   - bool: true if the locator exists in the DOM, false otherwise
 //   - error: any error that occurred during validation
 func (plugin *seleniumPlugin) IsLocatorValid(locator string) (bool, error) {
 	value, err := plugin.evaluateExpression("isLocatorValid(arguments[0])", locator)
@@ -112,8 +113,14 @@ func (plugin *seleniumPlugin) IsLocatorValid(locator string) (bool, error) {
 	return utils.ParseLocatorValidationResult(value)
 }
 
+const calcViewportSizeSnippet string = `{
+	width: window.outerWidth - window.innerWidth + arguments[0], 
+	height: window.outerHeight - window.innerHeight + arguments[1]
+};`
+
 // SetViewportSize adjusts the browser window size to achieve the desired viewport dimensions.
 // Accounts for browser chrome (toolbars, scrollbars) when calculating the final window size.
+//
 // Parameters:
 //   - width: Desired viewport width in pixels
 //   - height: Desired viewport height in pixels
@@ -124,25 +131,21 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 	if err != nil {
 		return err
 	}
+
 	sizeInterface, err := plugin.evaluateExpression(
-		"{width: window.outerWidth - window.innerWidth + arguments[0], height: window.outerHeight - window.innerHeight + arguments[1]};",
-		width, height,
+		calcViewportSizeSnippet, width, height,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't get viewport size: %s", err.Error())
 	}
+
 	size := sizeInterface.(map[string]any)
-	reserr := (*plugin.driver).ResizeWindow(handle, int(size["width"].(float64)), int(size["height"].(float64)))
-	if reserr != nil {
-		return reserr
+	width = int(utils.GetFloatValue(size["width"]))
+	height = int(utils.GetFloatValue(size["height"]))
+
+	if err = (*plugin.driver).ResizeWindow(handle, width, height); err != nil {
+		return fmt.Errorf("couldn't set viewport size: %s", err.Error())
 	}
-	// TODO: Remove this
-	usize, err := plugin.evaluateExpression("[window.innerWidth, window.innerHeight];")
-	if err != nil {
-		return err
-	}
-	log.Println("Updated size:", usize)
-	/////////////////////////////////////
 	return nil
 }
 
@@ -157,6 +160,7 @@ func (plugin *seleniumPlugin) TakeScreenshot() ([]byte, error) {
 }
 
 // GetElementLocators retrieves the locators for the element at the given point and scroll position.
+//
 // Parameters:
 //   - location: The location of the element to get the locators from
 //
@@ -167,7 +171,7 @@ func (plugin *seleniumPlugin) GetElementLocators(location *types.Location) ([]st
 	}
 
 	result, err := plugin.evaluateExpression(
-		"getLocators(arguments...)",
+		"getLocators(arguments[0], arguments[1], arguments[2], arguments[3])",
 		location.Point.X, location.Point.Y, location.ScrollPosition.X, location.ScrollPosition.Y,
 	)
 	if err != nil {
@@ -177,6 +181,7 @@ func (plugin *seleniumPlugin) GetElementLocators(location *types.Location) ([]st
 }
 
 // GetElementLocation retrieves the location of the element identified by the given locator.
+//
 // Parameters:
 //   - locator: The CSS selector identifying the target element
 //

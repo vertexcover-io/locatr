@@ -17,9 +17,10 @@ type playwrightPlugin struct {
 }
 
 // NewPlaywrightPlugin initializes a new plugin instance with the provided Playwright page.
+//
 // Parameters:
 //   - page: Pointer to a configured Playwright page instance
-
+//
 // Returns the initialized Playwright plugin.
 func NewPlaywrightPlugin(page *playwright.Page) *playwrightPlugin {
 	return &playwrightPlugin{page: page}
@@ -27,13 +28,13 @@ func NewPlaywrightPlugin(page *playwright.Page) *playwrightPlugin {
 
 // evaluateExpression executes a JavaScript expression in the context of the current page.
 // If the script is not attached, it will be attached first.
+//
 // Parameters:
 //   - expression: The JavaScript code to execute
 //   - args: Optional arguments to pass to the JavaScript expression
 //
 // Returns the result of the evaluation and any error that occurred during execution.
 func (plugin *playwrightPlugin) evaluateExpression(expression string, args ...any) (any, error) {
-	// Check if script is already attached
 	isAttached, err := (*plugin.page).Evaluate("() => window.locatrScriptAttached === true")
 	if err != nil || isAttached == nil || !isAttached.(bool) {
 		if _, err := (*plugin.page).AddScriptTag(
@@ -94,6 +95,7 @@ func (plugin *playwrightPlugin) GetMinifiedDOM() (*types.DOM, error) {
 }
 
 // IsLocatorValid checks if a given CSS selector matches any elements on the page.
+//
 // Parameters:
 //   - locator: The CSS selector to validate
 //
@@ -110,6 +112,7 @@ func (plugin *playwrightPlugin) IsLocatorValid(locator string) (bool, error) {
 }
 
 // SetViewportSize adjusts the browser viewport to the specified dimensions.
+//
 // Parameters:
 //   - width: Viewport width in pixels
 //   - height: Viewport height in pixels
@@ -130,6 +133,7 @@ func (plugin *playwrightPlugin) TakeScreenshot() ([]byte, error) {
 }
 
 // GetElementLocators retrieves the locators for the element at the given point and scroll position.
+//
 // Parameters:
 //   - location: The location of the element to get the locators from
 //
@@ -150,6 +154,7 @@ func (plugin *playwrightPlugin) GetElementLocators(location *types.Location) ([]
 }
 
 // GetElementLocation retrieves the location of the element identified by the given locator.
+//
 // Parameters:
 //   - locator: The CSS selector identifying the target element
 //

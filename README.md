@@ -13,116 +13,122 @@ go get github.com/vertexcover-io/locatr/golang
 ### Initialize an automation plugin of your choice.
 
 - Playwright
-	<details>
-	<summary>Set up a Playwright page</summary>
+    <details>
+    <summary>Set up a Playwright page</summary>
 
-	```go
-	import (
-		"log"
+    ```go
+    import (
+        "log"
 
-		"github.com/playwright-community/playwright-go"
-	)
+        "github.com/playwright-community/playwright-go"
+    )
 
-	pw, err := playwright.Run()
-	if err != nil {
-		log.Fatalf("could not start Playwright: %v", err)
-	}
-	
-	// --- Launch a browser ---
-	browser, err := pw.Chromium.Launch(
-		playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(false)},
-	)
-	// OR, --- Connect to a browser over CDP ---
-	browser, err := pw.Chromium.ConnectOverCDP("<cdp-session-url>")
+    pw, err := playwright.Run()
+    if err != nil {
+        log.Fatalf("could not start Playwright: %v", err)
+    }
+    
+    // --- Launch a browser ---
+    browser, err := pw.Chromium.Launch(
+        playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(false)},
+    )
+    // OR, --- Connect to a browser over CDP ---
+    browser, err := pw.Chromium.ConnectOverCDP("<cdp-session-url>")
 
-	if err != nil {
-		log.Fatalf("could not connect to browser: %v", err)
-	}
+    if err != nil {
+        log.Fatalf("could not connect to browser: %v", err)
+    }
 
-	browserContext, err := browser.NewContext(
-		playwright.BrowserNewContextOptions{BypassCSP: playwright.Bool(true)},
-	)
-	if err != nil {
-		log.Fatalf("could not create browser context: %v", err)
-	}
+    browserContext, err := browser.NewContext(
+        playwright.BrowserNewContextOptions{BypassCSP: playwright.Bool(true)},
+    )
+    if err != nil {
+        log.Fatalf("could not create browser context: %v", err)
+    }
 
-	page, err := browserContext.NewPage()
-	if err != nil {
-		log.Fatalf("could not create new page: %v", err)
-	}
+    page, err := browserContext.NewPage()
+    if err != nil {
+        log.Fatalf("could not create new page: %v", err)
+    }
 
-	if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
-		log.Fatalf("failed to load URL: %v", err)
-	}
-	```
-	</details>
-	
-	```go
-	import "github.com/vertexcover-io/locatr/golang/plugins"
+    if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
+        log.Fatalf("failed to load URL: %v", err)
+    }
+    ```
+    </details>
+    
+    ```go
+    import "github.com/vertexcover-io/locatr/golang/plugins"
 
-	plugin := plugins.NewPlaywrightPlugin(&page)
-	```
+    plugin := plugins.NewPlaywrightPlugin(&page)
+    ```
 
 - Selenium
-	<details>
-	<summary>Set up a Selenium driver</summary>
+    > Note: Make sure to use `--force-device-scale-factor=1` flag when launching the browser for visual analysis mode to work correctly.
 
-	```go
-	import (
-		"log"
+    <details>
+    <summary>Set up a Selenium driver</summary>
 
-		"github.com/vertexcover-io/selenium"
-	)
-	service, err := selenium.NewChromeDriverService(
-		"path/to/chromedriver-executable", 4444,
-	)
-	if err != nil {
-		log.Fatalf("failed to create service: %v", err)
-	}
+    ```go
+    import (
+        "log"
 
-	driver, err := selenium.NewRemote(selenium.Capabilities{}, "")
-	// OR, --- Connect to a remote driver session---
-	driver, err := selenium.ConnectRemote("<url>", "<session-id>")
+        "github.com/vertexcover-io/selenium"
+        "github.com/vertexcover-io/selenium/chrome"
+    )
+    service, err := selenium.NewChromeDriverService(
+        "path/to/chromedriver-executable", 4444,
+    )
+    if err != nil {
+        log.Fatalf("failed to create service: %v", err)
+    }
 
-	if err != nil {
-		log.Fatalf("could not connect to driver: %v", err)
-	}
+    caps := selenium.Capabilities{}
+    caps.AddChrome(chrome.Capabilities{Args: []string{"--force-device-scale-factor=1"}})
 
-	if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
-		log.Fatalf("failed to load URL: %v", err)
-	}
-	```
-	</details>
+    driver, err := selenium.NewRemote(caps, "")
+    // OR, --- Connect to a remote driver session---
+    driver, err := selenium.ConnectRemote("<url>", "<session-id>")
 
-	```go
-	import "github.com/vertexcover-io/locatr/golang/plugins"
+    if err != nil {
+        log.Fatalf("could not connect to driver: %v", err)
+    }
 
-	plugin := plugins.NewSeleniumPlugin(&driver)
-	```
+    if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
+        log.Fatalf("failed to load URL: %v", err)
+    }
+    ```
+    </details>
+
+    ```go
+    import "github.com/vertexcover-io/locatr/golang/plugins"
+
+    plugin := plugins.NewSeleniumPlugin(&driver)
+    ```
 
 - Appium
-	
-	```go
-	import "github.com/vertexcover-io/locatr/golang/plugins"
+    
+    ```go
+    import "github.com/vertexcover-io/locatr/golang/plugins"
 
-	plugin, err := plugins.NewAppiumPlugin("<appium-url>", "<appium-session-id>")
-	if err != nil {
-		log.Fatalf("failed to create appium plugin: %v", err)
-	}
-	```
+    plugin, err := plugins.NewAppiumPlugin("<appium-url>", "<appium-session-id>")
+    if err != nil {
+        log.Fatalf("failed to create appium plugin: %v", err)
+    }
+    ```
 
 ### Create a Locatr instance
 
 ```go
 import (
-	"log"
+    "log"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
+    locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 locatr, err := locatr.NewLocatr(plugin)
 if err != nil {
-	log.Fatalf("failed to create locatr: %v", err)
+    log.Fatalf("failed to create locatr: %v", err)
 }
 ```
 
@@ -137,19 +143,18 @@ LLM Client
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/llm"
+    locatr "github.com/vertexcover-io/locatr/golang"
+    "github.com/vertexcover-io/locatr/golang/llm"
 )
 
 llmClient, err := llm.NewLLMClient(
-	llm.WithProvider(llm.OpenAI),
-	llm.WithModel("gpt-4o"),
-	llm.WithAPIKey("<openai-api-key>"),
+    llm.WithProvider(llm.OpenAI),
+    llm.WithModel("gpt-4o"),
+    llm.WithAPIKey("<openai-api-key>"),
 )
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	locatr.WithLLMClient(llmClient),
+    plugin, locatr.WithLLMClient(llmClient),
 )
 ```
 
@@ -159,19 +164,19 @@ Reranker Client
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/reranker"
+    locatr "github.com/vertexcover-io/locatr/golang"
+    "github.com/vertexcover-io/locatr/golang/reranker"
 )
 
 rerankerClient, err := reranker.NewRerankerClient(
-	reranker.WithProvider(reranker.Cohere),
-	reranker.WithModel("rerank-english-v3.0"),
-	reranker.WithAPIKey("<cohere-api-key>"),
+    reranker.WithProvider(reranker.Cohere),
+    reranker.WithModel("rerank-english-v3.0"),
+    reranker.WithAPIKey("<cohere-api-key>"),
 )
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	locatr.WithRerankerClient(rerankerClient),
+    plugin,
+    locatr.WithRerankerClient(rerankerClient),
 )
 ```
 
@@ -183,21 +188,20 @@ Mode
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/mode"
+    locatr "github.com/vertexcover-io/locatr/golang"
+    "github.com/vertexcover-io/locatr/golang/mode"
 )
 
 mode := mode.VisualAnalysisMode{
-	MaxAttempts: 3,
-	Resolution: &types.Resolution{
-		Width:  1280,
-		Height: 800,
-	},
+    MaxAttempts: 3,
+    Resolution: &types.Resolution{
+        Width:  1280,
+        Height: 800,
+    },
 }
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	locatr.WithMode(mode),
+    plugin, locatr.WithMode(mode),
 )
 ```
 
@@ -207,13 +211,11 @@ Enable Cache
 
 ```go
 import (
-	locatr "github.com/vertexcover-io/locatr/golang"
+    locatr "github.com/vertexcover-io/locatr/golang"
 )
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	// defaults to .locatr.cache, pass a path to use a different cache file
-	locatr.EnableCache(nil),
+    plugin, locatr.EnableCache(nil), // defaults to .locatr.cache, pass a path to use a different cache file
 )
 ```
 
@@ -224,7 +226,7 @@ locatr, err := locatr.NewLocatr(
 ```go
 completion, err := locatr.Locate("Star button")
 if err != nil {
-	log.Fatalf("failed to locate element: %v", err)
+    log.Fatalf("failed to locate element: %v", err)
 }
 fmt.Println(completion.Locators[0])
 ```
@@ -242,7 +244,7 @@ fmt.Printf("Cost: %v\n", cost)
 ```go
 imageBytes, err := locatr.Highlight(completion.Locators[0])
 if err != nil {
-	log.Fatalf("failed to highlight element: %v", err)
+    log.Fatalf("failed to highlight element: %v", err)
 }
 
 // Write the image to a file
