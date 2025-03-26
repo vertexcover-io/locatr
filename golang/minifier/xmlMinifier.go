@@ -399,7 +399,8 @@ func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLoca
 	// processElement(findFirstElementNode(root))
 	doc := NewXMLDoc(root)
 	processElement = func(elem *xmlquery.Node) {
-		xpath := GetOptimalXPath(doc, doc.Root())
+		xn := XMLNode(*elem)
+		xpath := GetOptimalXPath(doc, &xn)
 		if xpath != "" {
 			uniqueId := generateUniqueId(xpath)
 			elementMap[uniqueId] = []string{xpath}
