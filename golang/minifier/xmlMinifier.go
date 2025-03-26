@@ -407,9 +407,9 @@ func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLoca
 		}
 
 		for child := elem.FirstChild; child != nil; child = child.NextSibling {
-			if isValidElement(child, platform) {
-				processElement(child)
-			}
+			// if isValidElement(child, platform) {
+			processElement(child)
+			// }
 		}
 	}
 	processElement(findFirstElementNode(root))
