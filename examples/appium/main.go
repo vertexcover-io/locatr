@@ -66,7 +66,7 @@ func main() {
 	aLocatr, err := appiumLocatr.NewAppiumLocatr(
 		ctx,
 		"http://localhost:4723",
-		"e82076df-7186-4e53-b7bb-a7a5ac43332a", bLocatr,
+		"b97d1a76-3ad5-44a5-840d-286294d94bfc", bLocatr,
 	)
 	if err != nil {
 		fmt.Println("failed creating appium locatr locatr", err)

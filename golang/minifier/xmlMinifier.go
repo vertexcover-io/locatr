@@ -382,14 +382,30 @@ func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLoca
 		return nil, err
 	}
 	elementMap := make(elementSpec.IdToLocatorMap)
+
 	var processElement func(*xmlquery.Node)
-	processElement = func(element *xmlquery.Node) {
-		locatrs := getElementLocatrs(element)
-		if len(locatrs) != 0 {
-			uniqueId := generateUniqueId(locatrs[0])
-			elementMap[uniqueId] = locatrs
+	// processElement = func(element *xmlquery.Node) {
+	// 	locatrs := getElementLocatrs(element)
+	// 	if len(locatrs) != 0 {
+	// 		uniqueId := generateUniqueId(locatrs[0])
+	// 		elementMap[uniqueId] = locatrs
+	// 	}
+	// 	for child := element.FirstChild; child != nil; child = child.NextSibling {
+	// 		if isValidElement(child, platform) {
+	// 			processElement(child)
+	// 		}
+	// 	}
+	// }
+	// processElement(findFirstElementNode(root))
+	doc := NewXMLDoc(root)
+	processElement = func(elem *xmlquery.Node) {
+		xpath := GetOptimalXPath(doc, doc.Root())
+		if xpath != "" {
+			uniqueId := generateUniqueId(xpath)
+			elementMap[uniqueId] = []string{xpath}
 		}
-		for child := element.FirstChild; child != nil; child = child.NextSibling {
+
+		for child := elem.FirstChild; child != nil; child = child.NextSibling {
 			if isValidElement(child, platform) {
 				processElement(child)
 			}
