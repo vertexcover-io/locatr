@@ -64,6 +64,8 @@ go get github.com/vertexcover-io/locatr/golang
 	```
 
 - Selenium
+    > Note: Make sure to use `--force-device-scale-factor=1` flag when launching the browser for visual analysis mode to work correctly.
+
 	<details>
 	<summary>Set up a Selenium driver</summary>
 
@@ -72,6 +74,7 @@ go get github.com/vertexcover-io/locatr/golang
 		"log"
 
 		"github.com/vertexcover-io/selenium"
+        "github.com/vertexcover-io/selenium/chrome"
 	)
 	service, err := selenium.NewChromeDriverService(
 		"path/to/chromedriver-executable", 4444,
@@ -80,7 +83,10 @@ go get github.com/vertexcover-io/locatr/golang
 		log.Fatalf("failed to create service: %v", err)
 	}
 
-	driver, err := selenium.NewRemote(selenium.Capabilities{}, "")
+    caps := selenium.Capabilities{}
+	caps.AddChrome(chrome.Capabilities{Args: []string{"--force-device-scale-factor=1"}})
+
+	driver, err := selenium.NewRemote(caps, "")
 	// OR, --- Connect to a remote driver session---
 	driver, err := selenium.ConnectRemote("<url>", "<session-id>")
 
@@ -148,8 +154,7 @@ llmClient, err := llm.NewLLMClient(
 )
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	locatr.WithLLMClient(llmClient),
+    plugin, locatr.WithLLMClient(llmClient),
 )
 ```
 
@@ -196,8 +201,7 @@ mode := mode.VisualAnalysisMode{
 }
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	locatr.WithMode(mode),
+	plugin, locatr.WithMode(mode),
 )
 ```
 
@@ -211,9 +215,7 @@ import (
 )
 
 locatr, err := locatr.NewLocatr(
-	plugin,
-	// defaults to .locatr.cache, pass a path to use a different cache file
-	locatr.EnableCache(nil),
+	plugin, locatr.EnableCache(nil), // defaults to .locatr.cache, pass a path to use a different cache file
 )
 ```
 
