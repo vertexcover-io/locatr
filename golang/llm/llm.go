@@ -164,7 +164,6 @@ func (c *llmClient) openaiRequest(ctx context.Context, prompt string) (*ChatComp
 					Type: openai.F(openai.ResponseFormatJSONObjectTypeJSONObject),
 				},
 			),
-			TopP: openai.Float(0.0001),
 		},
 	)
 	span.AddEvent("chat completion response")
