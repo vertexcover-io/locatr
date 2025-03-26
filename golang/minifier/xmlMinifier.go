@@ -332,11 +332,14 @@ func createElementSpec(
 		return nil, fmt.Errorf("not a valid element")
 	}
 	text := getVisibleText(element, platform)
-	locatrs := getElementLocatrs(element)
-	uniqueId := ""
-	if len(locatrs) > 0 {
-		uniqueId = generateUniqueId(locatrs[0])
-	}
+	doc := NewXMLDoc(root)
+	xn := XMLNode(*element)
+	xpath := GetOptimalXPath(doc, &xn)
+	// locatrs := getElementLocatrs(element)
+	// if len(locatrs) > 0 {
+	// uniqueId = generateUniqueId(locatrs[0])
+	// }
+	uniqueId := generateUniqueId(xpath)
 	children := []elementSpec.ElementSpec{}
 	for child := element.FirstChild; child != nil; child = child.NextSibling {
 		c, err := createElementSpec(child, root, platform)
@@ -407,9 +410,9 @@ func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLoca
 		}
 
 		for child := elem.FirstChild; child != nil; child = child.NextSibling {
-			// if isValidElement(child, platform) {
-			processElement(child)
-			// }
+			if isValidElement(child, platform) {
+				processElement(child)
+			}
 		}
 	}
 	processElement(findFirstElementNode(root))
