@@ -96,7 +96,7 @@ func GetOptimalXPath(doc Document, domNode Node) string {
 		if len(siblings) > 1 {
 			idx := domNode.Index()
 
-			xpath = fmt.Sprintf("%s[%d]", xpath, idx+1)
+			xpath = fmt.Sprintf("%s[%d]", xpath, idx)
 		}
 
 	}
@@ -185,7 +185,7 @@ func getUniqueXPATH(doc Document, domNode Node, attrs []string) (valid bool, uni
 		}
 
 		if semiUniqueXPath == "" {
-			semiUniqueXPath = fmt.Sprintf("(%s)[%d]", xpath, idx+1)
+			semiUniqueXPath = fmt.Sprintf("(%s)[%d]", xpath, idx)
 		}
 	}
 

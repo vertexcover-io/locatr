@@ -75,7 +75,12 @@ func (n *XMLNode) ChildNodes() []Node {
 }
 
 func (n *XMLNode) Index() int {
-	idx, _ := strconv.Atoi(n.GetAttribute("index"))
+	idx, err := strconv.Atoi(n.GetAttribute("index"))
+	if err != nil || idx == 0 {
+		// if there is no index attribute, then it should
+		// be the first and the only element so return 1
+		return 1
+	}
 	return idx
 }
 
