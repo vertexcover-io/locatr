@@ -2,12 +2,12 @@ package minifier
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
 type Document interface {
 	Find(xpath string) []Node
-	IndexOf(node Node) int
 }
 
 type Node interface {
@@ -18,6 +18,7 @@ type Node interface {
 	GetParent() Node
 	ChildNodes() []Node
 	Index() int
+	Equal(Node) bool
 }
 
 var (
@@ -201,7 +202,10 @@ func getUniqueXPATH(doc Document, domNode Node, attrs []string) (valid bool, uni
 func determineXpathUniqueness(xpath string, doc Document, domNode Node) (bool, int) {
 	elems := doc.Find(xpath)
 	if len(elems) > 1 {
-		return false, doc.IndexOf(domNode)
+		idx := slices.IndexFunc(elems, func(node Node) bool {
+			return domNode.Equal(node)
+		})
+		return false, idx + 1
 	}
 	return true, 0
 }

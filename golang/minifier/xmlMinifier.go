@@ -333,8 +333,8 @@ func createElementSpec(
 	}
 	text := getVisibleText(element, platform)
 	doc := NewXMLDoc(root)
-	xn := XMLNode(*element)
-	xpath := GetOptimalXPath(doc, &xn)
+	xn := NewXMLNode(element)
+	xpath := GetOptimalXPath(doc, xn)
 	// locatrs := getElementLocatrs(element)
 	// if len(locatrs) > 0 {
 	// uniqueId = generateUniqueId(locatrs[0])
@@ -402,8 +402,8 @@ func MapXMLElementsToJson(source string, platform string) (*elementSpec.IdToLoca
 	// processElement(findFirstElementNode(root))
 	doc := NewXMLDoc(root)
 	processElement = func(elem *xmlquery.Node) {
-		xn := XMLNode(*elem)
-		xpath := GetOptimalXPath(doc, &xn)
+		xn := NewXMLNode(elem)
+		xpath := GetOptimalXPath(doc, xn)
 		if xpath != "" {
 			uniqueId := generateUniqueId(xpath)
 			elementMap[uniqueId] = []string{xpath}
