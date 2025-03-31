@@ -7,6 +7,7 @@ toolchain go1.23.5
 require (
 	github.com/antchfx/xmlquery v1.4.4
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.13
+	github.com/beevik/etree v1.5.0
 	github.com/cohere-ai/cohere-go/v2 v2.12.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/kaptinlin/jsonrepair v0.1.0

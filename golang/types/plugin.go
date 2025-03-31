@@ -17,6 +17,9 @@ type PluginInterface interface {
 	// GetMinifiedDOM retrieves the minified DOM and associated metadata of the current context.
 	GetMinifiedDOM() (*DOM, error)
 
+	// ExtractFirstUniqueID extracts the first unique ID from the given fragment.
+	ExtractFirstUniqueID(fragment string) (string, error)
+
 	// IsLocatorValid verifies if the given locator is valid.
 	IsLocatorValid(locator string) (bool, error)
 

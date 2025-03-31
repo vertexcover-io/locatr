@@ -299,7 +299,7 @@ func TestExtractFirstUniqueID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ExtractFirstUniqueID(tt.html)
+			got, err := ExtractFirstUniqueHTMLID(tt.html)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

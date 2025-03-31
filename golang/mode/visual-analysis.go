@@ -87,8 +87,9 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	for attempt, chunk := range domChunks {
 		logger.Info("Attempt number", "attempt", attempt+1)
 
-		id, err := utils.ExtractFirstUniqueID(chunk)
+		id, err := plugin.ExtractFirstUniqueID(chunk)
 		if err != nil {
+			logger.Error("couldn't extract first unique id", "error", err)
 			continue
 		}
 		if err := plugin.SetViewportSize(m.Resolution.Width, m.Resolution.Height); err != nil {
@@ -156,7 +157,6 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		}
 
 		elementPoint := types.Point{X: xCoord, Y: yCoord}
-		logger.Info("elementPoint", "point", elementPoint)
 		locators, err := plugin.GetElementLocators(&types.Location{
 			Point:          elementPoint,
 			ScrollPosition: chunkLocation.ScrollPosition,

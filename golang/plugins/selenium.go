@@ -96,6 +96,11 @@ func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
 	return dom, nil
 }
 
+// ExtractFirstUniqueID extracts the first unique ID from the given fragment.
+func (plugin *seleniumPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
+	return utils.ExtractFirstUniqueHTMLID(fragment)
+}
+
 // IsLocatorValid checks if a given CSS selector matches any elements on the page.
 //
 // Parameters:

@@ -188,7 +188,7 @@ func (s *AppiumTestSuite) TestFindElement() {
 				}
 			})
 
-			err := s.client.FindElement(tc.locator)
+			_, err := s.client.FindElement("", tc.locator)
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {

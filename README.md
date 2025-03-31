@@ -242,7 +242,7 @@ fmt.Printf("Cost: %v\n", cost)
 ### Highlight the locator
 
 ```go
-imageBytes, err := locatr.Highlight(completion.Locators[0])
+imageBytes, err := locatr.Highlight(completion.Locators[0], nil)
 if err != nil {
     log.Fatalf("failed to highlight element: %v", err)
 }

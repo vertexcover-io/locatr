@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/vertexcover-io/locatr/golang/logging"
+	"github.com/vertexcover-io/locatr/golang/types"
 )
 
 type Client struct {
@@ -65,6 +66,7 @@ type getActivityResponse struct {
 }
 
 var ErrSessionNotActive = errors.New("session not active")
+var ErrEvaulatingScriptFailed = errors.New("failed evaulating script")
 
 var ErrFailedConnectingToAppiumServer = errors.New("failed connecting to appium server")
 
@@ -82,7 +84,7 @@ func NewClient(serverUrl string, sessionId string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	joinedUrl := baseUrl.JoinPath("session").JoinPath(sessionId)
+	joinedUrl := baseUrl.JoinPath("session", sessionId)
 	client := createNewHttpClient(joinedUrl.String())
 	resp, err := client.R().Get("/context")
 	if err != nil {
@@ -115,8 +117,8 @@ func (c *Client) ExecuteScript(script string, args []any) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFailedConnectingToAppiumServer, err)
 	}
-	if response.StatusCode() != 200 {
-		return nil, fmt.Errorf("%w: %s", ErrSessionNotActive, c.sessionId)
+	if response.IsError() {
+		return nil, fmt.Errorf("%w: %s", ErrEvaulatingScriptFailed, response.Error())
 	}
 	var respBody resp
 	err = json.Unmarshal(response.Body(), &respBody)
@@ -171,18 +173,12 @@ func (c *Client) GetPageSource() (string, error) {
 	return responseBody.Value, nil
 }
 
-func (c *Client) FindElement(locator string) error {
+func (c *Client) FindElement(using, value string) (*string, error) {
 	defer logging.CreateTopic("Appium: FindElement", logging.DefaultLogger)()
 
-	var locatrType string
-	if c.IsWebView() {
-		locatrType = "css selector"
-	} else {
-		locatrType = "xpath"
-	}
 	requestBody := findElementRequest{
-		Using: locatrType,
-		Value: locator,
+		Using: using,
+		Value: value,
 	}
 	response, err := c.httpClient.R().
 		SetBody(requestBody).
@@ -190,32 +186,37 @@ func (c *Client) FindElement(locator string) error {
 		Post("element")
 
 	if err != nil {
-		return fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
+		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	if response.StatusCode() != 200 {
 		var result appiumGetElementResponse
 		err = json.Unmarshal(response.Body(), &result)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal response: %w", err)
+			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 		}
-		return fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
+		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
-	return nil
+	var res map[string]map[string]string
+	err = json.Unmarshal(response.Body(), &res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	return types.Ptr(res["value"]["ELEMENT"]), nil
 }
 
 func (c *Client) GetCapabilities() (*sessionResponse, error) {
 	defer logging.CreateTopic("Appium: GetCapabilities", logging.DefaultLogger)()
 
-	response, err := c.httpClient.R().SetResult(&sessionResponse{}).Get("/")
+	response, err := c.httpClient.R().SetResult(&sessionResponse{}).Get("")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
 	var result sessionResponse
 	err = json.Unmarshal(response.Body(), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 	if response.StatusCode() != 200 {
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-		}
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
 	return &result, nil
