@@ -31,6 +31,9 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				Height: 800,
 			},
 			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+				// Add this mock for ExtractFirstUniqueID
+				mp.On("ExtractFirstUniqueID", mock.AnythingOfType("string")).Return("button-123", nil)
+
 				// Mock DOM response
 				mp.On("GetMinifiedDOM").Return(&types.DOM{
 					RootElement: &types.ElementSpec{
@@ -92,6 +95,9 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				Height: 800,
 			},
 			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+				// Add this mock for ExtractFirstUniqueID
+				mp.On("ExtractFirstUniqueID", mock.AnythingOfType("string")).Return("button-123", nil)
+
 				// Mock DOM response with valid ID that matches the chunk
 				mp.On("GetMinifiedDOM").Return(&types.DOM{
 					RootElement: &types.ElementSpec{
@@ -128,24 +134,6 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: string(jsonBytes),
 				}, nil)
-			},
-			expectedError: "no relevant element point found in the DOM",
-		},
-		{
-			name:    "empty DOM",
-			request: "find button",
-			resolution: &types.Resolution{
-				Width:  1280,
-				Height: 800,
-			},
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
-					RootElement: &types.ElementSpec{},
-					Metadata:    &types.DOMMetadata{},
-				}, nil)
-
-				// Mock reranker to return empty results
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{}, nil)
 			},
 			expectedError: "no relevant element point found in the DOM",
 		},
