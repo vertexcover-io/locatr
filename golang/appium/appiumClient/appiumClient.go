@@ -49,7 +49,7 @@ type Capabilities struct {
 	LastScrollData interface{} `json:"lastScrollData"`
 }
 
-type sessionResponse struct {
+type SessionResponse struct {
 	Value struct {
 		Capabilities
 		Cap        Capabilities `json:"capabilities"`
@@ -121,7 +121,7 @@ type resp struct {
 	Value any `json:"value"`
 }
 
-func (ac *AppiumClient) ExecuteScript(ctx context.Context, script string, args []any) (any, error) {
+func (ac *AppiumClient) ExecuteScript(ctx context.Context, script string, args ...any) (any, error) {
 	defer logger.GetTimeLogger("Appium: ExecuteScript")()
 
 	_, span := tracing.StartSpan(ctx, "ExecuteScript")
@@ -129,7 +129,7 @@ func (ac *AppiumClient) ExecuteScript(ctx context.Context, script string, args [
 
 	body := map[string]any{
 		"script": script,
-		"args":   []string{},
+		"args":   args,
 	}
 	bodyJson, err := json.Marshal(body)
 	if err != nil {
@@ -303,14 +303,14 @@ func (ac *AppiumClient) FindElement(ctx context.Context, locator, locator_type s
 	return nil
 }
 
-func (ac *AppiumClient) GetCapabilities(ctx context.Context) (*sessionResponse, error) {
+func (ac *AppiumClient) GetCapabilities(ctx context.Context) (*SessionResponse, error) {
 	defer logger.GetTimeLogger("Appium: GetCapabilities")()
 
 	_, span := tracing.StartSpan(ctx, "GetCapabilities")
 	defer span.End()
 
 	span.AddEvent("request /")
-	response, err := ac.httpClient.R().SetResult(&sessionResponse{}).Get("/")
+	response, err := ac.httpClient.R().SetResult(&SessionResponse{}).Get("/")
 	span.AddEvent("response /")
 
 	logger.Logger.Debug(
@@ -325,7 +325,7 @@ func (ac *AppiumClient) GetCapabilities(ctx context.Context) (*sessionResponse, 
 
 	span.AddEvent("read response")
 
-	var result sessionResponse
+	var result SessionResponse
 	body := response.Body()
 	err = json.Unmarshal(body, &result)
 	if response.StatusCode() != 200 {

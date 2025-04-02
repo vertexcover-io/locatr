@@ -15,8 +15,17 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+type AppiumClient interface {
+	IsWebView(context.Context) bool
+	ExecuteScript(context.Context, string, ...any) (any, error)
+	GetPageSource(context.Context) (string, error)
+	GetCapabilities(context.Context) (*appiumClient.SessionResponse, error)
+	GetCurrentActivity(context.Context) (string, error)
+	FindElement(ctx context.Context, locator, locator_type string) error
+}
+
 type appiumPlugin struct {
-	client *appiumClient.AppiumClient
+	client AppiumClient
 }
 
 type appiumLocatr struct {
@@ -66,7 +75,7 @@ func (apPlugin *appiumPlugin) GetMinifiedDomAndLocatorMap(ctx context.Context) (
 }
 
 func (apPlugin *appiumPlugin) evaluateJsScript(ctx context.Context, script string) error {
-	_, err := apPlugin.client.ExecuteScript(ctx, script, nil)
+	_, err := apPlugin.client.ExecuteScript(ctx, script)
 	if err != nil {
 		return fmt.Errorf("failed to evaluate JS script: %w", err)
 	}
@@ -75,7 +84,7 @@ func (apPlugin *appiumPlugin) evaluateJsScript(ctx context.Context, script strin
 
 func (apPlugin *appiumPlugin) evaluateJsFunction(ctx context.Context, function string) (string, error) {
 	rFunction := "return " + function
-	result, err := apPlugin.client.ExecuteScript(ctx, rFunction, nil)
+	result, err := apPlugin.client.ExecuteScript(ctx, rFunction)
 	if err != nil {
 		return "", fmt.Errorf("failed to evaluate JS function: %w", err)
 	}
