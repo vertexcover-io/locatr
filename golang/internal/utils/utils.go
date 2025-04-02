@@ -313,9 +313,12 @@ func ScaleAndPadImage(img image.Image, targetResolution *types.Resolution) image
 	origHeight := origBounds.Dy()
 
 	// Compute the scale factor to fit the image into the target dimensions.
-	scale := math.Min(float64(targetResolution.Width)/float64(origWidth), float64(targetResolution.Height)/float64(origHeight))
-	newWidth := int(float64(origWidth) * scale)
-	newHeight := int(float64(origHeight) * scale)
+	scale := math.Min(
+		float64(targetResolution.Width)/float64(origWidth),
+		float64(targetResolution.Height)/float64(origHeight),
+	)
+	newWidth := int(math.Round(float64(origWidth) * scale))
+	newHeight := int(math.Round(float64(origHeight) * scale))
 
 	// Resize the original image.
 	// Here we use a simple nearest neighbor approach; you might want a more sophisticated algorithm.
@@ -323,8 +326,8 @@ func ScaleAndPadImage(img image.Image, targetResolution *types.Resolution) image
 	for y := 0; y < newHeight; y++ {
 		for x := 0; x < newWidth; x++ {
 			// Compute the corresponding pixel in the source image.
-			srcX := int(float64(x) / scale)
-			srcY := int(float64(y) / scale)
+			srcX := int(math.Round(float64(x) / scale))
+			srcY := int(math.Round(float64(y) / scale))
 			// Clamp to the source bounds if necessary.
 			if srcX >= origWidth {
 				srcX = origWidth - 1
@@ -363,8 +366,8 @@ func ScaleAndPadImage(img image.Image, targetResolution *types.Resolution) image
 func RemapPoint(point *types.Point, originalResolution *types.Resolution, targetResolution *types.Resolution) *types.Point {
 	// Compute the scale factor used in Letterbox.
 	scale := math.Min(float64(targetResolution.Width)/float64(originalResolution.Width), float64(targetResolution.Height)/float64(originalResolution.Height))
-	newWidth := int(float64(originalResolution.Width) * scale)
-	newHeight := int(float64(originalResolution.Height) * scale)
+	newWidth := int(math.Round(float64(originalResolution.Width) * scale))
+	newHeight := int(math.Round(float64(originalResolution.Height) * scale))
 
 	// Calculate the padding offsets.
 	padX := (targetResolution.Width - newWidth) / 2

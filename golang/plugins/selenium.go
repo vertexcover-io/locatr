@@ -11,9 +11,17 @@ import (
 )
 
 // seleniumPlugin encapsulates browser automation functionality using the Selenium WebDriver.
+//
+// Attributes:
+//   - BrowserName: Name of the browser (e.g. "chrome", "firefox", etc.)
+//   - DevicePixelRatio: Device pixel ratio of the browser
 type seleniumPlugin struct {
 	// Selenium WebDriver instance
 	driver *selenium.WebDriver
+	// Name of the browser (e.g. "chrome", "firefox", etc.)
+	BrowserName string
+	// Device pixel ratio of the browser
+	DevicePixelRatio float64
 }
 
 // NewSeleniumPlugin initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
@@ -22,8 +30,23 @@ type seleniumPlugin struct {
 //   - driver: Pointer to a configured Selenium WebDriver instance
 //
 // Returns the initialized plugin.
-func NewSeleniumPlugin(driver *selenium.WebDriver) *seleniumPlugin {
-	return &seleniumPlugin{driver: driver}
+func NewSeleniumPlugin(driver *selenium.WebDriver) (*seleniumPlugin, error) {
+	caps, err := (*driver).Capabilities()
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get capabilities: %s", err.Error())
+	}
+
+	devicePixelRatio, err := (*driver).ExecuteScript("return window.devicePixelRatio", []any{})
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get device pixel ratio: %s", err.Error())
+	}
+
+	plugin := &seleniumPlugin{
+		driver:           driver,
+		BrowserName:      caps["browserName"].(string),
+		DevicePixelRatio: utils.GetFloatValue(devicePixelRatio),
+	}
+	return plugin, nil
 }
 
 // evaluateExpression executes a JavaScript expression in the current context.

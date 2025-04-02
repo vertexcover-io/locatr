@@ -98,6 +98,8 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		}
 
 		locator := locatorMap[id][0]
+		fmt.Println("ID", id)
+		fmt.Println("LOCATOR", locator)
 		chunkLocation, err := plugin.GetElementLocation(locator)
 		if err != nil {
 			logger.Error("couldn't find chunk on the page", "error", err)

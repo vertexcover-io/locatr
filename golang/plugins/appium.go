@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/vertexcover-io/locatr/golang/internal/appium"
 	"github.com/vertexcover-io/locatr/golang/internal/constants"
@@ -21,10 +23,15 @@ import (
 )
 
 // appiumPlugin encapsulates browser automation functionality using the Appium client.
+//
+// Attributes:
+//   - PlatformName: The name of the platform (e.g. "Android", "iOS")
 type appiumPlugin struct {
 	client             *appium.Client
 	originalResolution *types.Resolution
 	targetResolution   *types.Resolution
+	// Name of the platform (e.g. "Android", "iOS")
+	PlatformName string
 }
 
 // NewAppiumPlugin initializes a new plugin instance with the provided Appium client.
@@ -37,7 +44,15 @@ func NewAppiumPlugin(serverUrl, sessionId string) (*appiumPlugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	plugin := &appiumPlugin{client: client}
+	caps, err := client.GetCapabilities()
+	if err != nil {
+		return nil, err
+	}
+	platFormName := caps.Value.PlatformName
+	if platFormName == "" {
+		platFormName = caps.Value.Cap.PlatformName
+	}
+	plugin := &appiumPlugin{client: client, PlatformName: platFormName}
 	_, _ = plugin.TakeScreenshot() // This will set the original resolution
 	return plugin, nil
 }
@@ -102,19 +117,12 @@ func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
 	if err != nil {
 		return nil, err
 	}
-	capabilities, err := plugin.client.GetCapabilities()
+
+	eSpec, err := xml.MinifySource(pageSource, plugin.PlatformName)
 	if err != nil {
 		return nil, err
 	}
-	platFormName := capabilities.Value.PlatformName
-	if platFormName == "" {
-		platFormName = capabilities.Value.Cap.PlatformName
-	}
-	eSpec, err := xml.MinifySource(pageSource, platFormName)
-	if err != nil {
-		return nil, err
-	}
-	locatrMap, err := xml.MapElementsToJson(pageSource, platFormName)
+	locatrMap, err := xml.MapElementsToJson(pageSource, plugin.PlatformName)
 	if err != nil {
 		return nil, err
 	}
@@ -129,13 +137,8 @@ func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
 
 // GetCurrentContext retrieves the current context of the plugin.
 func (plugin *appiumPlugin) GetCurrentContext() (*string, error) {
-	caps, err := plugin.client.GetCapabilities()
-	if err != nil {
-		return nil, err
-	}
-	platform := caps.Value.PlatformName
-	if strings.ToLower(platform) != "android" {
-		return nil, fmt.Errorf("cannot read platform '%s' current context", platform)
+	if strings.ToLower(plugin.PlatformName) != "android" {
+		return nil, fmt.Errorf("cannot read platform '%s' current context", plugin.PlatformName)
 	}
 	if currentActivity, err := plugin.client.GetCurrentActivity(); err != nil {
 		return &currentActivity, nil
@@ -263,21 +266,20 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 		location.Point = *utils.RemapPoint(&location.Point, plugin.originalResolution, plugin.targetResolution)
 	}
 
-	caps, err := plugin.client.GetCapabilities()
-	if err != nil {
-		return nil, err
-	}
-	platform := strings.ToLower(caps.Value.PlatformName)
-
-	candidateChan := make(chan candidate, 10)
-	var wg sync.WaitGroup
-
-	var searchElement func(element *types.ElementSpec)
+	var (
+		wg            sync.WaitGroup
+		searchElement func(element *types.ElementSpec)
+		candidateChan = make(chan candidate, 10)
+		platform      = strings.ToLower(plugin.PlatformName)
+	)
 	searchElement = func(element *types.ElementSpec) {
 		defer wg.Done()
 
-		var elementPoint *types.Point
-		attrs := element.Attributes
+		var (
+			err          error
+			elementPoint *types.Point
+			attrs        = element.Attributes
+		)
 
 		if platform == "android" && attrs["bounds"] != "" {
 			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
@@ -331,12 +333,14 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 
 // GetElementLocation retrieves the location of the element associated with the given locator.
 func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location, error) {
+	var (
+		wg            sync.WaitGroup
+		searchElement func(element *types.ElementSpec)
+		platform      = strings.ToLower(plugin.PlatformName)
+		resultChan    = make(chan *types.ElementSpec, 1)
+		uniqueId      = xml.GenerateUniqueId(locator)
+	)
 
-	uniqueId := xml.GenerateUniqueId(locator)
-	resultChan := make(chan *types.ElementSpec, 1)
-	var wg sync.WaitGroup
-
-	var searchElement func(element *types.ElementSpec)
 	searchElement = func(element *types.ElementSpec) {
 		defer wg.Done()
 
@@ -367,31 +371,43 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 		close(resultChan)
 	}()
 
-	caps, err := plugin.client.GetCapabilities()
-	if err != nil {
-		return nil, err
-	}
-	platform := strings.ToLower(caps.Value.PlatformName)
+	// Move the select statement into a timeout context
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
 	select {
-	case result := <-resultChan:
+	case result, ok := <-resultChan:
+		if !ok {
+			return nil, fmt.Errorf("could not locate element associated with locator: %s", locator)
+		}
+
 		attrs := result.Attributes
 		var elementPoint *types.Point
 
 		if platform == "android" && attrs["bounds"] != "" {
 			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
 		} else if platform == "ios" && attrs["x"] != "" && attrs["y"] != "" {
-			elementPoint, err = parseAndCalculateCenter(attrs["x"], attrs["y"], attrs["width"], attrs["height"])
+			elementPoint, err = parseAndCalculateCenter(
+				attrs["x"], attrs["y"], attrs["width"], attrs["height"],
+			)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate center: %v", err)
 		}
 
 		if plugin.targetResolution != nil && plugin.originalResolution != nil {
-			elementPoint = utils.RemapPointInverse(elementPoint, plugin.originalResolution, plugin.targetResolution)
+			elementPoint = utils.RemapPointInverse(
+				elementPoint, plugin.originalResolution, plugin.targetResolution,
+			)
 		}
-		return &types.Location{Point: *elementPoint, ScrollPosition: types.Point{X: 0.0, Y: 0.0}}, nil
-	default:
-		return nil, fmt.Errorf("could not locate element associated with locator: %s", locator)
+		location := &types.Location{
+			Point: *elementPoint,
+			// Scroll position is set to 0.0, 0.0 because DOM only contains
+			// what is available in the viewport.
+			ScrollPosition: types.Point{X: 0.0, Y: 0.0},
+		}
+		return location, nil
+	case <-ctx.Done():
+		return nil, fmt.Errorf("timeout while searching for element with locator: %s", locator)
 	}
 }

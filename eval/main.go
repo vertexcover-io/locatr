@@ -91,7 +91,11 @@ func runEval(context playwright.BrowserContext, eval *evalConfigYaml, modeString
 	} else {
 		options = append(options, locatr.WithMode(&mode.DOMAnalysisMode{MaxAttempts: 3, ChunksPerAttempt: 3}))
 	}
-	plugin := plugins.NewPlaywrightPlugin(&page)
+	plugin, err := plugins.NewPlaywrightPlugin(&page)
+	if err != nil {
+		logger.Error("Error creating playwright plugin", "error", err)
+		return nil
+	}
 	locatr, err := locatr.NewLocatr(plugin, options...)
 	if err != nil {
 		logger.Error("Error creating locatr", "error", err)

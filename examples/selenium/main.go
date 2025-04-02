@@ -35,7 +35,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	plugin := plugins.NewSeleniumPlugin(&wd) // or directly pass the &driver
+	plugin, err := plugins.NewSeleniumPlugin(&wd)
+	if err != nil {
+		log.Fatal(err)
+	}
 	locatr, err := locatr.NewLocatr(plugin)
 	if err != nil {
 		log.Fatal(err)

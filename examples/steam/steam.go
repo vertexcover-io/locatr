@@ -43,7 +43,10 @@ func main() {
 	}
 	time.Sleep(5 * time.Second) // wait for page to load
 
-	plugin := plugins.NewPlaywrightPlugin(&page)
+	plugin, err := plugins.NewPlaywrightPlugin(&page)
+	if err != nil {
+		log.Fatalf("could not create playwright plugin: %v", err)
+	}
 	locatr, err := locatr.NewLocatr(plugin, locatr.EnableCache(nil))
 	if err != nil {
 		log.Fatalf("could not create locatr: %v", err)

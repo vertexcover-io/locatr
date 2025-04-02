@@ -60,7 +60,10 @@ go get github.com/vertexcover-io/locatr/golang
     ```go
     import "github.com/vertexcover-io/locatr/golang/plugins"
 
-    plugin := plugins.NewPlaywrightPlugin(&page)
+    plugin, err := plugins.NewPlaywrightPlugin(&page)
+    if err != nil {
+        log.Fatalf("failed to create playwright plugin: %v", err)
+    }
     ```
 
 - Selenium
@@ -103,7 +106,10 @@ go get github.com/vertexcover-io/locatr/golang
     ```go
     import "github.com/vertexcover-io/locatr/golang/plugins"
 
-    plugin := plugins.NewSeleniumPlugin(&driver)
+    plugin, err := plugins.NewSeleniumPlugin(&driver)
+    if err != nil {
+        log.Fatalf("failed to create selenium plugin: %v", err)
+    }
     ```
 
 - Appium
