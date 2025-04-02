@@ -15,7 +15,7 @@ exclude = ["*.cache"]
 
 [project]
 name = "test_locatr"
-version = "0.55.0"
+version = "0.56.0"
 description = "Get HTML/XML elements css/xpath selectors using natural language."
 readme = "python_client/README.md"
 requires-python = ">=3.9"
