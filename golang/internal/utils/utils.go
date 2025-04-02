@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"reflect"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -281,6 +282,40 @@ func GetFloatValue(v any) float64 {
 	default:
 		return float64(v.(int))
 	}
+}
+
+// GetStructFields returns the struct name and field values from an interface.
+// Parameters:
+//   - i: The interface to get the fields from
+//   - fieldNames: The names of the fields to retrieve
+//
+// Returns:
+//   - string: The name of the struct
+//   - map[string]reflect.Value: A map of field names to their reflected values
+//   - error: An error if the interface is not a struct
+func GetStructFields(i any, fieldNames ...string) (structName string, fields map[string]reflect.Value, err error) {
+	v := reflect.ValueOf(i)
+
+	// If it's a pointer, dereference it
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// Ensure it's a struct
+	if v.Kind() != reflect.Struct {
+		return "", nil, fmt.Errorf("expected struct, got %s", v.Kind())
+	}
+
+	// Get struct name
+	structName = v.Type().Name()
+	fields = make(map[string]reflect.Value)
+
+	// Retrieve requested fields
+	for _, fieldName := range fieldNames {
+		fields[fieldName] = v.FieldByName(fieldName)
+	}
+
+	return structName, fields, nil
 }
 
 // ParseJSON parses a JSON string from a text string and repairs it if possible.

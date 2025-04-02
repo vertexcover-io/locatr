@@ -46,6 +46,8 @@ type VisualAnalysisMode struct {
 	MaxAttempts int `json:"max_attempts"`
 }
 
+const deviceScaleFactorWarning = "Device scale factor != 1.0 may affect viewport sizing and element location. Use '--force-device-scale-factor=1' when creating driver."
+
 func (m *VisualAnalysisMode) ProcessRequest(
 	request string,
 	plugin types.PluginInterface,
@@ -55,7 +57,17 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	completion *types.LocatrCompletion,
 ) error {
 	defer logging.CreateTopic("[Mode] Visual Analysis", logger)()
+
+	pluginName, fields, err := utils.GetStructFields(plugin, "DevicePixelRatio")
+	if err == nil && pluginName == "seleniumPlugin" {
+		devicePixelRatio := fields["DevicePixelRatio"]
+		if devicePixelRatio.IsValid() && utils.GetFloatValue(devicePixelRatio.Interface()) != 1.0 {
+			logger.Warn(deviceScaleFactorWarning)
+		}
+	}
+
 	m.applyDefaults()
+
 	dom, err := plugin.GetMinifiedDOM()
 	if err != nil {
 		return err
