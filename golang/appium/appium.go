@@ -42,7 +42,7 @@ func NewAppiumLocatr(
 
 	span.AddEvent("Connecting to remote appium instance")
 
-	apC, err := appiumClient.NewAppiumClient(ctx, serverUrl, sessionId)
+	apC, err := appiumClient.NewAppiumCacheClient(ctx, serverUrl, sessionId)
 	if err != nil {
 		return nil, err
 	}
