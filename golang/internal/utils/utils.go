@@ -415,8 +415,8 @@ func RemapPoint(point *types.Point, originalResolution *types.Resolution, target
 	}
 
 	// Convert padded coordinate to scaled image coordinate.
-	origX := int((point.X - float64(padX)) / scale)
-	origY := int((point.Y - float64(padY)) / scale)
+	origX := int(math.Round((point.X - float64(padX)) / scale))
+	origY := int(math.Round((point.Y - float64(padY)) / scale))
 
 	// Clamp the result to the original image bounds.
 	if origX >= originalResolution.Width {
