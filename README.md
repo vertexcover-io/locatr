@@ -12,131 +12,132 @@ go get github.com/vertexcover-io/locatr/golang
 
 ### Initialize an automation plugin of your choice.
 
-- Playwright
-    <details>
-    <summary>Set up a Playwright page</summary>
+#### Playwright
+<details>
+<summary>Set up a Playwright page</summary>
 
-    ```go
-    import (
-        "log"
+```go
+import (
+    "log"
 
-        "github.com/playwright-community/playwright-go"
-    )
+    "github.com/playwright-community/playwright-go"
+)
 
-    pw, err := playwright.Run()
-    if err != nil {
-        log.Fatalf("could not start Playwright: %v", err)
-    }
-    
-    // --- Launch a browser ---
-    browser, err := pw.Chromium.Launch(
-        playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(false)},
-    )
-    // OR, --- Connect to a browser over CDP ---
-    browser, err := pw.Chromium.ConnectOverCDP("<cdp-session-url>")
+pw, err := playwright.Run()
+if err != nil {
+    log.Fatalf("could not start Playwright: %v", err)
+}
 
-    if err != nil {
-        log.Fatalf("could not connect to browser: %v", err)
-    }
+// --- Launch a browser ---
+browser, err := pw.Chromium.Launch(
+    playwright.BrowserTypeLaunchOptions{Headless: playwright.Bool(false)},
+)
+// OR, --- Connect to a browser over CDP ---
+browser, err := pw.Chromium.ConnectOverCDP("<cdp-session-url>")
 
-    browserContext, err := browser.NewContext(
-        playwright.BrowserNewContextOptions{BypassCSP: playwright.Bool(true)},
-    )
-    if err != nil {
-        log.Fatalf("could not create browser context: %v", err)
-    }
+if err != nil {
+    log.Fatalf("could not connect to browser: %v", err)
+}
 
-    page, err := browserContext.NewPage()
-    if err != nil {
-        log.Fatalf("could not create new page: %v", err)
-    }
+browserContext, err := browser.NewContext(
+    playwright.BrowserNewContextOptions{BypassCSP: playwright.Bool(true)},
+)
+if err != nil {
+    log.Fatalf("could not create browser context: %v", err)
+}
 
-    if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
-        log.Fatalf("failed to load URL: %v", err)
-    }
-    ```
-    </details>
-    
-    ```go
-    import "github.com/vertexcover-io/locatr/golang/plugins"
+page, err := browserContext.NewPage()
+if err != nil {
+    log.Fatalf("could not create new page: %v", err)
+}
 
-    plugin, err := plugins.NewPlaywrightPlugin(&page)
-    if err != nil {
-        log.Fatalf("failed to create playwright plugin: %v", err)
-    }
-    ```
+if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
+    log.Fatalf("failed to load URL: %v", err)
+}
+```
+</details>
 
-- Selenium
-    > Note: Make sure to use `--force-device-scale-factor=1` flag when launching the browser for visual analysis mode to work correctly.
+```go
+import "github.com/vertexcover-io/locatr/golang/plugins"
 
-    <details>
-    <summary>Set up a Selenium driver</summary>
+plugin, err := plugins.NewPlaywrightPlugin(&page)
+if err != nil {
+    log.Fatalf("failed to create playwright plugin: %v", err)
+}
+```
 
-    ```go
-    import (
-        "log"
+#### Selenium
 
-        "github.com/vertexcover-io/selenium"
-        "github.com/vertexcover-io/selenium/chrome"
-    )
-    service, err := selenium.NewChromeDriverService(
-        "path/to/chromedriver-executable", 4444,
-    )
-    if err != nil {
-        log.Fatalf("failed to create service: %v", err)
-    }
+> Note: Make sure to use `--force-device-scale-factor=1` flag when launching the browser for visual analysis mode to work correctly.
 
-    caps := selenium.Capabilities{}
-    caps.AddChrome(chrome.Capabilities{Args: []string{"--force-device-scale-factor=1"}})
+<details>
+<summary>Set up a Selenium driver</summary>
 
-    driver, err := selenium.NewRemote(caps, "")
-    // OR, --- Connect to a remote driver session---
-    driver, err := selenium.ConnectRemote("<url>", "<session-id>")
+```go
+import (
+    "log"
 
-    if err != nil {
-        log.Fatalf("could not connect to driver: %v", err)
-    }
+    "github.com/vertexcover-io/selenium"
+    "github.com/vertexcover-io/selenium/chrome"
+)
+service, err := selenium.NewChromeDriverService(
+    "path/to/chromedriver-executable", 4444,
+)
+if err != nil {
+    log.Fatalf("failed to create service: %v", err)
+}
 
-    if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
-        log.Fatalf("failed to load URL: %v", err)
-    }
-    ```
-    </details>
+caps := selenium.Capabilities{}
+caps.AddChrome(chrome.Capabilities{Args: []string{"--force-device-scale-factor=1"}})
 
-    ```go
-    import "github.com/vertexcover-io/locatr/golang/plugins"
+driver, err := selenium.NewRemote(caps, "")
+// OR, --- Connect to a remote driver session---
+driver, err := selenium.ConnectRemote("<url>", "<session-id>")
 
-    plugin, err := plugins.NewSeleniumPlugin(&driver)
-    if err != nil {
-        log.Fatalf("failed to create selenium plugin: %v", err)
-    }
-    ```
+if err != nil {
+    log.Fatalf("could not connect to driver: %v", err)
+}
 
-- Appium
-    
-    ```go
-    import "github.com/vertexcover-io/locatr/golang/plugins"
+if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
+    log.Fatalf("failed to load URL: %v", err)
+}
+```
+</details>
 
-    plugin, err := plugins.NewAppiumPlugin(
-        "<appium-server-url>", "<appium-session-id>",
-    )
-    // OR, --- Pass capabilities to create a new session ---
-    plugin, err := plugins.NewAppiumPlugin(
-        "<appium-server-url>", 
-        map[string]any{
-            "platformName": "Android",
-            "automationName": "UiAutomator2",
-            "deviceName": "emulator-5554",
-            "appPackage": "com.google.android.deskclock",
-            "appActivity": "com.android.deskclock.DeskClock",
-            "language": "en",
-            "locale": "US",
-        },
-    )
-    if err != nil {
-        log.Fatalf("failed to create appium plugin: %v", err)
-    }
-    ```
+```go
+import "github.com/vertexcover-io/locatr/golang/plugins"
+
+plugin, err := plugins.NewSeleniumPlugin(&driver)
+if err != nil {
+    log.Fatalf("failed to create selenium plugin: %v", err)
+}
+```
+
+#### Appium
+
+```go
+import "github.com/vertexcover-io/locatr/golang/plugins"
+
+plugin, err := plugins.NewAppiumPlugin(
+    "<appium-server-url>", "<appium-session-id>",
+)
+// OR, --- Pass capabilities to create a new session ---
+plugin, err := plugins.NewAppiumPlugin(
+    "<appium-server-url>", 
+    map[string]any{
+        "platformName": "Android",
+        "automationName": "UiAutomator2",
+        "deviceName": "emulator-5554",
+        "appPackage": "com.google.android.deskclock",
+        "appActivity": "com.android.deskclock.DeskClock",
+        "language": "en",
+        "locale": "US",
+    },
+)
+if err != nil {
+    log.Fatalf("failed to create appium plugin: %v", err)
+}
+```
 
 ### Create a Locatr instance
 
