@@ -34,16 +34,33 @@ type appiumPlugin struct {
 	PlatformName string
 }
 
-// NewAppiumPlugin initializes a new plugin instance with the provided Appium client.
+// NewAppiumPlugin initializes a new plugin instance from appium session id or capabilities by creating a new session.
 //
 // Parameters:
 //   - serverUrl: The URL of the Appium server
-//   - sessionId: The ID of the Appium session
-func NewAppiumPlugin(serverUrl, sessionId string) (*appiumPlugin, error) {
+//   - sessionIdOrCapabilities: The ID (string) of the Appium session or capabilities (map[string]any) to create a new session
+func NewAppiumPlugin(serverUrl string, sessionIdOrCapabilities any) (*appiumPlugin, error) {
+	var (
+		sessionId string
+		err       error
+	)
+	switch v := sessionIdOrCapabilities.(type) {
+	case string:
+		sessionId = v
+	case map[string]any:
+		sessionId, err = appium.NewSession(serverUrl, v)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("expected sessionId (string) or capabilities (map[string]any), got %T", sessionIdOrCapabilities)
+	}
+
 	client, err := appium.NewClient(serverUrl, sessionId)
 	if err != nil {
 		return nil, err
 	}
+
 	caps, err := client.GetCapabilities()
 	if err != nil {
 		return nil, err
@@ -52,6 +69,7 @@ func NewAppiumPlugin(serverUrl, sessionId string) (*appiumPlugin, error) {
 	if platFormName == "" {
 		platFormName = caps.Value.Cap.PlatformName
 	}
+
 	plugin := &appiumPlugin{client: client, PlatformName: platFormName}
 	_, _ = plugin.TakeScreenshot() // This will set the original resolution
 	return plugin, nil

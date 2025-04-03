@@ -66,6 +66,7 @@ type getActivityResponse struct {
 }
 
 var ErrSessionNotActive = errors.New("session not active")
+var ErrCreatingSessionFailed = errors.New("failed creating session")
 var ErrEvaulatingScriptFailed = errors.New("failed evaulating script")
 
 var ErrFailedConnectingToAppiumServer = errors.New("failed connecting to appium server")
@@ -78,8 +79,55 @@ func createNewHttpClient(baseUrl string) *resty.Client {
 	return client
 }
 
+func NewSession(serverUrl string, capabilities map[string]any) (string, error) {
+	defer logging.CreateTopic("Appium: NewSession", logging.DefaultLogger)()
+
+	alwaysMatch := make(map[string]any)
+	for k, v := range capabilities {
+		if k != "platformName" && !strings.HasPrefix(k, "appium:") {
+			alwaysMatch[fmt.Sprintf("appium:%s", k)] = v
+		} else {
+			alwaysMatch[k] = v
+		}
+	}
+
+	body := map[string]any{
+		"capabilities": map[string]any{
+			"alwaysMatch": alwaysMatch,
+			"firstMatch":  []any{[]map[string]any{}},
+		},
+	}
+
+	client := createNewHttpClient(strings.TrimSuffix(serverUrl, "/"))
+
+	resp, err := client.R().SetBody(body).Post("/session")
+	if err != nil {
+		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
+	}
+	if resp.StatusCode() != 200 {
+		return "", fmt.Errorf("%w : %s", ErrCreatingSessionFailed, resp.String())
+	}
+
+	var responseBody map[string]any
+	err = json.Unmarshal(resp.Body(), &responseBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	sessionData, ok := responseBody["value"].(map[string]any)
+	if !ok {
+		return "", fmt.Errorf("failed to get session value from response: %w", ErrSessionNotActive)
+	}
+
+	sessionId, ok := sessionData["sessionId"].(string)
+	if !ok || sessionId == "" {
+		return "", fmt.Errorf("failed to get sessionId from response: %w", ErrSessionNotActive)
+	}
+	return sessionId, nil
+}
+
 func NewClient(serverUrl string, sessionId string) (*Client, error) {
-	defer logging.CreateTopic("Creating appium client", logging.DefaultLogger)()
+	defer logging.CreateTopic("Appium: NewClient", logging.DefaultLogger)()
 	baseUrl, err := url.Parse(serverUrl)
 	if err != nil {
 		return nil, err

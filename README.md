@@ -117,7 +117,22 @@ go get github.com/vertexcover-io/locatr/golang
     ```go
     import "github.com/vertexcover-io/locatr/golang/plugins"
 
-    plugin, err := plugins.NewAppiumPlugin("<appium-url>", "<appium-session-id>")
+    plugin, err := plugins.NewAppiumPlugin(
+        "<appium-server-url>", "<appium-session-id>",
+    )
+    // OR, --- Pass capabilities to create a new session ---
+    plugin, err := plugins.NewAppiumPlugin(
+        "<appium-server-url>", 
+        map[string]any{
+            "platformName": "Android",
+            "automationName": "UiAutomator2",
+            "deviceName": "emulator-5554",
+            "appPackage": "com.google.android.deskclock",
+            "appActivity": "com.android.deskclock.DeskClock",
+            "language": "en",
+            "locale": "US",
+        },
+    )
     if err != nil {
         log.Fatalf("failed to create appium plugin: %v", err)
     }
