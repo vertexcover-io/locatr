@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
 )
 
 type Client struct {
@@ -128,12 +127,15 @@ func NewSession(serverUrl string, capabilities map[string]any) (string, error) {
 
 func NewClient(serverUrl string, sessionId string) (*Client, error) {
 	defer logging.CreateTopic("Appium: NewClient", logging.DefaultLogger)()
+
 	baseUrl, err := url.Parse(serverUrl)
 	if err != nil {
 		return nil, err
 	}
+
 	joinedUrl := baseUrl.JoinPath("session", sessionId)
 	client := createNewHttpClient(joinedUrl.String())
+
 	resp, err := client.R().Get("/context")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
@@ -141,6 +143,7 @@ func NewClient(serverUrl string, sessionId string) (*Client, error) {
 	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("%w : %s", ErrSessionNotActive, sessionId)
 	}
+
 	return &Client{
 		httpClient: client,
 		sessionId:  sessionId,
@@ -158,6 +161,7 @@ func (c *Client) ExecuteScript(script string, args []any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	response, err := c.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(bodyJson).
@@ -168,6 +172,7 @@ func (c *Client) ExecuteScript(script string, args []any) (any, error) {
 	if response.IsError() {
 		return nil, fmt.Errorf("%w: %s", ErrEvaulatingScriptFailed, response.Error())
 	}
+
 	var respBody resp
 	err = json.Unmarshal(response.Body(), &respBody)
 	if err != nil {
@@ -199,6 +204,7 @@ func (c *Client) IsWebView() bool {
 	if err != nil {
 		return false
 	}
+
 	view = strings.ToLower(view)
 	return strings.Contains(view, "webview") || strings.Contains(view, "chromium")
 }
@@ -213,6 +219,7 @@ func (c *Client) GetPageSource() (string, error) {
 	if response.StatusCode() != 200 {
 		return "", fmt.Errorf("%w : %s ", ErrSessionNotActive, c.sessionId)
 	}
+
 	var responseBody appiumPageSourceResponse
 	err = json.Unmarshal(response.Body(), &responseBody)
 	if err != nil {
@@ -236,6 +243,7 @@ func (c *Client) FindElement(using, value string) (*string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
+
 	if response.StatusCode() != 200 {
 		var result appiumGetElementResponse
 		err = json.Unmarshal(response.Body(), &result)
@@ -244,12 +252,15 @@ func (c *Client) FindElement(using, value string) (*string, error) {
 		}
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
+
 	var res map[string]map[string]string
 	err = json.Unmarshal(response.Body(), &res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
-	return types.Ptr(res["value"]["ELEMENT"]), nil
+
+	elementId := res["value"]["ELEMENT"]
+	return &elementId, nil
 }
 
 func (c *Client) GetCapabilities() (*sessionResponse, error) {
@@ -259,11 +270,13 @@ func (c *Client) GetCapabilities() (*sessionResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
+
 	var result sessionResponse
 	err = json.Unmarshal(response.Body(), &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+
 	if response.StatusCode() != 200 {
 		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
 	}
@@ -277,6 +290,7 @@ func (c *Client) GetCurrentActivity() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
+
 	r := response.Result().(*getActivityResponse)
 	if response.StatusCode() != 200 {
 		return "", fmt.Errorf("%w : %s", ErrSessionNotActive, c.sessionId)

@@ -164,9 +164,9 @@ func requestCohere(client *cohereclient.Client, model string, request *types.Rer
 		context.Background(),
 		&cohere.RerankRequest{
 			Query:     request.Query,
-			Model:     types.Ptr(model),
+			Model:     &model,
 			Documents: rerankDocs,
-			TopN:      types.Ptr(request.TopN),
+			TopN:      &request.TopN,
 		},
 	)
 	if err != nil {
