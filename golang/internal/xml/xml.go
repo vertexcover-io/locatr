@@ -298,7 +298,7 @@ func GenerateUniqueId(id string) string {
 func AttrsToMap(attrs []xmlquery.Attr) map[string]string {
 	attrMap := make(map[string]string)
 	for _, attr := range attrs {
-		attrMap[attr.Name.Local] = attr.Value
+		attrMap[attr.Name.Local] = strings.ReplaceAll(attr.Value, "\"", "&quot;")
 	}
 	return attrMap
 }
