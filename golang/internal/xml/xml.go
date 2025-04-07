@@ -1,9 +1,11 @@
 package xml
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -298,7 +300,14 @@ func GenerateUniqueId(id string) string {
 func AttrsToMap(attrs []xmlquery.Attr) map[string]string {
 	attrMap := make(map[string]string)
 	for _, attr := range attrs {
-		attrMap[attr.Name.Local] = strings.ReplaceAll(attr.Value, "\"", "&quot;")
+		var buf bytes.Buffer
+		err := xml.EscapeText(&buf, []byte(attr.Value))
+		if err != nil {
+			// Handle error or continue with unescaped value
+			attrMap[attr.Name.Local] = attr.Value
+		} else {
+			attrMap[attr.Name.Local] = buf.String()
+		}
 	}
 	return attrMap
 }
