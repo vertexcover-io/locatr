@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/beevik/etree"
+	"github.com/antchfx/xmlquery"
 	"github.com/kaptinlin/jsonrepair"
 	"github.com/vertexcover-io/locatr/golang/types"
 	"golang.org/x/net/html"
@@ -141,57 +141,26 @@ func SortRerankChunks(chunks []string, results []types.RerankResult) []string {
 // Returns:
 //   - string: The first ID attribute value found
 //   - error: If no ID is found or if XML parsing fails
-//
-// The function works by:
-// 1. Wrapping the fragment in a root element for proper parsing
-// 2. Creating a DOM tree from the XML
-// 3. Traversing the tree to find the first element with a non-empty ID attribute
 func ExtractFirstUniqueXMLID(xmlFragment string) (string, error) {
 	// Handle empty input
 	if strings.TrimSpace(xmlFragment) == "" {
 		return "", errors.New("empty XML fragment provided")
 	}
 
-	// Since we need to check children when IDs are empty, a streaming approach won't work
-	// We need to build a proper DOM tree, similar to the HTML version
+	// Wrap the fragment in a root element for proper parsing
 	wrappedXML := "<root>" + xmlFragment + "</root>"
 
-	// Parse the XML into a DOM tree
-	doc := etree.NewDocument()
-	if err := doc.ReadFromString(wrappedXML); err != nil {
+	// Parse the XML using xmlquery
+	doc, err := xmlquery.Parse(strings.NewReader(wrappedXML))
+	if err != nil {
 		return "", fmt.Errorf("error parsing XML: %w", err)
 	}
 
-	// Get the root element we added
-	root := doc.Root()
-	if root == nil {
-		return "", errors.New("failed to parse XML structure")
-	}
-
-	// Define a recursive function to find the first non-empty ID
-	var findFirstNonEmptyID func(*etree.Element) string
-	findFirstNonEmptyID = func(element *etree.Element) string {
-		// Check if current element has an ID
-		id := element.SelectAttrValue("id", "")
-		if id != "" {
-			return id
-		}
-
-		// If ID is empty or not present, check children
-		for _, child := range element.ChildElements() {
-			if childID := findFirstNonEmptyID(child); childID != "" {
-				return childID
-			}
-		}
-
-		return ""
-	}
-
-	// Start the search from the root's children (skipping our artificial root)
-	for _, child := range root.ChildElements() {
-		if id := findFirstNonEmptyID(child); id != "" {
-			return id, nil
-		}
+	// Use XPath to find the first element with a non-empty id attribute
+	// This query looks for any element with an id attribute that's not empty
+	node := xmlquery.FindOne(doc, "//*[@id and @id!='']")
+	if node != nil {
+		return node.SelectAttr("id"), nil
 	}
 
 	return "", errors.New("no non-empty ID attribute found in the XML fragment")
