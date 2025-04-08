@@ -235,7 +235,7 @@ func (plugin *appiumPlugin) TakeScreenshot() ([]byte, error) {
 	return imageBytes, nil
 }
 
-func calculateAndroindElementCenter(attributes map[string]string) (*types.Point, error) {
+func calculateAndroidElementCenter(attributes map[string]string) (*types.Point, error) {
 	re := regexp.MustCompile(`\[(\d+),(\d+)\]\[(\d+),(\d+)\]`)
 	matches := re.FindStringSubmatch(attributes["bounds"])
 	if len(matches) != 5 {
@@ -296,7 +296,7 @@ func calculateIOSElementCenter(attributes map[string]string) (*types.Point, erro
 func (plugin *appiumPlugin) calculateElementCenter(attributes map[string]string) (*types.Point, error) {
 	switch plugin.PlatformName {
 	case "android":
-		return calculateAndroindElementCenter(attributes)
+		return calculateAndroidElementCenter(attributes)
 	case "ios":
 		return calculateIOSElementCenter(attributes)
 	default:
