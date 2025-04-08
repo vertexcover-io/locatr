@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"math"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/antchfx/xmlquery"
@@ -238,18 +239,24 @@ func ExtractFirstUniqueHTMLID(htmlFragment string) (string, error) {
 	return firstID, nil
 }
 
-// GetFloatValue converts a value to a float64.
+// ParseFloatValue tries to parse the given value to a float64.
+//
 // Parameters:
-//   - v: The value to convert
+//   - v: The value to parse
 //
 // Returns:
-//   - float64: The converted value
-func GetFloatValue(v any) float64 {
+//   - float64: The parsed value
+//   - error: An error if the given value is not a float64, int, or string
+func ParseFloatValue(v any) (float64, error) {
 	switch t := v.(type) {
 	case float64:
-		return t
+		return t, nil
+	case int:
+		return float64(t), nil
+	case string:
+		return strconv.ParseFloat(t, 64)
 	default:
-		return float64(v.(int))
+		return 0, fmt.Errorf("unexpected type for float value: %T", v)
 	}
 }
 

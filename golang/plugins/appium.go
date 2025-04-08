@@ -9,7 +9,6 @@ import (
 	"image/png"
 	"math"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -236,43 +235,73 @@ func (plugin *appiumPlugin) TakeScreenshot() ([]byte, error) {
 	return imageBytes, nil
 }
 
-// parseAndCalculateCenter parses the coordinates and calculates the center of the element.
-func parseAndCalculateCenter(x, y, width, height string) (*types.Point, error) {
-	x1, err := strconv.Atoi(x)
+func calculateAndroindElementCenter(attributes map[string]string) (*types.Point, error) {
+	re := regexp.MustCompile(`\[(\d+),(\d+)\]\[(\d+),(\d+)\]`)
+	matches := re.FindStringSubmatch(attributes["bounds"])
+	if len(matches) != 5 {
+		return nil, fmt.Errorf("element is not visible")
+	}
+
+	x1, err := utils.ParseFloatValue(matches[1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid x1 value: %v", err)
+	}
+
+	y1, err := utils.ParseFloatValue(matches[2])
+	if err != nil {
+		return nil, fmt.Errorf("invalid y1 value: %v", err)
+	}
+
+	x2, err := utils.ParseFloatValue(matches[3])
+	if err != nil {
+		return nil, fmt.Errorf("invalid x2 value: %v", err)
+	}
+
+	y2, err := utils.ParseFloatValue(matches[4])
+	if err != nil {
+		return nil, fmt.Errorf("invalid y2 value: %v", err)
+	}
+
+	return &types.Point{X: (x1 + x2) / 2, Y: (y1 + y2) / 2}, nil
+}
+
+func calculateIOSElementCenter(attributes map[string]string) (*types.Point, error) {
+	if attributes["visible"] != "true" {
+		return nil, fmt.Errorf("element is not visible")
+	}
+
+	x, err := utils.ParseFloatValue(attributes["x"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid x value: %v", err)
 	}
 
-	y1, err := strconv.Atoi(y)
+	y, err := utils.ParseFloatValue(attributes["y"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid y value: %v", err)
 	}
 
-	x2, err := strconv.Atoi(width)
+	width, err := utils.ParseFloatValue(attributes["width"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid width value: %v", err)
 	}
 
-	y2, err := strconv.Atoi(height)
+	height, err := utils.ParseFloatValue(attributes["height"])
 	if err != nil {
 		return nil, fmt.Errorf("invalid height value: %v", err)
 	}
 
-	// Calculate center
-	centerX := (x1 + x2) / 2
-	centerY := (y1 + y2) / 2
-
-	return &types.Point{X: float64(centerX), Y: float64(centerY)}, nil
+	return &types.Point{X: x + (width / 2), Y: y + (height / 2)}, nil
 }
 
-// parseBoundsAndCalculateCenter parses the bounds and calculates the center of the element.
-func (plugin *appiumPlugin) parseBoundsAndCalculateCenter(bounds string) (*types.Point, error) {
-	re := regexp.MustCompile(`\[(\d+),(\d+)\]\[(\d+),(\d+)\]`)
-	matches := re.FindStringSubmatch(bounds)
-	if len(matches) != 5 {
-		return nil, fmt.Errorf("invalid bounds format: %s", bounds)
+func (plugin *appiumPlugin) calculateElementCenter(attributes map[string]string) (*types.Point, error) {
+	switch plugin.PlatformName {
+	case "android":
+		return calculateAndroindElementCenter(attributes)
+	case "ios":
+		return calculateIOSElementCenter(attributes)
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", plugin.PlatformName)
 	}
-	return parseAndCalculateCenter(matches[1], matches[2], matches[3], matches[4])
 }
 
 // candidate represents a candidate element and its score.
@@ -296,17 +325,7 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 	searchElement = func(element *types.ElementSpec) {
 		defer wg.Done()
 
-		var (
-			err          error
-			elementPoint *types.Point
-			attrs        = element.Attributes
-		)
-
-		if plugin.PlatformName == "android" && attrs["bounds"] != "" {
-			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
-		} else if plugin.PlatformName == "ios" && attrs["visible"] == "true" {
-			elementPoint, err = parseAndCalculateCenter(attrs["x"], attrs["y"], attrs["width"], attrs["height"])
-		}
+		elementPoint, err := plugin.calculateElementCenter(element.Attributes)
 		if err != nil {
 			logging.DefaultLogger.Error("failed to calculate center", "error", err)
 		}
@@ -401,16 +420,7 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 			return nil, fmt.Errorf("couldn't locate element associated with locator: '%s'", locator)
 		}
 
-		attrs := result.Attributes
-		var elementPoint *types.Point
-
-		if plugin.PlatformName == "android" && attrs["bounds"] != "" {
-			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
-		} else if plugin.PlatformName == "ios" && attrs["visible"] == "true" {
-			elementPoint, err = parseAndCalculateCenter(
-				attrs["x"], attrs["y"], attrs["width"], attrs["height"],
-			)
-		}
+		elementPoint, err := plugin.calculateElementCenter(result.Attributes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate center: %v", err)
 		}

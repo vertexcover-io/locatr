@@ -36,15 +36,20 @@ func NewSeleniumPlugin(driver *selenium.WebDriver) (*seleniumPlugin, error) {
 		return nil, fmt.Errorf("couldn't get capabilities: %s", err.Error())
 	}
 
-	devicePixelRatio, err := (*driver).ExecuteScript("return window.devicePixelRatio", []any{})
+	ratioInterface, err := (*driver).ExecuteScript("return window.devicePixelRatio", []any{})
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get device pixel ratio: %s", err.Error())
+	}
+
+	devicePixelRatio, err := utils.ParseFloatValue(ratioInterface)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse device pixel ratio: %s", err.Error())
 	}
 
 	plugin := &seleniumPlugin{
 		driver:           driver,
 		BrowserName:      caps["browserName"].(string),
-		DevicePixelRatio: utils.GetFloatValue(devicePixelRatio),
+		DevicePixelRatio: devicePixelRatio,
 	}
 	return plugin, nil
 }
@@ -168,10 +173,16 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 	}
 
 	size := sizeInterface.(map[string]any)
-	width = int(utils.GetFloatValue(size["width"]))
-	height = int(utils.GetFloatValue(size["height"]))
+	w, err := utils.ParseFloatValue(size["width"])
+	if err != nil {
+		return fmt.Errorf("couldn't parse viewport width: %s", err.Error())
+	}
+	h, err := utils.ParseFloatValue(size["height"])
+	if err != nil {
+		return fmt.Errorf("couldn't parse viewport height: %s", err.Error())
+	}
 
-	if err = (*plugin.driver).ResizeWindow(handle, width, height); err != nil {
+	if err = (*plugin.driver).ResizeWindow(handle, int(w), int(h)); err != nil {
 		return fmt.Errorf("couldn't set viewport size: %s", err.Error())
 	}
 	return nil

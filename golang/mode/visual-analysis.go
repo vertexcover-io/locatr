@@ -60,9 +60,11 @@ func (m *VisualAnalysisMode) ProcessRequest(
 
 	pluginName, fields, err := utils.GetStructFields(plugin, "DevicePixelRatio")
 	if err == nil && pluginName == "seleniumPlugin" {
-		devicePixelRatio := fields["DevicePixelRatio"]
-		if devicePixelRatio.IsValid() && utils.GetFloatValue(devicePixelRatio.Interface()) != 1.0 {
-			logger.Warn(deviceScaleFactorWarning)
+		if field := fields["DevicePixelRatio"]; field.IsValid() {
+			ratio, err := utils.ParseFloatValue(field.Interface())
+			if err == nil && ratio != 1.0 {
+				logger.Warn(deviceScaleFactorWarning)
+			}
 		}
 	}
 
