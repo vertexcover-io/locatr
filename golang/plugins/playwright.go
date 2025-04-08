@@ -11,9 +11,14 @@ import (
 )
 
 // playwrightPlugin encapsulates browser automation functionality using the Playwright framework.
+//
+// Attributes:
+//   - BrowserName: Name of the browser (e.g. "chromium", "firefox", "webkit", etc.)
 type playwrightPlugin struct {
 	// Playwright page instance
 	page *playwright.Page
+	// Name of the browser (e.g. "chromium", "firefox", "webkit", etc.)
+	BrowserName string
 }
 
 // NewPlaywrightPlugin initializes a new plugin instance with the provided Playwright page.
@@ -22,8 +27,9 @@ type playwrightPlugin struct {
 //   - page: Pointer to a configured Playwright page instance
 //
 // Returns the initialized Playwright plugin.
-func NewPlaywrightPlugin(page *playwright.Page) *playwrightPlugin {
-	return &playwrightPlugin{page: page}
+func NewPlaywrightPlugin(page *playwright.Page) (*playwrightPlugin, error) {
+	browserName := (*page).Context().Browser().BrowserType().Name()
+	return &playwrightPlugin{page: page, BrowserName: browserName}, nil
 }
 
 // evaluateExpression executes a JavaScript expression in the context of the current page.
@@ -92,6 +98,11 @@ func (plugin *playwrightPlugin) GetMinifiedDOM() (*types.DOM, error) {
 		},
 	}
 	return dom, nil
+}
+
+// ExtractFirstUniqueID extracts the first unique ID from the given fragment.
+func (plugin *playwrightPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
+	return utils.ExtractFirstUniqueHTMLID(fragment)
 }
 
 // IsLocatorValid checks if a given CSS selector matches any elements on the page.

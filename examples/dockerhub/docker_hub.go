@@ -42,7 +42,10 @@ func main() {
 		log.Fatalf("could not create llm client: %v", err)
 	}
 
-	plugin := plugins.NewPlaywrightPlugin(&page)
+	plugin, err := plugins.NewPlaywrightPlugin(&page)
+	if err != nil {
+		log.Fatalf("could not create playwright plugin: %v", err)
+	}
 	locatr, err := locatr.NewLocatr(plugin)
 	sBarCompletion, err := locatr.Locate("Search Docker Hub input field")
 	if err != nil {

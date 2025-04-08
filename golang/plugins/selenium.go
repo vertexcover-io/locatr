@@ -11,9 +11,17 @@ import (
 )
 
 // seleniumPlugin encapsulates browser automation functionality using the Selenium WebDriver.
+//
+// Attributes:
+//   - BrowserName: Name of the browser (e.g. "chrome", "firefox", etc.)
+//   - DevicePixelRatio: Device pixel ratio of the browser
 type seleniumPlugin struct {
 	// Selenium WebDriver instance
 	driver *selenium.WebDriver
+	// Name of the browser (e.g. "chrome", "firefox", etc.)
+	BrowserName string
+	// Device pixel ratio of the browser
+	DevicePixelRatio float64
 }
 
 // NewSeleniumPlugin initializes a new seleniumPlugin instance with the provided Selenium WebDriver.
@@ -22,8 +30,28 @@ type seleniumPlugin struct {
 //   - driver: Pointer to a configured Selenium WebDriver instance
 //
 // Returns the initialized plugin.
-func NewSeleniumPlugin(driver *selenium.WebDriver) *seleniumPlugin {
-	return &seleniumPlugin{driver: driver}
+func NewSeleniumPlugin(driver *selenium.WebDriver) (*seleniumPlugin, error) {
+	caps, err := (*driver).Capabilities()
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get capabilities: %s", err.Error())
+	}
+
+	ratioInterface, err := (*driver).ExecuteScript("return window.devicePixelRatio", []any{})
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get device pixel ratio: %s", err.Error())
+	}
+
+	devicePixelRatio, err := utils.ParseFloatValue(ratioInterface)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse device pixel ratio: %s", err.Error())
+	}
+
+	plugin := &seleniumPlugin{
+		driver:           driver,
+		BrowserName:      caps["browserName"].(string),
+		DevicePixelRatio: devicePixelRatio,
+	}
+	return plugin, nil
 }
 
 // evaluateExpression executes a JavaScript expression in the current context.
@@ -96,6 +124,11 @@ func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
 	return dom, nil
 }
 
+// ExtractFirstUniqueID extracts the first unique ID from the given fragment.
+func (plugin *seleniumPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
+	return utils.ExtractFirstUniqueHTMLID(fragment)
+}
+
 // IsLocatorValid checks if a given CSS selector matches any elements on the page.
 //
 // Parameters:
@@ -140,10 +173,16 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 	}
 
 	size := sizeInterface.(map[string]any)
-	width = int(utils.GetFloatValue(size["width"]))
-	height = int(utils.GetFloatValue(size["height"]))
+	w, err := utils.ParseFloatValue(size["width"])
+	if err != nil {
+		return fmt.Errorf("couldn't parse viewport width: %s", err.Error())
+	}
+	h, err := utils.ParseFloatValue(size["height"])
+	if err != nil {
+		return fmt.Errorf("couldn't parse viewport height: %s", err.Error())
+	}
 
-	if err = (*plugin.driver).ResizeWindow(handle, width, height); err != nil {
+	if err = (*plugin.driver).ResizeWindow(handle, int(w), int(h)); err != nil {
 		return fmt.Errorf("couldn't set viewport size: %s", err.Error())
 	}
 	return nil

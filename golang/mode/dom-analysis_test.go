@@ -26,6 +26,11 @@ func (m *MockPlugin) GetMinifiedDOM() (*types.DOM, error) {
 	return args.Get(0).(*types.DOM), args.Error(1)
 }
 
+func (m *MockPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
+	args := m.Called(fragment)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockPlugin) IsLocatorValid(locator string) (bool, error) {
 	args := m.Called(locator)
 	return args.Bool(0), args.Error(1)

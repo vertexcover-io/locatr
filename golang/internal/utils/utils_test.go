@@ -299,7 +299,7 @@ func TestExtractFirstUniqueID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ExtractFirstUniqueID(tt.html)
+			got, err := ExtractFirstUniqueHTMLID(tt.html)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -310,7 +310,7 @@ func TestExtractFirstUniqueID(t *testing.T) {
 	}
 }
 
-func TestGetFloatValue(t *testing.T) {
+func TestParseFloatValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		input any
@@ -326,11 +326,17 @@ func TestGetFloatValue(t *testing.T) {
 			input: 123,
 			want:  123.0,
 		},
+		{
+			name:  "String input",
+			input: "123.45",
+			want:  123.45,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetFloatValue(tt.input)
+			got, err := ParseFloatValue(tt.input)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
 	}

@@ -1,9 +1,11 @@
 package xml
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
@@ -246,12 +248,12 @@ func GetVisibleText(
 	element *xmlquery.Node, platform string,
 ) string {
 	if platform == "android" {
-		return strings.TrimSpace(element.SelectAttr("text"))
+		return escapeString(strings.TrimSpace(element.SelectAttr("text")))
 	} else {
 		if labelText := strings.TrimSpace(element.SelectAttr("label")); labelText != "" {
-			return labelText
+			return escapeString(labelText)
 		} else {
-			return strings.TrimSpace(element.SelectAttr("value"))
+			return escapeString(strings.TrimSpace(element.SelectAttr("value")))
 		}
 	}
 }
@@ -295,10 +297,19 @@ func GenerateUniqueId(id string) string {
 	return hex.EncodeToString(md5Hash[:])
 }
 
+func escapeString(str string) string {
+	var buf bytes.Buffer
+	err := xml.EscapeText(&buf, []byte(str))
+	if err != nil {
+		return str
+	}
+	return buf.String()
+}
+
 func AttrsToMap(attrs []xmlquery.Attr) map[string]string {
 	attrMap := make(map[string]string)
 	for _, attr := range attrs {
-		attrMap[attr.Name.Local] = attr.Value
+		attrMap[attr.Name.Local] = escapeString(attr.Value)
 	}
 	return attrMap
 }

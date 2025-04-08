@@ -5,11 +5,6 @@ import (
 	"math"
 )
 
-// Ptr returns a pointer to a value.
-func Ptr[T any](v T) *T {
-	return &v
-}
-
 // Point represents a coordinate point in a 2D space.
 type Point struct {
 	X float64 `json:"x"` // X-coordinate

@@ -188,7 +188,7 @@ func (s *AppiumTestSuite) TestFindElement() {
 				}
 			})
 
-			err := s.client.FindElement(tc.locator)
+			_, err := s.client.FindElement("", tc.locator)
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
@@ -200,7 +200,7 @@ func (s *AppiumTestSuite) TestFindElement() {
 
 func (s *AppiumTestSuite) TestGetCapabilities() {
 	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(s.T(), "/session/test-session-id/", r.URL.Path)
+		assert.Equal(s.T(), "/session/test-session-id", r.URL.Path)
 		assert.Equal(s.T(), http.MethodGet, r.Method)
 
 		err := json.NewEncoder(w).Encode(map[string]interface{}{
@@ -248,7 +248,7 @@ func (s *AppiumTestSuite) TestExecuteScript_ServerError() {
 
 	result, err := s.client.ExecuteScript("test script", []interface{}{})
 	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), ErrSessionNotActive.Error())
+	assert.Contains(s.T(), err.Error(), ErrEvaulatingScriptFailed.Error())
 	assert.Nil(s.T(), result)
 }
 

@@ -46,6 +46,8 @@ type VisualAnalysisMode struct {
 	MaxAttempts int `json:"max_attempts"`
 }
 
+const deviceScaleFactorWarning = "Device scale factor != 1.0 may affect viewport sizing and element location. Use '--force-device-scale-factor=1' when creating driver."
+
 func (m *VisualAnalysisMode) ProcessRequest(
 	request string,
 	plugin types.PluginInterface,
@@ -55,7 +57,19 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	completion *types.LocatrCompletion,
 ) error {
 	defer logging.CreateTopic("[Mode] Visual Analysis", logger)()
+
+	pluginName, fields, err := utils.GetStructFields(plugin, "DevicePixelRatio")
+	if err == nil && pluginName == "seleniumPlugin" {
+		if field := fields["DevicePixelRatio"]; field.IsValid() {
+			ratio, err := utils.ParseFloatValue(field.Interface())
+			if err == nil && ratio != 1.0 {
+				logger.Warn(deviceScaleFactorWarning)
+			}
+		}
+	}
+
 	m.applyDefaults()
+
 	dom, err := plugin.GetMinifiedDOM()
 	if err != nil {
 		return err
@@ -87,8 +101,9 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	for attempt, chunk := range domChunks {
 		logger.Info("Attempt number", "attempt", attempt+1)
 
-		id, err := utils.ExtractFirstUniqueID(chunk)
+		id, err := plugin.ExtractFirstUniqueID(chunk)
 		if err != nil {
+			logger.Error("couldn't extract first unique id", "error", err)
 			continue
 		}
 		if err := plugin.SetViewportSize(m.Resolution.Width, m.Resolution.Height); err != nil {
@@ -156,7 +171,6 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		}
 
 		elementPoint := types.Point{X: xCoord, Y: yCoord}
-		logger.Info("elementPoint", "point", elementPoint)
 		locators, err := plugin.GetElementLocators(&types.Location{
 			Point:          elementPoint,
 			ScrollPosition: chunkLocation.ScrollPosition,

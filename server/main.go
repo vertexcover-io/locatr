@@ -56,13 +56,19 @@ func handleInitialHandshake(message incomingMessage, logger *slog.Logger) error 
 		if err != nil {
 			return fmt.Errorf("could not connect to browser: %v", err)
 		}
-		plugin = plugins.NewPlaywrightPlugin(&browser.Contexts()[0].Pages()[0])
+		plugin, err = plugins.NewPlaywrightPlugin(&browser.Contexts()[0].Pages()[0])
+		if err != nil {
+			return fmt.Errorf("could not create playwright plugin: %v", err)
+		}
 	case "selenium":
 		driver, err := selenium.ConnectRemote(settings.SeleniumUrl, settings.SeleniumSessionId)
 		if err != nil {
 			return fmt.Errorf("unable to connect to remote selenium instance: %w", err)
 		}
-		plugin = plugins.NewSeleniumPlugin(&driver)
+		plugin, err = plugins.NewSeleniumPlugin(&driver)
+		if err != nil {
+			return fmt.Errorf("could not create selenium plugin: %v", err)
+		}
 	case "appium":
 		plugin, err = plugins.NewAppiumPlugin(settings.AppiumUrl, settings.AppiumSessionId)
 		if err != nil {
