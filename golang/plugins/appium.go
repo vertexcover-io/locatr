@@ -25,12 +25,12 @@ import (
 // appiumPlugin encapsulates browser automation functionality using the Appium client.
 //
 // Attributes:
-//   - PlatformName: The name of the platform (e.g. "Android", "iOS")
+//   - PlatformName: The name of the platform (e.g. "android", "ios")
 type appiumPlugin struct {
 	client             *appium.Client
 	originalResolution *types.Resolution
 	targetResolution   *types.Resolution
-	// Name of the platform (e.g. "Android", "iOS")
+	// Name of the platform (e.g. "android", "ios")
 	PlatformName string
 }
 
@@ -68,6 +68,10 @@ func NewAppiumPlugin(serverUrl string, sessionIdOrCapabilities any) (*appiumPlug
 	platFormName := caps.Value.PlatformName
 	if platFormName == "" {
 		platFormName = caps.Value.Cap.PlatformName
+	}
+	platFormName = strings.ToLower(platFormName)
+	if platFormName != "android" && platFormName != "ios" {
+		return nil, fmt.Errorf("'%s' platform is currently not supported", platFormName)
 	}
 
 	plugin := &appiumPlugin{client: client, PlatformName: platFormName}
@@ -155,7 +159,7 @@ func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
 
 // GetCurrentContext retrieves the current context of the plugin.
 func (plugin *appiumPlugin) GetCurrentContext() (*string, error) {
-	if strings.ToLower(plugin.PlatformName) != "android" {
+	if plugin.PlatformName != "android" {
 		return nil, fmt.Errorf("cannot read platform '%s' current context", plugin.PlatformName)
 	}
 	if currentActivity, err := plugin.client.GetCurrentActivity(); err != nil {
@@ -236,22 +240,22 @@ func (plugin *appiumPlugin) TakeScreenshot() ([]byte, error) {
 func parseAndCalculateCenter(x, y, width, height string) (*types.Point, error) {
 	x1, err := strconv.Atoi(x)
 	if err != nil {
-		return nil, fmt.Errorf("invalid x1 coordinate: %v", err)
+		return nil, fmt.Errorf("invalid x value: %v", err)
 	}
 
 	y1, err := strconv.Atoi(y)
 	if err != nil {
-		return nil, fmt.Errorf("invalid y1 coordinate: %v", err)
+		return nil, fmt.Errorf("invalid y value: %v", err)
 	}
 
 	x2, err := strconv.Atoi(width)
 	if err != nil {
-		return nil, fmt.Errorf("invalid x2 coordinate: %v", err)
+		return nil, fmt.Errorf("invalid width value: %v", err)
 	}
 
 	y2, err := strconv.Atoi(height)
 	if err != nil {
-		return nil, fmt.Errorf("invalid y2 coordinate: %v", err)
+		return nil, fmt.Errorf("invalid height value: %v", err)
 	}
 
 	// Calculate center
@@ -288,7 +292,6 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 		wg            sync.WaitGroup
 		searchElement func(element *types.ElementSpec)
 		candidateChan = make(chan candidate, 10)
-		platform      = strings.ToLower(plugin.PlatformName)
 	)
 	searchElement = func(element *types.ElementSpec) {
 		defer wg.Done()
@@ -299,9 +302,9 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 			attrs        = element.Attributes
 		)
 
-		if platform == "android" && attrs["bounds"] != "" {
+		if plugin.PlatformName == "android" && attrs["bounds"] != "" {
 			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
-		} else if platform == "ios" && attrs["x"] != "" && attrs["y"] != "" {
+		} else if plugin.PlatformName == "ios" && attrs["visible"] == "true" {
 			elementPoint, err = parseAndCalculateCenter(attrs["x"], attrs["y"], attrs["width"], attrs["height"])
 		}
 		if err != nil {
@@ -354,7 +357,6 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 	var (
 		wg            sync.WaitGroup
 		searchElement func(element *types.ElementSpec)
-		platform      = strings.ToLower(plugin.PlatformName)
 		resultChan    = make(chan *types.ElementSpec, 1)
 		uniqueId      = xml.GenerateUniqueId(locator)
 	)
@@ -396,15 +398,15 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 	select {
 	case result, ok := <-resultChan:
 		if !ok {
-			return nil, fmt.Errorf("could not locate element associated with locator: %s", locator)
+			return nil, fmt.Errorf("couldn't locate element associated with locator: '%s'", locator)
 		}
 
 		attrs := result.Attributes
 		var elementPoint *types.Point
 
-		if platform == "android" && attrs["bounds"] != "" {
+		if plugin.PlatformName == "android" && attrs["bounds"] != "" {
 			elementPoint, err = plugin.parseBoundsAndCalculateCenter(attrs["bounds"])
-		} else if platform == "ios" && attrs["x"] != "" && attrs["y"] != "" {
+		} else if plugin.PlatformName == "ios" && attrs["visible"] == "true" {
 			elementPoint, err = parseAndCalculateCenter(
 				attrs["x"], attrs["y"], attrs["width"], attrs["height"],
 			)
