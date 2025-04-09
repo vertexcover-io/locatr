@@ -15,11 +15,11 @@ import (
 	"syscall"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/plugins"
-	"github.com/vertexcover-io/locatr/golang/types"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/llm"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
+	"github.com/vertexcover-io/locatr/pkg/types"
 	"github.com/vertexcover-io/selenium"
 )
 

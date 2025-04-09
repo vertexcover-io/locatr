@@ -5,7 +5,7 @@ Find locators for UI elements in web applications using natural language.
 ## Installation
 
 ```bash
-go get github.com/vertexcover-io/locatr/golang
+go get github.com/vertexcover-io/locatr/pkg
 ```
 
 ## Usage
@@ -58,7 +58,7 @@ if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
 </details>
 
 ```go
-import "github.com/vertexcover-io/locatr/golang/plugins"
+import "github.com/vertexcover-io/locatr/pkg/plugins"
 
 plugin, err := plugins.NewPlaywrightPlugin(&page)
 if err != nil {
@@ -105,7 +105,7 @@ if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
 </details>
 
 ```go
-import "github.com/vertexcover-io/locatr/golang/plugins"
+import "github.com/vertexcover-io/locatr/pkg/plugins"
 
 plugin, err := plugins.NewSeleniumPlugin(&driver)
 if err != nil {
@@ -116,7 +116,7 @@ if err != nil {
 #### Appium
 
 ```go
-import "github.com/vertexcover-io/locatr/golang/plugins"
+import "github.com/vertexcover-io/locatr/pkg/plugins"
 
 plugin, err := plugins.NewAppiumPlugin(
     "<appium-server-url>", "<appium-session-id>",
@@ -145,7 +145,7 @@ if err != nil {
 import (
     "log"
 
-    locatr "github.com/vertexcover-io/locatr/golang"
+    locatr "github.com/vertexcover-io/locatr/pkg"
 )
 
 locatr, err := locatr.NewLocatr(plugin)
@@ -165,8 +165,8 @@ LLM Client
 
 ```go
 import (
-    locatr "github.com/vertexcover-io/locatr/golang"
-    "github.com/vertexcover-io/locatr/golang/llm"
+    locatr "github.com/vertexcover-io/locatr/pkg"
+    "github.com/vertexcover-io/locatr/pkg/llm"
 )
 
 llmClient, err := llm.NewLLMClient(
@@ -186,8 +186,8 @@ Reranker Client
 
 ```go
 import (
-    locatr "github.com/vertexcover-io/locatr/golang"
-    "github.com/vertexcover-io/locatr/golang/reranker"
+    locatr "github.com/vertexcover-io/locatr/pkg"
+    "github.com/vertexcover-io/locatr/pkg/reranker"
 )
 
 rerankerClient, err := reranker.NewRerankerClient(
@@ -210,8 +210,8 @@ Mode
 
 ```go
 import (
-    locatr "github.com/vertexcover-io/locatr/golang"
-    "github.com/vertexcover-io/locatr/golang/mode"
+    locatr "github.com/vertexcover-io/locatr/pkg"
+    "github.com/vertexcover-io/locatr/pkg/mode"
 )
 
 mode := mode.VisualAnalysisMode{
@@ -233,7 +233,7 @@ Enable Cache
 
 ```go
 import (
-    locatr "github.com/vertexcover-io/locatr/golang"
+    locatr "github.com/vertexcover-io/locatr/pkg"
 )
 
 locatr, err := locatr.NewLocatr(

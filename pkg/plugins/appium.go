@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vertexcover-io/locatr/golang/internal/appium"
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/internal/xml"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/appium"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/internal/xml"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // appiumPlugin encapsulates browser automation functionality using the Appium client.

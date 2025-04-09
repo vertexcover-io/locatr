@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/splitters"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/splitters"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // VISUAL_ANALYSIS_PROMPT_TEMPLATE defines the system prompt for identifying coordinates in screenshots.

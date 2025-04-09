@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/mode"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/mode"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 	"gopkg.in/yaml.v3"
 )
 

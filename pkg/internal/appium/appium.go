@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/vertexcover-io/locatr/golang/logging"
+	"github.com/vertexcover-io/locatr/pkg/logging"
 )
 
 type Client struct {

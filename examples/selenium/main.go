@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 	"github.com/vertexcover-io/selenium"
 	"github.com/vertexcover-io/selenium/chrome"
 )

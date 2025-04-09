@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 )
 
 func main() {

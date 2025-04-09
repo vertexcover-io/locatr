@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/playwright-community/playwright-go"
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // playwrightPlugin encapsulates browser automation functionality using the Playwright framework.

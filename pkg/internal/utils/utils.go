@@ -14,7 +14,7 @@ import (
 
 	"github.com/antchfx/xmlquery"
 	"github.com/kaptinlin/jsonrepair"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/types"
 	"golang.org/x/net/html"
 )
 

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/types"
 	"github.com/vertexcover-io/selenium"
 )
 

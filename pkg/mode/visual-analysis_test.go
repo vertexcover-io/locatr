@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // Reuse the mock implementations from dom-analysis_test.go

@@ -10,8 +10,8 @@ import (
 
 	cohere "github.com/cohere-ai/cohere-go/v2"
 	cohereclient "github.com/cohere-ai/cohere-go/v2/client"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // RerankerProvider constants define the supported Reranker service providers

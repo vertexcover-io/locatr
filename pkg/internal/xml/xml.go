@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/antchfx/xmlquery"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 var MAYBE_UNIQUE_XPATH_ATTRIBUTES = []string{

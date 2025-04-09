@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 )
 
 func main() {

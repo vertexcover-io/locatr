@@ -13,9 +13,9 @@ import (
 	anthropicOption "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/openai/openai-go"
 	openaiOption "github.com/openai/openai-go/option"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // LLMProvider constants define the supported Language Model service providers

@@ -14,13 +14,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/mode"
-	"github.com/vertexcover-io/locatr/golang/reranker"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/llm"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/mode"
+	"github.com/vertexcover-io/locatr/pkg/reranker"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // Locatr is the main orchestrator for finding UI elements based on natural language descriptions.
