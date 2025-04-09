@@ -27,7 +27,7 @@ publish: clean build
 # Go coverage targets
 .PHONY: go-test-coverage
 go-test-coverage:
-	go test ./golang/... -coverprofile=coverage.out -covermode=atomic
+	go test ./pkg/... -coverprofile=coverage.out -covermode=atomic
 	go tool cover -html=coverage.out -o coverage.html
 
 # Python coverage targets

@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 // LLMProvider is a string alias representing a language model provider.
 type LLMProvider = string
 
@@ -13,7 +15,7 @@ type LLMClientInterface interface {
 	GetModel() string
 
 	// GetJSONCompletion returns the JSON completion for the given prompt.
-	GetJSONCompletion(prompt string, image []byte) (*JSONCompletion, error)
+	GetJSONCompletion(ctx context.Context, prompt string, image []byte) (*JSONCompletion, error)
 }
 
 // LLMCompletionMeta contains metadata about a language model completion.

@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 	"github.com/vertexcover-io/selenium"
 	"github.com/vertexcover-io/selenium/chrome"
 )
@@ -48,7 +49,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	completion, err := locatr.Locate("First news link in the site.")
+	completion, err := locatr.Locate(context.Background(), "First news link in the site.")
 	if err != nil {
 		log.Fatal(err)
 		return

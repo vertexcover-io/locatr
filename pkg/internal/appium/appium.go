@@ -1,6 +1,7 @@
 package appium
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,12 +10,13 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/vertexcover-io/locatr/golang/logging"
+	"github.com/vertexcover-io/locatr/pkg/logging"
 )
 
 type Client struct {
-	httpClient *resty.Client
-	sessionId  string
+	httpClient   *resty.Client
+	sessionId    string
+	Capabilities *Capabilities
 }
 
 type appiumPageSourceResponse struct {
@@ -48,7 +50,7 @@ type Capabilities struct {
 type sessionResponse struct {
 	Value struct {
 		Capabilities
-		Cap        Capabilities `json:"capabilities"`
+		Caps       Capabilities `json:"capabilities"`
 		Error      string       `json:"error"`
 		Message    string       `json:"message"`
 		Stacktrace string       `json:"stacktrace"`
@@ -136,17 +138,29 @@ func NewClient(serverUrl string, sessionId string) (*Client, error) {
 	joinedUrl := baseUrl.JoinPath("session", sessionId)
 	client := createNewHttpClient(joinedUrl.String())
 
-	resp, err := client.R().Get("/context")
+	resp, err := client.R().SetResult(&sessionResponse{}).Get("")
 	if err != nil {
 		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
 	}
+
+	var result sessionResponse
+	err = json.Unmarshal(resp.Body(), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("%w : %s", ErrSessionNotActive, sessionId)
+		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
+	}
+
+	caps := result.Value.Capabilities
+	if caps.PlatformName == "" {
+		caps = result.Value.Caps
 	}
 
 	return &Client{
-		httpClient: client,
-		sessionId:  sessionId,
+		httpClient:   client,
+		sessionId:    sessionId,
+		Capabilities: &caps,
 	}, nil
 }
 
@@ -154,7 +168,7 @@ type resp struct {
 	Value any `json:"value"`
 }
 
-func (c *Client) ExecuteScript(script string, args []any) (any, error) {
+func (c *Client) ExecuteScript(ctx context.Context, script string, args []any) (any, error) {
 	defer logging.CreateTopic("Appium: ExecuteScript", logging.DefaultLogger)()
 
 	bodyJson, err := json.Marshal(map[string]any{"script": script, "args": args})
@@ -181,7 +195,7 @@ func (c *Client) ExecuteScript(script string, args []any) (any, error) {
 	return respBody.Value, nil
 }
 
-func (c *Client) GetCurrentViewContext() (string, error) {
+func (c *Client) GetCurrentViewContext(ctx context.Context) (string, error) {
 	defer logging.CreateTopic("Appium: GetCurrentViewContext", logging.DefaultLogger)()
 
 	response, err := c.httpClient.R().Get("/context")
@@ -199,8 +213,8 @@ func (c *Client) GetCurrentViewContext() (string, error) {
 	return responseBody.Value, nil
 }
 
-func (c *Client) IsWebView() bool {
-	view, err := c.GetCurrentViewContext()
+func (c *Client) IsWebView(ctx context.Context) bool {
+	view, err := c.GetCurrentViewContext(ctx)
 	if err != nil {
 		return false
 	}
@@ -209,7 +223,7 @@ func (c *Client) IsWebView() bool {
 	return strings.Contains(view, "webview") || strings.Contains(view, "chromium")
 }
 
-func (c *Client) GetPageSource() (string, error) {
+func (c *Client) GetPageSource(ctx context.Context) (string, error) {
 	defer logging.CreateTopic("Appium: GetPageSource", logging.DefaultLogger)()
 
 	response, err := c.httpClient.R().Get("source/")
@@ -228,7 +242,7 @@ func (c *Client) GetPageSource() (string, error) {
 	return responseBody.Value, nil
 }
 
-func (c *Client) FindElement(using, value string) (*string, error) {
+func (c *Client) FindElement(ctx context.Context, using, value string) (*string, error) {
 	defer logging.CreateTopic("Appium: FindElement", logging.DefaultLogger)()
 
 	requestBody := findElementRequest{
@@ -263,27 +277,7 @@ func (c *Client) FindElement(using, value string) (*string, error) {
 	return &elementId, nil
 }
 
-func (c *Client) GetCapabilities() (*sessionResponse, error) {
-	defer logging.CreateTopic("Appium: GetCapabilities", logging.DefaultLogger)()
-
-	response, err := c.httpClient.R().SetResult(&sessionResponse{}).Get("")
-	if err != nil {
-		return nil, fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
-	}
-
-	var result sessionResponse
-	err = json.Unmarshal(response.Body(), &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if response.StatusCode() != 200 {
-		return nil, fmt.Errorf("%s : %s", result.Value.Error, result.Value.Message)
-	}
-	return &result, nil
-}
-
-func (c *Client) GetCurrentActivity() (string, error) {
+func (c *Client) GetCurrentActivity(ctx context.Context) (string, error) {
 	defer logging.CreateTopic("Appium: GetCurrentActivity", logging.DefaultLogger)()
 
 	response, err := c.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")

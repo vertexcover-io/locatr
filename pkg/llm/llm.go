@@ -13,9 +13,9 @@ import (
 	anthropicOption "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/openai/openai-go"
 	openaiOption "github.com/openai/openai-go/option"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // LLMProvider constants define the supported Language Model service providers
@@ -66,7 +66,7 @@ func WithLogger(logger *slog.Logger) Option {
 // It encapsulates the provider configuration and json completion request handler.
 type llmClient struct {
 	config  *config
-	handler func(prompt string, image []byte) (*types.JSONCompletion, error)
+	handler func(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error)
 }
 
 // NewLLMClient creates a new LLM client instance with the specified configuration.
@@ -92,7 +92,7 @@ func NewLLMClient(opts ...Option) (*llmClient, error) {
 		cfg.logger = logging.DefaultLogger
 	}
 
-	var handler func(prompt string, image []byte) (*types.JSONCompletion, error)
+	var handler func(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error)
 	switch cfg.provider {
 	case Anthropic:
 		betas := []anthropic.AnthropicBeta{}
@@ -102,10 +102,10 @@ func NewLLMClient(opts ...Option) (*llmClient, error) {
 		if strings.HasPrefix(cfg.model, "claude-3-7-sonnet") {
 			betas = append(betas, anthropic.AnthropicBetaComputerUse2025_01_24)
 		}
-		handler = func(prompt string, image []byte) (*types.JSONCompletion, error) {
+		handler = func(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error) {
 			client := anthropic.NewClient(anthropicOption.WithAPIKey(cfg.apiKey))
 			return requestAnthropic(
-				client, cfg.provider, cfg.model, prompt, image, &betas,
+				ctx, client, cfg.provider, cfg.model, prompt, image, &betas,
 			)
 		}
 
@@ -116,9 +116,9 @@ func NewLLMClient(opts ...Option) (*llmClient, error) {
 		} else if cfg.provider == OpenRouter {
 			options = append(options, openaiOption.WithBaseURL("https://openrouter.ai/api/v1/"))
 		}
-		handler = func(prompt string, image []byte) (*types.JSONCompletion, error) {
+		handler = func(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error) {
 			return requestOpenAI(
-				openai.NewClient(options...), cfg.provider, cfg.model, prompt, image,
+				ctx, openai.NewClient(options...), cfg.provider, cfg.model, prompt, image,
 			)
 		}
 
@@ -159,12 +159,12 @@ func DefaultLLMClient(logger *slog.Logger) (*llmClient, error) {
 }
 
 // GetJSONCompletion returns the JSON completion for the given prompt.
-func (client *llmClient) GetJSONCompletion(prompt string, image []byte) (*types.JSONCompletion, error) {
+func (client *llmClient) GetJSONCompletion(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error) {
 	topic := fmt.Sprintf(
 		"[LLM Completion] provider: %v, model: %v", client.config.provider, client.config.model,
 	)
 	defer logging.CreateTopic(topic, client.config.logger)()
-	return client.handler(prompt, image)
+	return client.handler(ctx, prompt, image)
 }
 
 // GetProvider returns the configured LLM service provider for this client.
@@ -180,6 +180,7 @@ func (client *llmClient) GetModel() string {
 // requestOpenAI handles API requests to OpenAI-compatible endpoints (OpenAI, Groq, OpenRouter).
 //
 // Parameters:
+//   - ctx: Context
 //   - client: Configured OpenAI API client
 //   - provider: The service provider being used
 //   - model: Model identifier
@@ -189,7 +190,9 @@ func (client *llmClient) GetModel() string {
 // Returns:
 //   - *types.JSONCompletion: The API response and metadata
 //   - error: Any API or processing errors
-func requestOpenAI(client *openai.Client, provider types.LLMProvider, model, prompt string, image []byte) (*types.JSONCompletion, error) {
+func requestOpenAI(
+	ctx context.Context, client *openai.Client, provider types.LLMProvider, model, prompt string, image []byte,
+) (*types.JSONCompletion, error) {
 	completion := &types.JSONCompletion{
 		LLMCompletionMeta: types.LLMCompletionMeta{
 			InputTokens:  0,
@@ -210,7 +213,7 @@ func requestOpenAI(client *openai.Client, provider types.LLMProvider, model, pro
 	}
 
 	response, err := client.Chat.Completions.New(
-		context.Background(), openai.ChatCompletionNewParams{
+		ctx, openai.ChatCompletionNewParams{
 			Model:    openai.F(model),
 			Messages: openai.F(messages),
 			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
@@ -237,6 +240,7 @@ func requestOpenAI(client *openai.Client, provider types.LLMProvider, model, pro
 
 // requestAnthropic handles API requests to Anthropic's Claude models.
 // Parameters:
+//   - ctx: Context
 //   - client: Configured Anthropic API client
 //   - provider: The service provider (Anthropic)
 //   - model: Claude model identifier
@@ -248,7 +252,7 @@ func requestOpenAI(client *openai.Client, provider types.LLMProvider, model, pro
 //   - *types.JSONCompletion: The API response and metadata
 //   - error: Any API or processing errors
 func requestAnthropic(
-	client *anthropic.Client, provider types.LLMProvider, model, prompt string, image []byte, betas *[]anthropic.AnthropicBeta,
+	ctx context.Context, client *anthropic.Client, provider types.LLMProvider, model, prompt string, image []byte, betas *[]anthropic.AnthropicBeta,
 ) (*types.JSONCompletion, error) {
 	completion := &types.JSONCompletion{
 		LLMCompletionMeta: types.LLMCompletionMeta{
@@ -302,7 +306,7 @@ func requestAnthropic(
 		params.Betas = anthropic.F(*betas)
 	}
 
-	response, err := client.Beta.Messages.New(context.TODO(), params)
+	response, err := client.Beta.Messages.New(ctx, params)
 	if err != nil {
 		return completion, fmt.Errorf("failed to get completion from %v: %w", provider, err)
 	}

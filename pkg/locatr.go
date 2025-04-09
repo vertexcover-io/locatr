@@ -2,6 +2,7 @@ package locatr
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,13 +15,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
-	"github.com/vertexcover-io/locatr/golang/internal/utils"
-	"github.com/vertexcover-io/locatr/golang/llm"
-	"github.com/vertexcover-io/locatr/golang/logging"
-	"github.com/vertexcover-io/locatr/golang/mode"
-	"github.com/vertexcover-io/locatr/golang/reranker"
-	"github.com/vertexcover-io/locatr/golang/types"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/utils"
+	"github.com/vertexcover-io/locatr/pkg/llm"
+	"github.com/vertexcover-io/locatr/pkg/logging"
+	"github.com/vertexcover-io/locatr/pkg/mode"
+	"github.com/vertexcover-io/locatr/pkg/reranker"
+	"github.com/vertexcover-io/locatr/pkg/types"
 )
 
 // Locatr is the main orchestrator for finding UI elements based on natural language descriptions.
@@ -140,12 +141,13 @@ func NewLocatr(plugin types.PluginInterface, opts ...Option) (*Locatr, error) {
 
 // Locate finds UI elements matching the provided natural language description.
 // Parameters:
+//   - ctx: Context
 //   - request: Natural language description of the element to find
 //
 // Returns:
 //   - LocatrCompletion containing found locators and metadata
 //   - error if element location fails
-func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
+func (l *Locatr) Locate(ctx context.Context, request string) (types.LocatrCompletion, error) {
 	defer logging.CreateTopic(fmt.Sprintf("[Locate] '%s'", request), l.config.logger)()
 
 	completion := &types.LocatrCompletion{
@@ -161,7 +163,7 @@ func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
 	}
 
 	if l.config.useCache {
-		if err := l.processCacheRequest(request, completion); err == nil {
+		if err := l.processCacheRequest(ctx, request, completion); err == nil {
 			return *completion, nil
 		} else {
 			l.config.logger.Error("couldn't process cache request", "error", err)
@@ -169,6 +171,7 @@ func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
 	}
 
 	err := l.config.mode.ProcessRequest(
+		ctx,
 		request,
 		l.plugin,
 		l.config.llmClient,
@@ -181,7 +184,7 @@ func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
 	}
 
 	if l.config.useCache {
-		url, err := l.plugin.GetCurrentContext()
+		url, err := l.plugin.GetCurrentContext(ctx)
 		if err == nil && url != nil {
 			if _, ok := l.cache[*url]; !ok {
 				l.cache[*url] = []types.CacheEntry{}
@@ -211,7 +214,7 @@ func (l *Locatr) Locate(request string) (types.LocatrCompletion, error) {
 // Returns:
 //   - screenshot: The screenshot of the element with a highlight overlay in PNG bytes format
 //   - error if element location fails
-func (l *Locatr) Highlight(locator string, config *types.HighlightConfig) ([]byte, error) {
+func (l *Locatr) Highlight(ctx context.Context, locator string, config *types.HighlightConfig) ([]byte, error) {
 
 	if config == nil {
 		config = &types.HighlightConfig{}
@@ -229,16 +232,16 @@ func (l *Locatr) Highlight(locator string, config *types.HighlightConfig) ([]byt
 		config.Resolution = &types.Resolution{Width: 1280, Height: 800}
 	}
 
-	if err := l.plugin.SetViewportSize(config.Resolution.Width, config.Resolution.Height); err != nil {
+	if err := l.plugin.SetViewportSize(ctx, config.Resolution.Width, config.Resolution.Height); err != nil {
 		return nil, err
 	}
 
-	location, err := l.plugin.GetElementLocation(locator)
+	location, err := l.plugin.GetElementLocation(ctx, locator)
 	if err != nil {
 		return nil, err
 	}
 
-	screenshot, err := l.plugin.TakeScreenshot()
+	screenshot, err := l.plugin.TakeScreenshot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -269,20 +272,20 @@ func (l *Locatr) Highlight(locator string, config *types.HighlightConfig) ([]byt
 // Returns:
 //   - bool: True if all locators point to the same element, false otherwise.
 //   - error: An error if any locator cannot be resolved or if a comparison fails.
-func (l *Locatr) Compare(locators ...string) (bool, error) {
+func (l *Locatr) Compare(ctx context.Context, locators ...string) (bool, error) {
 	if len(locators) < 2 {
 		return false, errors.New("at least two locators are required for comparison")
 	}
 
 	// Get the location of the first locator
-	firstLoc, err := l.plugin.GetElementLocation(locators[0])
+	firstLoc, err := l.plugin.GetElementLocation(ctx, locators[0])
 	if err != nil {
 		return false, err
 	}
 
 	// Compare the rest of the locators with the first one
 	for _, locator := range locators[1:] {
-		loc, err := l.plugin.GetElementLocation(locator)
+		loc, err := l.plugin.GetElementLocation(ctx, locator)
 		if err != nil {
 			return false, err
 		}
@@ -351,9 +354,9 @@ func (l *Locatr) persistCache() error {
 //   - completion: Output structure to populate with cache results
 //
 // Returns error if no valid cached locators are found.
-func (l *Locatr) processCacheRequest(request string, completion *types.LocatrCompletion) error {
+func (l *Locatr) processCacheRequest(ctx context.Context, request string, completion *types.LocatrCompletion) error {
 	l.config.logger.Info("Searching for locators in cache")
-	url, err := l.plugin.GetCurrentContext()
+	url, err := l.plugin.GetCurrentContext(ctx)
 	if err != nil && url == nil {
 		return errors.New("couldn't get current context")
 	}
@@ -365,7 +368,7 @@ func (l *Locatr) processCacheRequest(request string, completion *types.LocatrCom
 
 			validLocators := []string{}
 			for _, locator := range entry.Locators {
-				ok, err := l.plugin.IsLocatorValid(locator)
+				ok, err := l.plugin.IsLocatorValid(ctx, locator)
 				if err != nil || !ok {
 					continue
 				}

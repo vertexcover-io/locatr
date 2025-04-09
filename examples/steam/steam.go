@@ -6,13 +6,14 @@ Example on how to use locatr with playwright to interact with steam.
 */
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 )
 
 func main() {
@@ -51,8 +52,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create locatr: %v", err)
 	}
-
-	sBarCompletion, err := locatr.Locate("Search input bar on the steam store.")
+	ctx := context.Background()
+	sBarCompletion, err := locatr.Locate(ctx, "Search input bar on the steam store.")
 	if err != nil {
 		log.Fatalf("could not get search bar locator: %v", err)
 	}
@@ -66,7 +67,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 
-	cStrikeCompletion, err := locatr.Locate("Counter Strike 2 game on the list")
+	cStrikeCompletion, err := locatr.Locate(ctx, "Counter Strike 2 game on the list")
 	if err != nil {
 		log.Fatalf("could not get Counter Strike 2 locator: %v", err)
 		return
@@ -77,7 +78,7 @@ func main() {
 	}
 	time.Sleep(5 * time.Second)
 
-	sysReqCompletion, err := locatr.Locate("System Requirements section on the game page.")
+	sysReqCompletion, err := locatr.Locate(ctx, "System Requirements section on the game page.")
 	if err != nil {
 		log.Fatalf("could not get system requirements locator: %v", err)
 		return

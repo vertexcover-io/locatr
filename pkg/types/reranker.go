@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 // RerankerProvider represents the provider of the reranker.
 type RerankerProvider string
 
@@ -18,5 +20,5 @@ type RerankResult struct {
 
 // RerankerClientInterface defines the interface for a reranker client that can re-rank documents.
 type RerankerClientInterface interface {
-	Rerank(request *RerankRequest) ([]RerankResult, error) // Re-rank documents based on the request
+	Rerank(ctx context.Context, request *RerankRequest) ([]RerankResult, error) // Re-rank documents based on the request
 }

@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vertexcover-io/locatr/golang/internal/constants"
+	"github.com/vertexcover-io/locatr/pkg/internal/constants"
 )
 
 // splitWithSeparator splits text into chunks using a regular expression separator.

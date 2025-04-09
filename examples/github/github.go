@@ -5,13 +5,14 @@ package main
 Example on how to use locatr with playwright to interact with github.
 */
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
-	locatr "github.com/vertexcover-io/locatr/golang"
-	"github.com/vertexcover-io/locatr/golang/plugins"
+	locatr "github.com/vertexcover-io/locatr/pkg"
+	"github.com/vertexcover-io/locatr/pkg/plugins"
 )
 
 func main() {
@@ -48,8 +49,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create locatr: %v", err)
 	}
-
-	cDropDownCompletion, err := locatr.Locate("<> Code dropdown")
+	ctx := context.Background()
+	cDropDownCompletion, err := locatr.Locate(ctx, "<> Code dropdown")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 		return
@@ -59,7 +60,7 @@ func main() {
 		return
 	}
 
-	dZipCompletion, err := locatr.Locate("Download ZIP button on the opened dropdown")
+	dZipCompletion, err := locatr.Locate(ctx, "Download ZIP button on the opened dropdown")
 	if err != nil {
 		log.Fatalf("could not get download ZIP locator: %v", err)
 		return
