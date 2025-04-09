@@ -31,8 +31,8 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv --directory ipc/python_client sync
 
       - name: run test
-        run: uv run --frozen pytest
+        run: uv --directory ipc/python_client run --frozen pytest
 
