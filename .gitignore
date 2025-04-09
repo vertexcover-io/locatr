@@ -1,3 +1,7 @@
+highlighted.png
+appium-test*
+locatr-logs.jsonl
+
 # Coverage files
 coverage.out
 coverage.html

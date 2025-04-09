@@ -13,8 +13,7 @@ class SocketInitializationError(Exception):
         super().__init__(message)
 
 
-class LocatrSocketIsNone(Exception):
-    ...
+class LocatrSocketIsNone(Exception): ...
 
 
 class LocatrInitialHandshakeFailed(Exception):

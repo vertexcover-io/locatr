@@ -4,17 +4,17 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 include = [
-  "python_client/*",
+  "*",
   "LICENSE",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["python_client/locatr"]
+packages = ["locatr"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-	"python_client/locatr/bin/locatr.bin",
-	"python_client/",
+	"locatr/bin/locatr.bin",
+	"locatr",
 ]
 ignore-vcs = true
 exclude = [
@@ -25,7 +25,7 @@ exclude = [
 name = "test_locatr"
 version = "0.42.0"
 description = "Get HTML/XML elements css/xpath selectors using natural language."
-readme = "python_client/README.md"
+readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "pydantic>=2.10.4",
@@ -33,7 +33,7 @@ dependencies = [
 authors = [{ name = "Neeraj319", email = "neeraj@vertexcover.io"}]
 include = [
     "LICENSE",
-    "python_client/locatr/bin/locatr.bin"
+    "locatr/bin/locatr.bin"
 ]
 license = "MIT"
 
@@ -49,11 +49,11 @@ dev = [
 line-length = 80
 
 [tool.pytest.ini_options]
-pythonpath = ["./python_client"]
+pythonpath = ["."]
 
 [tool.coverage.run]
-source = ["python_client/locatr"]
-omit = ["python_client/tests/*"]
+source = ["locatr"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 exclude_lines = [
