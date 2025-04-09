@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -80,7 +81,7 @@ func (plugin *seleniumPlugin) evaluateExpression(expression string, args ...any)
 
 // GetCurrentContext returns the current page URL.
 // Returns an empty string if the URL cannot be retrieved.
-func (plugin *seleniumPlugin) GetCurrentContext() (*string, error) {
+func (plugin *seleniumPlugin) GetCurrentContext(ctx context.Context) (*string, error) {
 	value, err := (*plugin.driver).CurrentURL()
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (plugin *seleniumPlugin) GetCurrentContext() (*string, error) {
 //   - A mapping of elements to their CSS selectors
 //
 // Returns the processed DOM structure and any error that occurred during extraction.
-func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
+func (plugin *seleniumPlugin) GetMinifiedDOM(ctx context.Context) (*types.DOM, error) {
 	result, err := plugin.evaluateExpression("minifyHTML()")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get minified DOM: %v", err)
@@ -125,7 +126,7 @@ func (plugin *seleniumPlugin) GetMinifiedDOM() (*types.DOM, error) {
 }
 
 // ExtractFirstUniqueID extracts the first unique ID from the given fragment.
-func (plugin *seleniumPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
+func (plugin *seleniumPlugin) ExtractFirstUniqueID(ctx context.Context, fragment string) (string, error) {
 	return utils.ExtractFirstUniqueHTMLID(fragment)
 }
 
@@ -137,7 +138,7 @@ func (plugin *seleniumPlugin) ExtractFirstUniqueID(fragment string) (string, err
 // Returns:
 //   - bool: true if the locator exists in the DOM, false otherwise
 //   - error: any error that occurred during validation
-func (plugin *seleniumPlugin) IsLocatorValid(locator string) (bool, error) {
+func (plugin *seleniumPlugin) IsLocatorValid(ctx context.Context, locator string) (bool, error) {
 	value, err := plugin.evaluateExpression("isLocatorValid(arguments[0])", locator)
 	if err != nil {
 		return false, err
@@ -159,7 +160,7 @@ const calcViewportSizeSnippet string = `{
 //   - height: Desired viewport height in pixels
 //
 // Returns an error if the window resize operation fails.
-func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
+func (plugin *seleniumPlugin) SetViewportSize(ctx context.Context, width, height int) error {
 	handle, err := (*plugin.driver).CurrentWindowHandle()
 	if err != nil {
 		return err
@@ -190,7 +191,7 @@ func (plugin *seleniumPlugin) SetViewportSize(width, height int) error {
 
 // TakeScreenshot captures the current viewport as a PNG image using Selenium's Screenshot API.
 // Returns the screenshot as a byte array and any error that occurred during capture.
-func (plugin *seleniumPlugin) TakeScreenshot() ([]byte, error) {
+func (plugin *seleniumPlugin) TakeScreenshot(ctx context.Context) ([]byte, error) {
 	bytes, err := (*plugin.driver).Screenshot()
 	if err != nil {
 		return nil, fmt.Errorf("could not take screenshot: %v", err)
@@ -204,7 +205,7 @@ func (plugin *seleniumPlugin) TakeScreenshot() ([]byte, error) {
 //   - location: The location of the element to get the locators from
 //
 // Returns an array of CSS selectors for elements found at the specified point.
-func (plugin *seleniumPlugin) GetElementLocators(location *types.Location) ([]string, error) {
+func (plugin *seleniumPlugin) GetElementLocators(ctx context.Context, location *types.Location) ([]string, error) {
 	if location == nil {
 		return nil, errors.New("location is required")
 	}
@@ -225,7 +226,7 @@ func (plugin *seleniumPlugin) GetElementLocators(location *types.Location) ([]st
 //   - locator: The CSS selector identifying the target element
 //
 // Returns the location of the element and any error that occurred during retrieval.
-func (plugin *seleniumPlugin) GetElementLocation(locator string) (*types.Location, error) {
+func (plugin *seleniumPlugin) GetElementLocation(ctx context.Context, locator string) (*types.Location, error) {
 	result, err := plugin.evaluateExpression(
 		"getLocation(arguments[0])", locator,
 	)

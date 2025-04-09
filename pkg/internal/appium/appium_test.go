@@ -1,6 +1,7 @@
 package appium
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -18,10 +19,15 @@ type AppiumTestSuite struct {
 
 func (s *AppiumTestSuite) SetupTest() {
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Default 200 OK response for session validation
 		w.WriteHeader(http.StatusOK)
 		err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"value": "NATIVE_APP",
+			"value": map[string]interface{}{
+				"platformName":   "Android",
+				"automationName": "UiAutomator2",
+				"deviceName":     "test-device",
+				"appPackage":     "com.test.app",
+				"appActivity":    "MainActivity",
+			},
 		})
 		s.Require().NoError(err)
 	}))
@@ -42,6 +48,10 @@ func TestAppiumSuite(t *testing.T) {
 func (s *AppiumTestSuite) TestNewClient_Success() {
 	assert.NotNil(s.T(), s.client)
 	assert.Equal(s.T(), "test-session-id", s.client.sessionId)
+	caps := s.client.Capabilities
+	assert.Equal(s.T(), "Android", caps.PlatformName)
+	assert.Equal(s.T(), "UiAutomator2", caps.AutomationName)
+	assert.Equal(s.T(), "test-device", caps.DeviceName)
 }
 
 func (s *AppiumTestSuite) TestNewClient_InvalidURL() {
@@ -67,7 +77,7 @@ func (s *AppiumTestSuite) TestExecuteScript() {
 		s.Require().NoError(err)
 	})
 
-	result, err := s.client.ExecuteScript("test script", []interface{}{})
+	result, err := s.client.ExecuteScript(context.Background(), "test script", []any{})
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "script result", result)
 }
@@ -83,7 +93,7 @@ func (s *AppiumTestSuite) TestGetCurrentViewContext() {
 		s.Require().NoError(err)
 	})
 
-	context, err := s.client.GetCurrentViewContext()
+	context, err := s.client.GetCurrentViewContext(context.Background())
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "WEBVIEW_1", context)
 }
@@ -108,7 +118,7 @@ func (s *AppiumTestSuite) TestIsWebView() {
 				s.Require().NoError(err)
 			})
 
-			result := s.client.IsWebView()
+			result := s.client.IsWebView(context.Background())
 			assert.Equal(t, tc.expectedResult, result)
 		})
 	}
@@ -125,7 +135,7 @@ func (s *AppiumTestSuite) TestGetPageSource() {
 		s.Require().NoError(err)
 	})
 
-	source, err := s.client.GetPageSource()
+	source, err := s.client.GetPageSource(context.Background())
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), "<xml>test source</xml>", source)
 }
@@ -188,7 +198,7 @@ func (s *AppiumTestSuite) TestFindElement() {
 				}
 			})
 
-			_, err := s.client.FindElement("", tc.locator)
+			_, err := s.client.FindElement(context.Background(), "", tc.locator)
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
@@ -196,30 +206,6 @@ func (s *AppiumTestSuite) TestFindElement() {
 			}
 		})
 	}
-}
-
-func (s *AppiumTestSuite) TestGetCapabilities() {
-	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(s.T(), "/session/test-session-id", r.URL.Path)
-		assert.Equal(s.T(), http.MethodGet, r.Method)
-
-		err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"value": map[string]interface{}{
-				"platformName":   "Android",
-				"automationName": "UiAutomator2",
-				"deviceName":     "test-device",
-				"appPackage":     "com.test.app",
-				"appActivity":    "MainActivity",
-			},
-		})
-		s.Require().NoError(err)
-	})
-
-	caps, err := s.client.GetCapabilities()
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), "Android", caps.Value.PlatformName)
-	assert.Equal(s.T(), "UiAutomator2", caps.Value.AutomationName)
-	assert.Equal(s.T(), "test-device", caps.Value.DeviceName)
 }
 
 func (s *AppiumTestSuite) TestGetCurrentActivity() {
@@ -236,7 +222,7 @@ func (s *AppiumTestSuite) TestGetCurrentActivity() {
 		s.Require().NoError(err)
 	})
 
-	activity, err := s.client.GetCurrentActivity()
+	activity, err := s.client.GetCurrentActivity(context.Background())
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), ".MainActivity", activity)
 }
@@ -246,7 +232,7 @@ func (s *AppiumTestSuite) TestExecuteScript_ServerError() {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	result, err := s.client.ExecuteScript("test script", []interface{}{})
+	result, err := s.client.ExecuteScript(context.Background(), "test script", []any{})
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), ErrEvaulatingScriptFailed.Error())
 	assert.Nil(s.T(), result)
@@ -257,7 +243,7 @@ func (s *AppiumTestSuite) TestGetCurrentViewContext_ServerError() {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	context, err := s.client.GetCurrentViewContext()
+	context, err := s.client.GetCurrentViewContext(context.Background())
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), ErrSessionNotActive.Error())
 	assert.Empty(s.T(), context)
@@ -270,7 +256,7 @@ func (s *AppiumTestSuite) TestGetCurrentViewContext_UnmarshalError() {
 		s.Require().NoError(err)
 	})
 
-	context, err := s.client.GetCurrentViewContext()
+	context, err := s.client.GetCurrentViewContext(context.Background())
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "failed to unmarshal response")
 	assert.Empty(s.T(), context)
@@ -281,7 +267,7 @@ func (s *AppiumTestSuite) TestGetPageSource_ServerError() {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	source, err := s.client.GetPageSource()
+	source, err := s.client.GetPageSource(context.Background())
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), ErrSessionNotActive.Error())
 	assert.Empty(s.T(), source)
@@ -294,41 +280,10 @@ func (s *AppiumTestSuite) TestGetPageSource_UnmarshalError() {
 		s.Require().NoError(err)
 	})
 
-	source, err := s.client.GetPageSource()
+	source, err := s.client.GetPageSource(context.Background())
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "failed to unmarshal response")
 	assert.Empty(s.T(), source)
-}
-
-func (s *AppiumTestSuite) TestGetCapabilities_ServerError() {
-	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"value": map[string]interface{}{
-				"error":   "session not found",
-				"message": "A session is either terminated or not started",
-			},
-		})
-		s.Require().NoError(err)
-	})
-
-	caps, err := s.client.GetCapabilities()
-	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "session not found")
-	assert.Nil(s.T(), caps)
-}
-
-func (s *AppiumTestSuite) TestGetCapabilities_UnmarshalError() {
-	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, err := w.Write([]byte(`{"value": invalid_json}`))
-		s.Require().NoError(err)
-	})
-
-	caps, err := s.client.GetCapabilities()
-	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "failed connecting to appium server")
-	assert.Nil(s.T(), caps)
 }
 
 func (s *AppiumTestSuite) TestGetCurrentActivity_ServerError() {
@@ -336,7 +291,7 @@ func (s *AppiumTestSuite) TestGetCurrentActivity_ServerError() {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	activity, err := s.client.GetCurrentActivity()
+	activity, err := s.client.GetCurrentActivity(context.Background())
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), ErrSessionNotActive.Error())
 	assert.Empty(s.T(), activity)
@@ -346,7 +301,7 @@ func (s *AppiumTestSuite) TestExecuteScript_ConnectionError() {
 	// Close the server to simulate connection error
 	s.server.Close()
 
-	result, err := s.client.ExecuteScript("test script", []interface{}{})
+	result, err := s.client.ExecuteScript(context.Background(), "test script", []any{})
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), ErrFailedConnectingToAppiumServer.Error())
 	assert.Nil(s.T(), result)

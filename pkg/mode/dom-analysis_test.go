@@ -1,6 +1,7 @@
 package mode
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"testing"
@@ -16,43 +17,43 @@ type MockPlugin struct {
 	mock.Mock
 }
 
-func (m *MockPlugin) GetCurrentContext() (*string, error) {
-	args := m.Called()
+func (m *MockPlugin) GetCurrentContext(ctx context.Context) (*string, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(*string), args.Error(1)
 }
 
-func (m *MockPlugin) GetMinifiedDOM() (*types.DOM, error) {
-	args := m.Called()
+func (m *MockPlugin) GetMinifiedDOM(ctx context.Context) (*types.DOM, error) {
+	args := m.Called(ctx)
 	return args.Get(0).(*types.DOM), args.Error(1)
 }
 
-func (m *MockPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
-	args := m.Called(fragment)
+func (m *MockPlugin) ExtractFirstUniqueID(ctx context.Context, fragment string) (string, error) {
+	args := m.Called(ctx, fragment)
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockPlugin) IsLocatorValid(locator string) (bool, error) {
-	args := m.Called(locator)
+func (m *MockPlugin) IsLocatorValid(ctx context.Context, locator string) (bool, error) {
+	args := m.Called(ctx, locator)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockPlugin) SetViewportSize(width, height int) error {
-	args := m.Called(width, height)
+func (m *MockPlugin) SetViewportSize(ctx context.Context, width, height int) error {
+	args := m.Called(ctx, width, height)
 	return args.Error(0)
 }
 
-func (m *MockPlugin) TakeScreenshot() ([]byte, error) {
-	args := m.Called()
+func (m *MockPlugin) TakeScreenshot(ctx context.Context) ([]byte, error) {
+	args := m.Called(ctx)
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockPlugin) GetElementLocators(location *types.Location) ([]string, error) {
-	args := m.Called(location)
+func (m *MockPlugin) GetElementLocators(ctx context.Context, location *types.Location) ([]string, error) {
+	args := m.Called(ctx, location)
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m *MockPlugin) GetElementLocation(locator string) (*types.Location, error) {
-	args := m.Called(locator)
+func (m *MockPlugin) GetElementLocation(ctx context.Context, locator string) (*types.Location, error) {
+	args := m.Called(ctx, locator)
 	return args.Get(0).(*types.Location), args.Error(1)
 }
 
@@ -70,8 +71,8 @@ func (m *MockLLMClient) GetModel() string {
 	return args.String(0)
 }
 
-func (m *MockLLMClient) GetJSONCompletion(prompt string, image []byte) (*types.JSONCompletion, error) {
-	args := m.Called(prompt, image)
+func (m *MockLLMClient) GetJSONCompletion(ctx context.Context, prompt string, image []byte) (*types.JSONCompletion, error) {
+	args := m.Called(ctx, prompt, image)
 	return args.Get(0).(*types.JSONCompletion), args.Error(1)
 }
 
@@ -79,25 +80,26 @@ type MockRerankerClient struct {
 	mock.Mock
 }
 
-func (m *MockRerankerClient) Rerank(request *types.RerankRequest) ([]types.RerankResult, error) {
-	args := m.Called(request)
+func (m *MockRerankerClient) Rerank(ctx context.Context, request *types.RerankRequest) ([]types.RerankResult, error) {
+	args := m.Called(ctx, request)
 	return args.Get(0).([]types.RerankResult), args.Error(1)
 }
 
 func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name           string
 		request        string
-		mockSetup      func(*MockPlugin, *MockLLMClient, *MockRerankerClient)
+		mockSetup      func(context.Context, *MockPlugin, *MockLLMClient, *MockRerankerClient)
 		expectedError  string
 		expectedResult []string
 	}{
 		{
 			name:    "successful element identification",
 			request: "find the login button",
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+			mockSetup: func(ctx context.Context, mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
 				// Mock DOM response
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
+				mp.On("GetMinifiedDOM", ctx).Return(&types.DOM{
 					RootElement: &types.ElementSpec{
 						Id: "root",
 						Children: []types.ElementSpec{
@@ -112,7 +114,7 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 				}, nil)
 
 				// Mock reranker response with non-empty results
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{
+				mr.On("Rerank", ctx, mock.Anything).Return([]types.RerankResult{
 					{Index: 0, Score: 0.9},
 				}, nil)
 
@@ -122,7 +124,7 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 					"error":      "",
 				}
 				jsonBytes, _ := json.Marshal(jsonResponse)
-				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
+				ml.On("GetJSONCompletion", ctx, mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: string(jsonBytes),
 					LLMCompletionMeta: types.LLMCompletionMeta{
 						InputTokens:  100,
@@ -135,13 +137,13 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 		{
 			name:    "no element found",
 			request: "find nonexistent element",
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
+			mockSetup: func(ctx context.Context, mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+				mp.On("GetMinifiedDOM", ctx).Return(&types.DOM{
 					RootElement: &types.ElementSpec{Id: "root"},
 					Metadata:    &types.DOMMetadata{},
 				}, nil)
 
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{
+				mr.On("Rerank", ctx, mock.Anything).Return([]types.RerankResult{
 					{Index: 0, Score: 0.1},
 				}, nil)
 
@@ -150,7 +152,7 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 					"error":      "Element not found",
 				}
 				jsonBytes, _ := json.Marshal(jsonResponse)
-				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
+				ml.On("GetJSONCompletion", ctx, mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: string(jsonBytes),
 				}, nil)
 			},
@@ -159,18 +161,15 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 		{
 			name:    "empty DOM",
 			request: "find button",
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
+			mockSetup: func(ctx context.Context, mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+				mp.On("GetMinifiedDOM", ctx).Return(&types.DOM{
 					RootElement: &types.ElementSpec{},
 					Metadata:    &types.DOMMetadata{},
 				}, nil)
 
-				// Mock reranker to return empty results
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{}, nil)
+				mr.On("Rerank", ctx, mock.Anything).Return([]types.RerankResult{}, nil)
 
-				// Even though we expect early return, we still need to mock this
-				// because the code might try to call it before checking chunks length
-				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
+				ml.On("GetJSONCompletion", ctx, mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: `{"element_id": "", "error": "No DOM content available"}`,
 				}, nil)
 			},
@@ -185,8 +184,8 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 			mockLLM := new(MockLLMClient)
 			mockReranker := new(MockRerankerClient)
 
-			// Setup mocks
-			tt.mockSetup(mockPlugin, mockLLM, mockReranker)
+			// Setup mocks with context
+			tt.mockSetup(ctx, mockPlugin, mockLLM, mockReranker)
 
 			// Create mode instance
 			mode := &DOMAnalysisMode{
@@ -198,8 +197,9 @@ func TestDOMAnalysisMode_ProcessRequest(t *testing.T) {
 			// Create completion object
 			completion := &types.LocatrCompletion{}
 
-			// Execute
+			// Execute with context
 			err := mode.ProcessRequest(
+				ctx,
 				tt.request,
 				mockPlugin,
 				mockLLM,

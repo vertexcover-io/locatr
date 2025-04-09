@@ -60,7 +60,7 @@ func WithLogger(logger *slog.Logger) Option {
 // It provides document reranking capabilities using the configured reranker provider.
 type rerankerClient struct {
 	config  *config
-	handler func(request *types.RerankRequest) ([]types.RerankResult, error)
+	handler func(ctx context.Context, request *types.RerankRequest) ([]types.RerankResult, error)
 }
 
 // NewRerankerClient creates a new instance of the reranker client.
@@ -87,11 +87,12 @@ func NewRerankerClient(opts ...Option) (*rerankerClient, error) {
 		cfg.logger = logging.DefaultLogger
 	}
 
-	var handler func(request *types.RerankRequest) ([]types.RerankResult, error)
+	var handler func(ctx context.Context, request *types.RerankRequest) ([]types.RerankResult, error)
 	switch cfg.provider {
 	case Cohere:
-		handler = func(request *types.RerankRequest) ([]types.RerankResult, error) {
+		handler = func(ctx context.Context, request *types.RerankRequest) ([]types.RerankResult, error) {
 			return requestCohere(
+				ctx,
 				cohereclient.NewClient(cohereclient.WithToken(cfg.apiKey)),
 				cfg.model,
 				request,
@@ -132,12 +133,12 @@ func DefaultRerankerClient(logger *slog.Logger) (*rerankerClient, error) {
 	return NewRerankerClient(options...)
 }
 
-func (client *rerankerClient) Rerank(request *types.RerankRequest) ([]types.RerankResult, error) {
+func (client *rerankerClient) Rerank(ctx context.Context, request *types.RerankRequest) ([]types.RerankResult, error) {
 	topic := fmt.Sprintf(
 		"[Reranker] provider: %v, model: %v", client.config.provider, client.config.model,
 	)
 	defer logging.CreateTopic(topic, client.config.logger)()
-	return client.handler(request)
+	return client.handler(ctx, request)
 }
 
 // requestCohere handles API requests to Cohere's reranking API.
@@ -150,7 +151,7 @@ func (client *rerankerClient) Rerank(request *types.RerankRequest) ([]types.Rera
 // Returns:
 //   - []RerankResult: Sorted list of documents with relevance scores
 //   - error: If the reranking operation fails
-func requestCohere(client *cohereclient.Client, model string, request *types.RerankRequest) ([]types.RerankResult, error) {
+func requestCohere(ctx context.Context, client *cohereclient.Client, model string, request *types.RerankRequest) ([]types.RerankResult, error) {
 	// Convert documents to Cohere's expected format
 	rerankDocs := []*cohere.RerankRequestDocumentsItem{}
 	for _, doc := range request.Documents {
@@ -161,7 +162,7 @@ func requestCohere(client *cohereclient.Client, model string, request *types.Rer
 
 	// Call Cohere's rerank API
 	response, err := client.Rerank(
-		context.Background(),
+		ctx,
 		&cohere.RerankRequest{
 			Query:     request.Query,
 			Model:     &model,

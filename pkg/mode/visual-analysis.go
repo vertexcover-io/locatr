@@ -1,6 +1,7 @@
 package mode
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,6 +50,7 @@ type VisualAnalysisMode struct {
 const deviceScaleFactorWarning = "Device scale factor != 1.0 may affect viewport sizing and element location. Use '--force-device-scale-factor=1' when creating driver."
 
 func (m *VisualAnalysisMode) ProcessRequest(
+	ctx context.Context,
 	request string,
 	plugin types.PluginInterface,
 	llmClient types.LLMClientInterface,
@@ -70,7 +72,7 @@ func (m *VisualAnalysisMode) ProcessRequest(
 
 	m.applyDefaults()
 
-	dom, err := plugin.GetMinifiedDOM()
+	dom, err := plugin.GetMinifiedDOM(ctx)
 	if err != nil {
 		return err
 	}
@@ -79,6 +81,7 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	)
 
 	results, err := rerankerClient.Rerank(
+		ctx,
 		&types.RerankRequest{
 			Query: request, Documents: domChunks, TopN: m.MaxAttempts,
 		},
@@ -101,23 +104,23 @@ func (m *VisualAnalysisMode) ProcessRequest(
 	for attempt, chunk := range domChunks {
 		logger.Info("Attempt number", "attempt", attempt+1)
 
-		id, err := plugin.ExtractFirstUniqueID(chunk)
+		id, err := plugin.ExtractFirstUniqueID(ctx, chunk)
 		if err != nil {
 			logger.Error("couldn't extract first unique id", "error", err)
 			continue
 		}
-		if err := plugin.SetViewportSize(m.Resolution.Width, m.Resolution.Height); err != nil {
+		if err := plugin.SetViewportSize(ctx, m.Resolution.Width, m.Resolution.Height); err != nil {
 			logger.Error("couldn't set viewport size", "error", err)
 			continue
 		}
 
 		locator := locatorMap[id][0]
-		chunkLocation, err := plugin.GetElementLocation(locator)
+		chunkLocation, err := plugin.GetElementLocation(ctx, locator)
 		if err != nil {
 			logger.Error("couldn't find chunk on the page", "error", err)
 			continue
 		}
-		screenshotBytes, err := plugin.TakeScreenshot()
+		screenshotBytes, err := plugin.TakeScreenshot(ctx)
 		if err != nil {
 			logger.Error("couldn't take screenshot", "error", err)
 			continue
@@ -130,7 +133,7 @@ func (m *VisualAnalysisMode) ProcessRequest(
 			request,
 		)
 
-		jsonCompletion, err := llmClient.GetJSONCompletion(prompt, screenshotBytes)
+		jsonCompletion, err := llmClient.GetJSONCompletion(ctx, prompt, screenshotBytes)
 		completion.InputTokens += jsonCompletion.InputTokens
 		completion.OutputTokens += jsonCompletion.OutputTokens
 		if err != nil {
@@ -171,10 +174,13 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		}
 
 		elementPoint := types.Point{X: xCoord, Y: yCoord}
-		locators, err := plugin.GetElementLocators(&types.Location{
-			Point:          elementPoint,
-			ScrollPosition: chunkLocation.ScrollPosition,
-		})
+		locators, err := plugin.GetElementLocators(
+			ctx,
+			&types.Location{
+				Point:          elementPoint,
+				ScrollPosition: chunkLocation.ScrollPosition,
+			},
+		)
 		if err != nil {
 			logger.Error("couldn't get element locators", "error", err)
 			continue

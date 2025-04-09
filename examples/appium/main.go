@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -21,7 +22,7 @@ func main() {
 		log.Fatal("failed creating appium locatr locatr", err)
 	}
 	desc := "This input element is designed for password entry, indicated by its type attribute set to \"password,\" which obscures the text entered for privacy. It requires user input, as denoted by the \"required\" attribute, ensuring that users do not submit the form without filling out this field. The placeholder text prompts users to \"Enter your password,\" guiding them on the expected input. This input is commonly used within forms where sensitive data is collected, such as registration or login forms."
-	completion, err := locatr.Locate(desc)
+	completion, err := locatr.Locate(context.Background(), desc)
 	if err != nil {
 		fmt.Println("error getting locatr", err)
 	}

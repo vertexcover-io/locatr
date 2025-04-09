@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -27,12 +28,12 @@ var VERSION = []uint8{0, 0, 1}
 
 var clientAndLocatrs = make(map[string]*locatr.Locatr)
 
-func handleLocatrRequest(message incomingMessage) (*types.LocatrCompletion, error) {
+func handleLocatrRequest(ctx context.Context, message incomingMessage) (*types.LocatrCompletion, error) {
 	locatr, ok := clientAndLocatrs[message.ClientId]
 	if !ok {
 		return nil, fmt.Errorf("%v of id: %s", ErrClientNotInstantiated, message.ClientId)
 	}
-	completion, err := locatr.Locate(message.UserRequest)
+	completion, err := locatr.Locate(ctx, message.UserRequest)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", ErrFailedToRetrieveLocatr, err)
 	}
@@ -189,6 +190,8 @@ func acceptConnection(fd net.Conn, logger *slog.Logger) {
 
 		defer delete(clientAndLocatrs, clientMessage.ClientId)
 
+		ctx := context.Background()
+
 		switch clientMessage.Type {
 		case "initial_handshake":
 			err := handleInitialHandshake(clientMessage, logger)
@@ -221,7 +224,7 @@ func acceptConnection(fd net.Conn, logger *slog.Logger) {
 			logger.Info("Initial handshake successful with client",
 				"clientId", clientMessage.ClientId)
 		case "locatr_request":
-			locatrOutput, err := handleLocatrRequest(clientMessage)
+			locatrOutput, err := handleLocatrRequest(ctx, clientMessage)
 			if err != nil {
 				errResp := outgoingMessage{
 					Type:      clientMessage.Type,

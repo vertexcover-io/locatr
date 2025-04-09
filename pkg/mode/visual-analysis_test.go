@@ -1,6 +1,7 @@
 package mode
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"testing"
@@ -15,11 +16,12 @@ import (
 // MockPlugin, MockLLMClient, and MockRerankerClient implementations...
 
 func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name           string
 		request        string
 		resolution     *types.Resolution
-		mockSetup      func(*MockPlugin, *MockLLMClient, *MockRerankerClient)
+		mockSetup      func(context.Context, *MockPlugin, *MockLLMClient, *MockRerankerClient)
 		expectedError  string
 		expectedResult []string
 	}{
@@ -30,12 +32,12 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				Width:  1280,
 				Height: 800,
 			},
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+			mockSetup: func(ctx context.Context, mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
 				// Add this mock for ExtractFirstUniqueID
-				mp.On("ExtractFirstUniqueID", mock.AnythingOfType("string")).Return("button-123", nil)
+				mp.On("ExtractFirstUniqueID", ctx, mock.AnythingOfType("string")).Return("button-123", nil)
 
 				// Mock DOM response
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
+				mp.On("GetMinifiedDOM", ctx).Return(&types.DOM{
 					RootElement: &types.ElementSpec{
 						Id: "root",
 						Children: []types.ElementSpec{
@@ -50,21 +52,21 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				}, nil)
 
 				// Mock reranker response
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{
+				mr.On("Rerank", ctx, mock.Anything).Return([]types.RerankResult{
 					{Index: 0, Score: 0.9},
 				}, nil)
 
 				// Mock viewport setup
-				mp.On("SetViewportSize", 1280, 800).Return(nil)
+				mp.On("SetViewportSize", ctx, 1280, 800).Return(nil)
 
 				// Mock element location
-				mp.On("GetElementLocation", "//*[@id='submit-button']").Return(&types.Location{
+				mp.On("GetElementLocation", ctx, "//*[@id='submit-button']").Return(&types.Location{
 					Point:          types.Point{X: 100, Y: 100},
 					ScrollPosition: types.Point{X: 0, Y: 0},
 				}, nil)
 
 				// Mock screenshot
-				mp.On("TakeScreenshot").Return([]byte("mock-screenshot"), nil)
+				mp.On("TakeScreenshot", ctx).Return([]byte("mock-screenshot"), nil)
 
 				// Mock LLM response
 				jsonResponse := map[string]string{
@@ -72,7 +74,7 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 					"error":         "",
 				}
 				jsonBytes, _ := json.Marshal(jsonResponse)
-				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
+				ml.On("GetJSONCompletion", ctx, mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: string(jsonBytes),
 					LLMCompletionMeta: types.LLMCompletionMeta{
 						InputTokens:  100,
@@ -81,7 +83,7 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				}, nil)
 
 				// Mock element locators from point
-				mp.On("GetElementLocators", mock.MatchedBy(func(loc *types.Location) bool {
+				mp.On("GetElementLocators", ctx, mock.MatchedBy(func(loc *types.Location) bool {
 					return loc.Point.X == 150 && loc.Point.Y == 200
 				})).Return([]string{"//*[@id='submit-button']"}, nil)
 			},
@@ -94,12 +96,12 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 				Width:  1280,
 				Height: 800,
 			},
-			mockSetup: func(mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
+			mockSetup: func(ctx context.Context, mp *MockPlugin, ml *MockLLMClient, mr *MockRerankerClient) {
 				// Add this mock for ExtractFirstUniqueID
-				mp.On("ExtractFirstUniqueID", mock.AnythingOfType("string")).Return("button-123", nil)
+				mp.On("ExtractFirstUniqueID", ctx, mock.AnythingOfType("string")).Return("button-123", nil)
 
-				// Mock DOM response with valid ID that matches the chunk
-				mp.On("GetMinifiedDOM").Return(&types.DOM{
+				// Mock DOM response
+				mp.On("GetMinifiedDOM", ctx).Return(&types.DOM{
 					RootElement: &types.ElementSpec{
 						Id: "root",
 						Children: []types.ElementSpec{
@@ -113,25 +115,24 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 					},
 				}, nil)
 
-				// Mock reranker to return chunk containing the button-123 ID
-				mr.On("Rerank", mock.Anything).Return([]types.RerankResult{
+				// Mock reranker
+				mr.On("Rerank", ctx, mock.Anything).Return([]types.RerankResult{
 					{Index: 0, Score: 0.8},
 				}, nil)
 
-				// These calls will now be made because we have a valid ID
-				mp.On("SetViewportSize", 1280, 800).Return(nil)
-				mp.On("GetElementLocation", "//*[@id='button']").Return(&types.Location{
+				mp.On("SetViewportSize", ctx, 1280, 800).Return(nil)
+				mp.On("GetElementLocation", ctx, "//*[@id='button']").Return(&types.Location{
 					Point:          types.Point{X: 100, Y: 100},
 					ScrollPosition: types.Point{X: 0, Y: 0},
 				}, nil)
-				mp.On("TakeScreenshot").Return([]byte("mock-screenshot"), nil)
+				mp.On("TakeScreenshot", ctx).Return([]byte("mock-screenshot"), nil)
 
 				jsonResponse := map[string]string{
 					"element_point": "invalid,coords",
 					"error":         "",
 				}
 				jsonBytes, _ := json.Marshal(jsonResponse)
-				ml.On("GetJSONCompletion", mock.Anything, mock.Anything).Return(&types.JSONCompletion{
+				ml.On("GetJSONCompletion", ctx, mock.Anything, mock.Anything).Return(&types.JSONCompletion{
 					JSON: string(jsonBytes),
 				}, nil)
 			},
@@ -146,8 +147,8 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 			mockLLM := new(MockLLMClient)
 			mockReranker := new(MockRerankerClient)
 
-			// Setup mocks
-			tt.mockSetup(mockPlugin, mockLLM, mockReranker)
+			// Setup mocks with context
+			tt.mockSetup(ctx, mockPlugin, mockLLM, mockReranker)
 
 			// Create mode instance
 			mode := &VisualAnalysisMode{
@@ -158,8 +159,9 @@ func TestVisualAnalysisMode_ProcessRequest(t *testing.T) {
 			// Create completion object
 			completion := &types.LocatrCompletion{}
 
-			// Execute
+			// Execute with context
 			err := mode.ProcessRequest(
+				ctx,
 				tt.request,
 				mockPlugin,
 				mockLLM,

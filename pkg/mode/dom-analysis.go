@@ -1,6 +1,7 @@
 package mode
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,6 +51,7 @@ type DOMAnalysisMode struct {
 }
 
 func (m *DOMAnalysisMode) ProcessRequest(
+	ctx context.Context,
 	request string,
 	plugin types.PluginInterface,
 	llmClient types.LLMClientInterface,
@@ -59,13 +61,14 @@ func (m *DOMAnalysisMode) ProcessRequest(
 ) error {
 	defer logging.CreateTopic("[Mode] DOM Analysis", logger)()
 	m.applyDefaults()
-	dom, err := plugin.GetMinifiedDOM()
+	dom, err := plugin.GetMinifiedDOM(ctx)
 	if err != nil {
 		return err
 	}
 	domChunks := splitters.SplitHtml(dom.RootElement.Repr(), constants.HTML_SEPARATORS, m.ChunkSize)
 
 	results, err := rerankerClient.Rerank(
+		ctx,
 		&types.RerankRequest{
 			Query: request, Documents: domChunks, TopN: m.MaxAttempts * m.ChunksPerAttempt,
 		},
@@ -101,7 +104,7 @@ func (m *DOMAnalysisMode) ProcessRequest(
 		logger.Info("Attempt number", "attempt", attempt+1)
 
 		prompt := fmt.Sprintf(DOM_ANALYSIS_PROMPT_TEMPLATE, strings.Join(chunks, "\n"), request)
-		jsonCompletion, err := llmClient.GetJSONCompletion(prompt, nil)
+		jsonCompletion, err := llmClient.GetJSONCompletion(ctx, prompt, nil)
 		completion.InputTokens += jsonCompletion.InputTokens
 		completion.OutputTokens += jsonCompletion.OutputTokens
 		if err != nil {

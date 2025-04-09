@@ -1,6 +1,9 @@
 package types
 
-import "log/slog"
+import (
+	"context"
+	"log/slog"
+)
 
 // CacheEntry represents a cache entry for storing locator information.
 type CacheEntry struct {
@@ -20,6 +23,7 @@ type LocatrCompletion struct {
 // LocatrMode defines the interface for a Locatr mode to use for processing requests.
 type LocatrMode interface {
 	ProcessRequest(
+		ctx context.Context,
 		request string,
 		plugin PluginInterface,
 		llmClient LLMClientInterface,

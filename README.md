@@ -246,7 +246,9 @@ locatr, err := locatr.NewLocatr(
 ### Locate an element
 
 ```go
-completion, err := locatr.Locate("Star button")
+completion, err := locatr.Locate(
+    context.Background(), "Star button",
+)
 if err != nil {
     log.Fatalf("failed to locate element: %v", err)
 }
@@ -264,7 +266,11 @@ fmt.Printf("Cost: %v\n", cost)
 ### Highlight the locator
 
 ```go
-imageBytes, err := locatr.Highlight(completion.Locators[0], nil)
+imageBytes, err := locatr.Highlight(
+    context.Background(), 
+    completion.Locators[0], 
+    nil,
+)
 if err != nil {
     log.Fatalf("failed to highlight element: %v", err)
 }

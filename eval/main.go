@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -65,9 +66,9 @@ func getAllYamlFiles(folder string, logger *slog.Logger) ([]string, error) {
 	return res, nil
 }
 
-func runEval(context playwright.BrowserContext, eval *evalConfigYaml, modeString string, logger *slog.Logger) []evalResult {
+func runEval(browserContext playwright.BrowserContext, eval *evalConfigYaml, modeString string, logger *slog.Logger) []evalResult {
 	var results []evalResult = make([]evalResult, 0)
-	page, err := context.NewPage()
+	page, err := browserContext.NewPage()
 	if err != nil {
 		logger.Error("Error creating page", "error", err)
 		return nil
@@ -150,8 +151,8 @@ func runEval(context playwright.BrowserContext, eval *evalConfigYaml, modeString
 		if step.UserRequest == "" {
 			continue
 		}
-
-		completion, err := locatr.Locate(step.UserRequest)
+		ctx := context.Background()
+		completion, err := locatr.Locate(ctx, step.UserRequest)
 		totalCost += completion.CalculateCost(3.0, 15.0)
 		if err != nil {
 			logger.Error("Error getting locator for step", "stepName", step.Name, "error", err)
@@ -170,7 +171,7 @@ func runEval(context playwright.BrowserContext, eval *evalConfigYaml, modeString
 		isSameElement := false
 		var compareErr error
 		for _, expectedLocator := range step.ExpectedLocatrs {
-			isSameElement, compareErr = locatr.Compare(expectedLocator, completion.Locators[0])
+			isSameElement, compareErr = locatr.Compare(ctx, expectedLocator, completion.Locators[0])
 			if compareErr != nil {
 				logger.Error("Error comparing locators", "stepName", step.Name, "error", compareErr, "generatedLocator", completion.Locators[0])
 				continue

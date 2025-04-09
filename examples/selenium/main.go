@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -48,7 +49,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	completion, err := locatr.Locate("First news link in the site.")
+	completion, err := locatr.Locate(context.Background(), "First news link in the site.")
 	if err != nil {
 		log.Fatal(err)
 		return

@@ -6,6 +6,7 @@ Example on how to use locatr without passing the llm client.
 */
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -50,7 +51,7 @@ func main() {
 		log.Fatal("failed creating playwright locatr locatr", err)
 	}
 
-	completion, err := locatr.Locate("Search Docker Hub input field")
+	completion, err := locatr.Locate(context.Background(), "Search Docker Hub input field")
 	if err != nil {
 		log.Fatalf("could not get locator: %v", err)
 	}

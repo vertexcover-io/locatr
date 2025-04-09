@@ -60,21 +60,13 @@ func NewAppiumPlugin(serverUrl string, sessionIdOrCapabilities any) (*appiumPlug
 		return nil, err
 	}
 
-	caps, err := client.GetCapabilities()
-	if err != nil {
-		return nil, err
-	}
-	platFormName := caps.Value.PlatformName
-	if platFormName == "" {
-		platFormName = caps.Value.Cap.PlatformName
-	}
-	platFormName = strings.ToLower(platFormName)
+	platFormName := strings.ToLower(client.Capabilities.PlatformName)
 	if platFormName != "android" && platFormName != "ios" {
 		return nil, fmt.Errorf("'%s' platform is currently not supported", platFormName)
 	}
 
 	plugin := &appiumPlugin{client: client, PlatformName: platFormName}
-	_, _ = plugin.TakeScreenshot() // This will set the original resolution
+	_, _ = plugin.TakeScreenshot(context.Background()) // This will set the original resolution
 	return plugin, nil
 }
 
@@ -84,17 +76,17 @@ func NewAppiumPlugin(serverUrl string, sessionIdOrCapabilities any) (*appiumPlug
 // Parameters:
 //   - expression: The JavaScript code to execute
 //   - args: Optional arguments to pass to the expression
-func (plugin *appiumPlugin) evaluateJSExpression(expression string, args ...any) (any, error) {
+func (plugin *appiumPlugin) evaluateJSExpression(ctx context.Context, expression string, args ...any) (any, error) {
 	// Check if script is already attached
-	isAttached, err := plugin.client.ExecuteScript("return window.locatrScriptAttached === true", []any{})
+	isAttached, err := plugin.client.ExecuteScript(ctx, "return window.locatrScriptAttached === true", []any{})
 	if err != nil || isAttached == nil || !isAttached.(bool) {
-		_, err := plugin.client.ExecuteScript(constants.JS_CONTENT, []any{})
+		_, err := plugin.client.ExecuteScript(ctx, constants.JS_CONTENT, []any{})
 		if err != nil {
 			return nil, fmt.Errorf("could not add JS content: %v", err)
 		}
 	}
 
-	result, err := plugin.client.ExecuteScript(fmt.Sprintf("return %s", expression), args)
+	result, err := plugin.client.ExecuteScript(ctx, fmt.Sprintf("return %s", expression), args)
 	if err != nil {
 		return nil, fmt.Errorf("error evaluating `%v` expression: %v", expression, err)
 	}
@@ -102,8 +94,8 @@ func (plugin *appiumPlugin) evaluateJSExpression(expression string, args ...any)
 }
 
 // minifyHTML retrieves the minified DOM from the current page.
-func (plugin *appiumPlugin) minifyHTML() (*types.DOM, error) {
-	result, err := plugin.evaluateJSExpression("minifyHTML()")
+func (plugin *appiumPlugin) minifyHTML(ctx context.Context) (*types.DOM, error) {
+	result, err := plugin.evaluateJSExpression(ctx, "minifyHTML()")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get minified DOM: %v", err)
 	}
@@ -113,7 +105,7 @@ func (plugin *appiumPlugin) minifyHTML() (*types.DOM, error) {
 		return nil, err
 	}
 
-	result, err = plugin.evaluateJSExpression("createLocatorMap()")
+	result, err = plugin.evaluateJSExpression(ctx, "createLocatorMap()")
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get locator map: %v", err)
 	}
@@ -133,8 +125,8 @@ func (plugin *appiumPlugin) minifyHTML() (*types.DOM, error) {
 }
 
 // minifyXML retrieves the minified DOM from the current page.
-func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
-	pageSource, err := plugin.client.GetPageSource()
+func (plugin *appiumPlugin) minifyXML(ctx context.Context) (*types.DOM, error) {
+	pageSource, err := plugin.client.GetPageSource(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -157,46 +149,46 @@ func (plugin *appiumPlugin) minifyXML() (*types.DOM, error) {
 }
 
 // GetCurrentContext retrieves the current context of the plugin.
-func (plugin *appiumPlugin) GetCurrentContext() (*string, error) {
+func (plugin *appiumPlugin) GetCurrentContext(ctx context.Context) (*string, error) {
 	if plugin.PlatformName != "android" {
 		return nil, fmt.Errorf("cannot read platform '%s' current context", plugin.PlatformName)
 	}
-	if currentActivity, err := plugin.client.GetCurrentActivity(); err != nil {
+	if currentActivity, err := plugin.client.GetCurrentActivity(ctx); err != nil {
 		return &currentActivity, nil
 	}
 	return nil, errors.New("no context found")
 }
 
 // GetMinifiedDOM retrieves the minified DOM from the current page.
-func (plugin *appiumPlugin) GetMinifiedDOM() (*types.DOM, error) {
-	if plugin.client.IsWebView() {
-		return plugin.minifyHTML()
+func (plugin *appiumPlugin) GetMinifiedDOM(ctx context.Context) (*types.DOM, error) {
+	if plugin.client.IsWebView(ctx) {
+		return plugin.minifyHTML(ctx)
 	}
-	return plugin.minifyXML()
+	return plugin.minifyXML(ctx)
 }
 
 // ExtractFirstUniqueID extracts the first unique ID from the given fragment.
-func (plugin *appiumPlugin) ExtractFirstUniqueID(fragment string) (string, error) {
-	if plugin.client.IsWebView() {
+func (plugin *appiumPlugin) ExtractFirstUniqueID(ctx context.Context, fragment string) (string, error) {
+	if plugin.client.IsWebView(ctx) {
 		return utils.ExtractFirstUniqueHTMLID(fragment)
 	}
 	return utils.ExtractFirstUniqueXMLID(fragment)
 }
 
 // IsLocatorValid verifies if the given locator is valid.
-func (plugin *appiumPlugin) IsLocatorValid(locator string) (bool, error) {
+func (plugin *appiumPlugin) IsLocatorValid(ctx context.Context, locator string) (bool, error) {
 	var locatrType string
-	if plugin.client.IsWebView() {
+	if plugin.client.IsWebView(ctx) {
 		locatrType = "css selector"
 	} else {
 		locatrType = "xpath"
 	}
-	_, err := plugin.client.FindElement(locatrType, locator)
+	_, err := plugin.client.FindElement(ctx, locatrType, locator)
 	return err == nil, err
 }
 
 // SetViewportSize sets the viewport size.
-func (plugin *appiumPlugin) SetViewportSize(width, height int) error {
+func (plugin *appiumPlugin) SetViewportSize(ctx context.Context, width, height int) error {
 	// We don't actually set the viewport size, we just
 	// store the resolution for scaling the screenshot
 	plugin.targetResolution = &types.Resolution{Width: width, Height: height}
@@ -204,8 +196,8 @@ func (plugin *appiumPlugin) SetViewportSize(width, height int) error {
 }
 
 // TakeScreenshot captures a screenshot of the current viewport.
-func (plugin *appiumPlugin) TakeScreenshot() ([]byte, error) {
-	base64Image, err := plugin.client.ExecuteScript("mobile: viewportScreenshot", []any{})
+func (plugin *appiumPlugin) TakeScreenshot(ctx context.Context) ([]byte, error) {
+	base64Image, err := plugin.client.ExecuteScript(ctx, "mobile: viewportScreenshot", []any{})
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +303,7 @@ type candidate struct {
 }
 
 // GetElementLocators retrieves locators from a given point and scroll position on the page.
-func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]string, error) {
+func (plugin *appiumPlugin) GetElementLocators(ctx context.Context, location *types.Location) ([]string, error) {
 	// Remap the incoming location to original coordinates.
 	if plugin.targetResolution != nil && plugin.originalResolution != nil {
 		location.Point = *utils.RemapPoint(&location.Point, plugin.originalResolution, plugin.targetResolution)
@@ -344,7 +336,7 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 		}
 	}
 
-	dom, err := plugin.GetMinifiedDOM()
+	dom, err := plugin.GetMinifiedDOM(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +364,7 @@ func (plugin *appiumPlugin) GetElementLocators(location *types.Location) ([]stri
 }
 
 // GetElementLocation retrieves the location of the element associated with the given locator.
-func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location, error) {
+func (plugin *appiumPlugin) GetElementLocation(ctx context.Context, locator string) (*types.Location, error) {
 	var (
 		wg            sync.WaitGroup
 		searchElement func(element *types.ElementSpec)
@@ -397,7 +389,7 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 		}
 	}
 
-	dom, err := plugin.GetMinifiedDOM()
+	dom, err := plugin.GetMinifiedDOM(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -410,8 +402,7 @@ func (plugin *appiumPlugin) GetElementLocation(locator string) (*types.Location,
 		close(resultChan)
 	}()
 
-	// Move the select statement into a timeout context
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	select {
