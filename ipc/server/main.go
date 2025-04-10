@@ -75,6 +75,7 @@ func handleInitialHandshake(message incomingMessage, logger *slog.Logger) error 
 		if err != nil {
 			return fmt.Errorf("unable to create appium plugin: %w", err)
 		}
+		plugin = CachePlugin(plugin)
 	}
 	llmSettings := settings.LlmSettings
 	llmClient, err := llm.NewLLMClient(
