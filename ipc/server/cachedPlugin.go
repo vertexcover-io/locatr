@@ -12,7 +12,7 @@ type cachedPlugin struct {
 	currentContext string
 }
 
-func CachePlugin(plugin types.PluginInterface) types.PluginInterface {
+func NewCachedPlugin(plugin types.PluginInterface) *cachedPlugin {
 	return &cachedPlugin{plugin: plugin}
 }
 
