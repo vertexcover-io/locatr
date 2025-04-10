@@ -78,15 +78,15 @@ func NewAppiumPlugin(serverUrl string, sessionIdOrCapabilities any) (*appiumPlug
 //   - args: Optional arguments to pass to the expression
 func (plugin *appiumPlugin) evaluateJSExpression(ctx context.Context, expression string, args ...any) (any, error) {
 	// Check if script is already attached
-	isAttached, err := plugin.client.ExecuteScript(ctx, "return window.locatrScriptAttached === true", []any{})
+	isAttached, err := plugin.client.ExecuteScript(ctx, "return window.locatrScriptAttached === true")
 	if err != nil || isAttached == nil || !isAttached.(bool) {
-		_, err := plugin.client.ExecuteScript(ctx, constants.JS_CONTENT, []any{})
+		_, err := plugin.client.ExecuteScript(ctx, constants.JS_CONTENT)
 		if err != nil {
 			return nil, fmt.Errorf("could not add JS content: %v", err)
 		}
 	}
 
-	result, err := plugin.client.ExecuteScript(ctx, fmt.Sprintf("return %s", expression), args)
+	result, err := plugin.client.ExecuteScript(ctx, fmt.Sprintf("return %s", expression), args...)
 	if err != nil {
 		return nil, fmt.Errorf("error evaluating `%v` expression: %v", expression, err)
 	}
@@ -153,10 +153,14 @@ func (plugin *appiumPlugin) GetCurrentContext(ctx context.Context) (*string, err
 	if plugin.PlatformName != "android" {
 		return nil, fmt.Errorf("cannot read platform '%s' current context", plugin.PlatformName)
 	}
-	if currentActivity, err := plugin.client.GetCurrentActivity(ctx); err != nil {
+	value, err := plugin.client.ExecuteScript(ctx, "mobile: getCurrentActivity")
+	if err != nil {
+		return nil, err
+	}
+	if currentActivity, ok := value.(string); ok {
 		return &currentActivity, nil
 	}
-	return nil, errors.New("no context found")
+	return nil, fmt.Errorf("couldn't get current activity")
 }
 
 // GetMinifiedDOM retrieves the minified DOM from the current page.
@@ -197,7 +201,7 @@ func (plugin *appiumPlugin) SetViewportSize(ctx context.Context, width, height i
 
 // TakeScreenshot captures a screenshot of the current viewport.
 func (plugin *appiumPlugin) TakeScreenshot(ctx context.Context) ([]byte, error) {
-	base64Image, err := plugin.client.ExecuteScript(ctx, "mobile: viewportScreenshot", []any{})
+	base64Image, err := plugin.client.ExecuteScript(ctx, "mobile: viewportScreenshot")
 	if err != nil {
 		return nil, err
 	}

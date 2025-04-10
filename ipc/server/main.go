@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"sync"
 
 	"net"
 	"os"
@@ -288,12 +289,16 @@ func main() {
 	}
 	defer socket.Close()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	ctx := context.Background()
+	// there is no manual terminate action
+	ctx, _ = signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+
+	var wg sync.WaitGroup
 
 	go func() {
-		sig := <-sigChan
+		sig := <-ctx.Done()
 		logger.Info("Received signal, shutting down...", "signal", sig)
+		wg.Wait()
 
 		if err := os.Remove(socketFilePath); err != nil {
 			logger.Error("Failed to remove socket file", "error", err)
@@ -310,9 +315,13 @@ func main() {
 			logger.Error("Failed accepting socket", "error", err)
 			continue
 		}
+
+		wg.Add(1)
 		go func() {
+			defer client.Close()
+			defer wg.Done()
+
 			acceptConnection(client, logger)
-			client.Close()
 		}()
 	}
 }

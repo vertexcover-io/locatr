@@ -208,25 +208,6 @@ func (s *AppiumTestSuite) TestFindElement() {
 	}
 }
 
-func (s *AppiumTestSuite) TestGetCurrentActivity() {
-	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(s.T(), "/session/test-session-id/appium/device/current_activity", r.URL.Path)
-		assert.Equal(s.T(), http.MethodGet, r.Method)
-
-		// Set proper content type
-		w.Header().Set("Content-Type", "application/json")
-		// Return the response in the exact format expected by getActivityResponse
-		err := json.NewEncoder(w).Encode(&getActivityResponse{
-			Value: ".MainActivity",
-		})
-		s.Require().NoError(err)
-	})
-
-	activity, err := s.client.GetCurrentActivity(context.Background())
-	assert.NoError(s.T(), err)
-	assert.Equal(s.T(), ".MainActivity", activity)
-}
-
 func (s *AppiumTestSuite) TestExecuteScript_ServerError() {
 	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -284,17 +265,6 @@ func (s *AppiumTestSuite) TestGetPageSource_UnmarshalError() {
 	assert.Error(s.T(), err)
 	assert.Contains(s.T(), err.Error(), "failed to unmarshal response")
 	assert.Empty(s.T(), source)
-}
-
-func (s *AppiumTestSuite) TestGetCurrentActivity_ServerError() {
-	s.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
-	activity, err := s.client.GetCurrentActivity(context.Background())
-	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), ErrSessionNotActive.Error())
-	assert.Empty(s.T(), activity)
 }
 
 func (s *AppiumTestSuite) TestExecuteScript_ConnectionError() {
