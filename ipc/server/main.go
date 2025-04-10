@@ -71,6 +71,7 @@ func handleInitialHandshake(message incomingMessage, logger *slog.Logger) error 
 		if err != nil {
 			return fmt.Errorf("could not create selenium plugin: %v", err)
 		}
+		plugin = NewCachedPlugin(plugin)
 	case "appium":
 		plugin, err = plugins.NewAppiumPlugin(settings.AppiumUrl, settings.AppiumSessionId)
 		if err != nil {
