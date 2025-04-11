@@ -135,7 +135,7 @@ func (plugin *appiumPlugin) minifyXML(ctx context.Context) (*types.DOM, error) {
 	if err != nil {
 		return nil, err
 	}
-	locatrMap, err := xml.MapElementsToJson(pageSource, plugin.PlatformName)
+	locatrMap, err := xml.CreateLocatorMap(pageSource, plugin.PlatformName)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +373,7 @@ func (plugin *appiumPlugin) GetElementLocation(ctx context.Context, locator stri
 		wg            sync.WaitGroup
 		searchElement func(element *types.ElementSpec)
 		resultChan    = make(chan *types.ElementSpec, 1)
-		uniqueId      = xml.GenerateUniqueId(locator)
+		uniqueId      = utils.GenerateUniqueId(locator)
 	)
 
 	searchElement = func(element *types.ElementSpec) {
