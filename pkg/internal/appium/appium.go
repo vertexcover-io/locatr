@@ -62,10 +62,6 @@ type findElementRequest struct {
 	Using string `json:"using"`
 }
 
-type getActivityResponse struct {
-	Value string `json:"value"`
-}
-
 var ErrSessionNotActive = errors.New("session not active")
 var ErrCreatingSessionFailed = errors.New("failed creating session")
 var ErrEvaulatingScriptFailed = errors.New("failed evaulating script")
@@ -168,7 +164,7 @@ type resp struct {
 	Value any `json:"value"`
 }
 
-func (c *Client) ExecuteScript(ctx context.Context, script string, args []any) (any, error) {
+func (c *Client) ExecuteScript(ctx context.Context, script string, args ...any) (any, error) {
 	defer logging.CreateTopic("Appium: ExecuteScript", logging.DefaultLogger)()
 
 	bodyJson, err := json.Marshal(map[string]any{"script": script, "args": args})
@@ -275,19 +271,4 @@ func (c *Client) FindElement(ctx context.Context, using, value string) (*string,
 
 	elementId := res["value"]["ELEMENT"]
 	return &elementId, nil
-}
-
-func (c *Client) GetCurrentActivity(ctx context.Context) (string, error) {
-	defer logging.CreateTopic("Appium: GetCurrentActivity", logging.DefaultLogger)()
-
-	response, err := c.httpClient.R().SetResult(&getActivityResponse{}).Get("appium/device/current_activity")
-	if err != nil {
-		return "", fmt.Errorf("%w : %w", ErrFailedConnectingToAppiumServer, err)
-	}
-
-	r := response.Result().(*getActivityResponse)
-	if response.StatusCode() != 200 {
-		return "", fmt.Errorf("%w : %s", ErrSessionNotActive, c.sessionId)
-	}
-	return r.Value, nil
 }

@@ -81,10 +81,10 @@ def log_output(process: Popen[bytes]):
 
 
 def create_packed_message(message_str: str) -> bytes:
-    message_length = len(message_str)
-    version_bytes = bytes(VERSION)
-    packed_data = struct.pack(">3B", *version_bytes) + struct.pack(
-        f">I{message_length}s", message_length, message_str.encode()
+    message_bytes = message_str.encode()
+    message_length = len(message_bytes)
+    packed_data = struct.pack(">3B I", *VERSION, message_length) + struct.pack(
+        f">{message_length}s", message_bytes
     )
     return packed_data
 

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -135,6 +137,11 @@ func SortRerankChunks(chunks []string, results []types.RerankResult) []string {
 	return finalChunks
 }
 
+// XPath to find the first element with a non-empty id attribute.
+// This query looks for any element with an id attribute that's not empty
+// and has either a bounds (android visibility) or visible (ios visibility) attribute
+var visibleXPathQuery = "//*[@id and @id!='' and ((@bounds and @bounds!='') or (@visible and @visible='true'))]"
+
 // ExtractFirstUniqueXMLID finds and returns the first ID attribute from a top-level element in an XML fragment.
 // Parameters:
 //   - xmlFragment: A string containing XML markup to analyze
@@ -157,9 +164,7 @@ func ExtractFirstUniqueXMLID(xmlFragment string) (string, error) {
 		return "", fmt.Errorf("error parsing XML: %w", err)
 	}
 
-	// Use XPath to find the first element with a non-empty id attribute
-	// This query looks for any element with an id attribute that's not empty
-	node := xmlquery.FindOne(doc, "//*[@id and @id!='']")
+	node := xmlquery.FindOne(doc, visibleXPathQuery)
 	if node != nil {
 		return node.SelectAttr("id"), nil
 	}
@@ -307,6 +312,18 @@ func ParseJSON(text string) (string, error) {
 	text = strings.TrimSuffix(text, "```")
 
 	return jsonrepair.JSONRepair(text)
+}
+
+// GenerateUniqueId generates a unique ID from a given string using MD5 hashing.
+//
+// Parameters:
+//   - id: The input string to generate a unique ID from
+//
+// Returns:
+//   - string: The unique ID generated from the input string
+func GenerateUniqueId(id string) string {
+	md5Hash := md5.Sum([]byte(id))
+	return hex.EncodeToString(md5Hash[:])
 }
 
 // ScaleAndPadImage scales an image while maintaining aspect ratio and adds off-white padding to fit the target resolution.
