@@ -2,11 +2,35 @@
 
 Find locators for UI elements in web applications using natural language.
 
-## Installation
-
 ```bash
 go get github.com/vertexcover-io/locatr/pkg
 ```
+
+## TOC
+- [Plugin Support](#plugin-support)
+- [Usage](#usage)
+  - [Initialize an automation plugin](#initialize-an-automation-plugin-of-your-choice)
+    - [Playwright](#playwright)
+    - [Selenium](#selenium)
+    - [Appium](#appium)
+  - [Create a Locatr instance](#create-a-locatr-instance)
+    - [With a custom LLM client](#with-a-custom-llm-client)
+    - [With a custom reranker client](#with-a-custom-reranker-client)
+    - [With a custom mode](#with-a-custom-mode)
+    - [With cache enabled](#with-cache-enabled)
+  - [Locate an element](#locate-an-element)
+  - [Calculate the total cost](#calculate-the-total-cost-of-the-completion)
+  - [Highlight the locator](#highlight-the-locator)
+
+## Plugin Support
+
+> The following table shows the supported modes for each automation plugin.
+
+| Plugin     | DOM Analysis | Visual Analysis |
+|------------|-------------|-----------------|
+| Playwright | ✅          | ✅              |
+| Selenium   | ✅          | ✅              |
+| Appium     | ✅          | ⚠️ Experimental |
 
 ## Usage
 
@@ -61,14 +85,11 @@ if _, err := page.Goto("https://github.com/vertexcover-io/locatr"); err != nil {
 import "github.com/vertexcover-io/locatr/pkg/plugins"
 
 plugin, err := plugins.NewPlaywrightPlugin(&page)
-if err != nil {
-    log.Fatalf("failed to create playwright plugin: %v", err)
-}
 ```
 
 #### Selenium
 
-> Note: Make sure to use `--force-device-scale-factor=1` flag when launching the browser for visual analysis mode to work correctly.
+> Note: Make sure to use `--force-device-scale-factor=1` flag when creating the driver for visual analysis mode to work correctly.
 
 <details>
 <summary>Set up a Selenium driver</summary>
@@ -108,9 +129,6 @@ if err := driver.Get("https://github.com/vertexcover-io/locatr"); err != nil {
 import "github.com/vertexcover-io/locatr/pkg/plugins"
 
 plugin, err := plugins.NewSeleniumPlugin(&driver)
-if err != nil {
-    log.Fatalf("failed to create selenium plugin: %v", err)
-}
 ```
 
 #### Appium
@@ -118,10 +136,7 @@ if err != nil {
 ```go
 import "github.com/vertexcover-io/locatr/pkg/plugins"
 
-plugin, err := plugins.NewAppiumPlugin(
-    "<appium-server-url>", "<appium-session-id>",
-)
-// OR, --- Pass capabilities to create a new session ---
+// --- Pass capabilities to create a new session ---
 plugin, err := plugins.NewAppiumPlugin(
     "<appium-server-url>", 
     map[string]any{
@@ -134,9 +149,10 @@ plugin, err := plugins.NewAppiumPlugin(
         "locale": "US",
     },
 )
-if err != nil {
-    log.Fatalf("failed to create appium plugin: %v", err)
-}
+// OR, --- Connect to an existing session ---
+plugin, err := plugins.NewAppiumPlugin(
+    "<appium-server-url>", "<appium-session-id>",
+)
 ```
 
 ### Create a Locatr instance
@@ -149,19 +165,13 @@ import (
 )
 
 locatr, err := locatr.NewLocatr(plugin)
-if err != nil {
-    log.Fatalf("failed to create locatr: %v", err)
-}
 ```
 
 > By default, anthropic's `claude-3-5-sonnet-latest` LLM and cohere's `rerank-english-v3.0` reranker are used.
 
-<details>
-<summary>Override Default Configuration</summary>
 
----
 
-LLM Client
+#### With a custom LLM client
 
 ```go
 import (
@@ -180,9 +190,7 @@ locatr, err := locatr.NewLocatr(
 )
 ```
 
----
-
-Reranker Client
+#### With a custom reranker client
 
 ```go
 import (
@@ -204,7 +212,7 @@ locatr, err := locatr.NewLocatr(
 
 ---
 
-Mode
+#### With a custom mode
 
 > By default, `mode.DOMAnalysisMode` is used.
 
@@ -227,9 +235,7 @@ locatr, err := locatr.NewLocatr(
 )
 ```
 
----
-
-Enable Cache
+#### With cache enabled
 
 ```go
 import (
