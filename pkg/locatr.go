@@ -34,12 +34,13 @@ type Locatr struct {
 
 // config configures the behavior of the Locatr instance.
 type config struct {
-	llmClient      types.LLMClientInterface
-	rerankerClient types.RerankerClientInterface
-	mode           types.LocatrMode
-	useCache       bool
-	cachePath      string
-	logger         *slog.Logger
+	llmClient       types.LLMClientInterface
+	rerankerClient  types.RerankerClientInterface
+	mode            types.LocatrMode
+	useCache        bool
+	disableReranker bool
+	cachePath       string
+	logger          *slog.Logger
 }
 
 // Option is a function that configures the config.
@@ -49,6 +50,14 @@ type Option func(*config)
 func WithLLMClient(client types.LLMClientInterface) Option {
 	return func(opts *config) {
 		opts.llmClient = client
+	}
+}
+
+// WithRerankerDisabled disables reranking.
+// Only DomAnalysisMode accepts this option
+func WithRerankerDisabled() Option {
+	return func(opts *config) {
+		opts.disableReranker = true
 	}
 }
 
@@ -112,7 +121,11 @@ func NewLocatr(plugin types.PluginInterface, opts ...Option) (*Locatr, error) {
 		cfg.llmClient = llmClient
 	}
 
-	if cfg.rerankerClient == nil {
+	if cfg.disableReranker {
+		cfg.rerankerClient = nil
+	}
+
+	if cfg.rerankerClient == nil && !cfg.disableReranker {
 		rerankerClient, err := reranker.DefaultRerankerClient(cfg.logger)
 		if err != nil {
 			return nil, err
@@ -122,6 +135,13 @@ func NewLocatr(plugin types.PluginInterface, opts ...Option) (*Locatr, error) {
 
 	if cfg.mode == nil {
 		cfg.mode = &mode.DOMAnalysisMode{}
+	}
+
+	// validate that rerank is not null when on visualAnalysisMode
+	if _, ok := cfg.mode.(*mode.VisualAnalysisMode); ok {
+		if cfg.disableReranker {
+			return nil, fmt.Errorf("Reranker cannot be disabled for visual analysis mode")
+		}
 	}
 
 	instance := &Locatr{

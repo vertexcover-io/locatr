@@ -67,16 +67,19 @@ func (m *DOMAnalysisMode) ProcessRequest(
 	}
 	domChunks := splitters.SplitHtml(dom.RootElement.Repr(), constants.HTML_SEPARATORS, m.ChunkSize)
 
-	results, err := rerankerClient.Rerank(
-		ctx,
-		&types.RerankRequest{
-			Query: request, Documents: domChunks, TopN: m.MaxAttempts * m.ChunksPerAttempt,
-		},
-	)
-	if err != nil {
-		return err
+	if rerankerClient != nil {
+		results, err := rerankerClient.Rerank(
+			ctx,
+			&types.RerankRequest{
+				Query: request, Documents: domChunks, TopN: m.MaxAttempts * m.ChunksPerAttempt,
+			},
+		)
+		if err != nil {
+			return err
+		}
+		domChunks = utils.SortRerankChunks(domChunks, results)
 	}
-	domChunks = utils.SortRerankChunks(domChunks, results)
+
 	logger.Info("Max chunks to process", "count", len(domChunks))
 	if len(domChunks) == 0 {
 		return fmt.Errorf("no chunks to process")

@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/antchfx/htmlquery v1.3.4 // indirect
 	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
 	github.com/aws/smithy-go v1.20.3 // indirect

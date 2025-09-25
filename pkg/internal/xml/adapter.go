@@ -1,6 +1,10 @@
 package xml
 
-import "github.com/antchfx/xmlquery"
+import (
+	"strings"
+
+	"github.com/antchfx/xmlquery"
+)
 
 type Document interface {
 	Find(xpath string) []Node
@@ -109,4 +113,17 @@ func (n *XMLNode) Index() int {
 		}
 	}
 	return 1
+}
+
+func IsValidXPath(xpath, dom string) (bool, error) {
+	doc, err := xmlquery.Parse(strings.NewReader(dom))
+	if err != nil {
+		return false, err
+	}
+
+	elem, err := xmlquery.Query(doc, xpath)
+	if err != nil {
+		return false, err
+	}
+	return elem != nil, nil
 }
