@@ -80,6 +80,10 @@ func (m *VisualAnalysisMode) ProcessRequest(
 		dom.RootElement.Repr(), constants.HTML_SEPARATORS, constants.DEFAULT_CHUNK_SIZE,
 	)
 
+	if rerankerClient == nil {
+		return fmt.Errorf("reranker client is required for visual analysis mode")
+	}
+
 	results, err := rerankerClient.Rerank(
 		ctx,
 		&types.RerankRequest{
