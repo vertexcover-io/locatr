@@ -114,7 +114,7 @@ func (plugin *rawTextPlugin) GetMinifiedDOM(ctx context.Context) (*types.DOM, er
 	return plugin.minifyXML()
 }
 
-func (plugin *rawTextPlugin) ExtractFirstUniqueHTMLID(ctx context.Context, fragment string) (string, error) {
+func (plugin *rawTextPlugin) ExtractFirstUniqueID(ctx context.Context, fragment string) (string, error) {
 	if plugin.pageType == HTMLPageType {
 		return utils.ExtractFirstUniqueHTMLID(fragment)
 	}
@@ -149,3 +149,6 @@ func (plugin *rawTextPlugin) GetElementLocators(ctx context.Context, location *t
 func (plugin *rawTextPlugin) GetElementLocation(ctx context.Context, locator string) (*types.Location, error) {
 	return nil, ErrModeNotSupported
 }
+
+// verify that rawTextPlugin does implement PluginInterface
+var _ types.PluginInterface = &rawTextPlugin{}
