@@ -19,7 +19,6 @@ import (
 	"github.com/vertexcover-io/locatr/golang/reranker"
 	"github.com/vertexcover-io/locatr/golang/tracing"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type SelectorType string
@@ -298,9 +297,9 @@ func (l *BaseLocatr) getValidLocator(ctx context.Context, locators []string) ([]
 }
 
 func (l *BaseLocatr) getReRankedChunks(ctx context.Context, htmlDom string, userReq string) ([]string, error) {
-	span := trace.SpanFromContext(ctx)
+	ctx, span := tracing.StartSpan(ctx, "splitting html using reranker")
+	defer span.End()
 
-	span.AddEvent("splitting html using reranker")
 	chunks := reranker.SplitHtml(htmlDom, HTML_SEPARATORS, CHUNK_SIZE)
 	logger.Logger.Debug(fmt.Sprintf("SplitHtml resulted in %d chunks.", len(chunks)))
 	request := reranker.ReRankRequest{
