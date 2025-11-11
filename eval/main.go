@@ -91,7 +91,7 @@ func runEval(browser playwright.Browser, eval *evalConfigYaml) []evalResult {
 				Passed:           false,
 				GeneratedLocatrs: nil,
 				ExpectedLocatrs:  step.ExpectedLocatrs,
-				Error:            err.Error(),
+				Error:            fmt.Sprintf("%v", err),
 			})
 			continue
 		}

@@ -224,7 +224,7 @@ func (l *BaseLocatr) GetLocatorStr(ctx context.Context, userReq string) (*Locatr
 				)...,
 			)
 		}
-		return nil, ErrUnableToLocateElementId
+		return nil, fmt.Errorf("llm generated %d outputs, %w", len(llmOutputs), ErrUnableToLocateElementId)
 	}
 
 	locators, ok := (*locatorsMap)[llmOutputs[len(llmOutputs)-1].LocatorID]
@@ -286,8 +286,8 @@ func (l *BaseLocatr) getValidLocator(ctx context.Context, locators []string) ([]
 		if ok {
 			locatrsToReturn = append(locatrsToReturn, locator)
 			logger.Logger.Debug(fmt.Sprintf("Valid locator found: `%s`", locator))
-		} else {
-			logger.Logger.Debug(fmt.Sprintf("error while checking for valid locatr: %s", err.Error()))
+		} else if err != nil {
+			logger.Logger.Debug(fmt.Sprintf("error while checking for valid locatr: %v", err))
 		}
 	}
 	if len(locatrsToReturn) == 0 {
@@ -360,6 +360,12 @@ func (l *BaseLocatr) getLocatrOutput(ctx context.Context, htmlDOM string, userRe
 		return nil, err
 	}
 	endAt := time.Now()
+
+	if result.LocatorID != "" {
+		logger.Logger.Warn("LLM gave locatorId and error, Using the provided locatorId", slog.String("error", result.Error))
+		result.Error = ""
+	}
+
 	if result.Error == "" {
 		return &locatrOutputDto{
 			llmLocatorOutputDto:      *result,
