@@ -15,7 +15,6 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/tracing"
-	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/validator.v2"
 )
 
@@ -37,7 +36,8 @@ type CdpConnectionOptions struct {
 var ErrUnableToLoadJsScriptsThroughCdp = errors.New("unable to load js script through cdp")
 
 func CreateCdpConnection(ctx context.Context, options CdpConnectionOptions) (*rpcc.Conn, error) {
-	span := trace.SpanFromContext(ctx)
+	ctx, span := tracing.StartSpan(ctx, "createCDPConnection")
+	defer span.End()
 
 	if len(options.HostName) == 0 {
 		options.HostName = "localhost"

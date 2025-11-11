@@ -10,7 +10,6 @@ import (
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/tracing"
 	"github.com/vertexcover-io/selenium"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type seleniumPlugin struct {
@@ -31,7 +30,8 @@ func NewRemoteConnSeleniumLocatr(
 	sessionId string,
 	opt locatr.BaseLocatrOptions,
 ) (*seleniumLocatr, error) {
-	span := trace.SpanFromContext(ctx)
+	_, span := tracing.StartSpan(ctx, "NewRemoteConnSeleniumLocatr")
+	defer span.End()
 
 	span.AddEvent("Connecting to remote selenium")
 
@@ -55,7 +55,8 @@ func NewSeleniumLocatr(
 	driver selenium.WebDriver,
 	options locatr.BaseLocatrOptions,
 ) (*seleniumLocatr, error) {
-	span := trace.SpanFromContext(ctx)
+	_, span := tracing.StartSpan(ctx, "NewSeleniumLocatr")
+	defer span.End()
 
 	span.AddEvent("Connecting to selenium driver")
 	plugin := &seleniumPlugin{

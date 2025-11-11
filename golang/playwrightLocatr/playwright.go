@@ -10,7 +10,6 @@ import (
 	locatr "github.com/vertexcover-io/locatr/golang"
 	"github.com/vertexcover-io/locatr/golang/elementSpec"
 	"github.com/vertexcover-io/locatr/golang/tracing"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type playwrightPlugin struct {
@@ -26,7 +25,8 @@ var ErrUnableToLoadJsScriptsThroughPlaywright = errors.New("unable to load js sc
 
 // NewPlaywrightLocatr creates a new playwright locator. Use the returned struct methods to get locators.
 func NewPlaywrightLocatr(ctx context.Context, page playwright.Page, options locatr.BaseLocatrOptions) *PlaywrightLocator {
-	span := trace.SpanFromContext(ctx)
+	_, span := tracing.StartSpan(ctx, "NewPlaywrightLocatr")
+	defer span.End()
 
 	span.AddEvent("Creating new playwright plugin")
 

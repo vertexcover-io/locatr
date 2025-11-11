@@ -12,7 +12,6 @@ import (
 	"github.com/vertexcover-io/locatr/golang/minifier"
 	"github.com/vertexcover-io/locatr/golang/tracing"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type AppiumClient interface {
@@ -38,9 +37,8 @@ func NewAppiumLocatr(
 	sessionId string,
 	opts locatr.BaseLocatrOptions,
 ) (*appiumLocatr, error) {
-	span := trace.SpanFromContext(ctx)
-
-	span.AddEvent("Connecting to remote appium instance")
+	ctx, span := tracing.StartSpan(ctx, "Connecting to remote appium instance")
+	defer span.End()
 
 	apC, err := appiumClient.NewAppiumCacheClient(ctx, serverUrl, sessionId)
 	if err != nil {
@@ -132,7 +130,8 @@ func (apPlugin *appiumPlugin) htmlMinification(ctx context.Context) (*elementSpe
 }
 
 func (apPlugin *appiumPlugin) xmlMinification(ctx context.Context) (*elementSpec.ElementSpec, *elementSpec.IdToLocatorMap, locatr.SelectorType, error) {
-	span := trace.SpanFromContext(ctx)
+	ctx, span := tracing.StartSpan(ctx, "xmlMinification")
+	defer span.End()
 
 	pageSource, err := apPlugin.client.GetPageSource(ctx)
 	if err != nil {
