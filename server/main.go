@@ -347,7 +347,7 @@ func main() {
 	if err != nil {
 		logger.Logger.Error(
 			"Failed to setup Open Telemetry SDK",
-			slog.String("error", err.Error()),
+			slog.Any("error", err),
 		)
 		os.Exit(1)
 	}
@@ -356,7 +356,7 @@ func main() {
 			err = errors.Join(err, sErr)
 			logger.Logger.Error(
 				"Error while shutting down Open Telemetry service",
-				slog.String("error", err.Error()),
+				slog.Any("error", err),
 			)
 		}
 	}()
